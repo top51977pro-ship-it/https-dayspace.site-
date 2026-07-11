@@ -1,0 +1,20 @@
+StepPulse/
+├── BUILD_APK_WINDOWS.bat       בניית APK בלחיצה ב-Windows
+├── README_HE.md                הוראות מלאות בעברית
+├── PRIVACY_POLICY_HE.md        מדיניות פרטיות
+├── build.gradle.kts            הגדרות Plugins
+├── settings.gradle.kts         הגדרות הפרויקט
+├── gradle.properties
+└── app/
+    ├── build.gradle.kts        תלויות Android/Compose/Health Connect
+    └── src/main/
+        ├── AndroidManifest.xml הרשאות ופעילויות
+        ├── java/com/nevo/steppulse/
+        │   ├── MainActivity.kt
+        │   ├── StepViewModel.kt
+        │   ├── HealthConnectRepository.kt
+        │   ├── SensorStepTracker.kt
+        │   ├── GoalStore.kt
+        │   ├── PermissionsRationaleActivity.kt
+        │   └── ui/theme/
+        └── res/                אייקון, ערכת נושא ומשאבים
