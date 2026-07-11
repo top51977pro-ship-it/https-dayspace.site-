@@ -11,7 +11,7 @@ the app runs entirely client-side inside the WebView.
 ## Prerequisites
 
 - Node 20+ and [Bun](https://bun.sh/)
-- Android Studio + Android SDK (Platform 34+), JDK 17
+- Android Studio + Android SDK (Platform 34+), JDK 21
 
 ## Install
 
