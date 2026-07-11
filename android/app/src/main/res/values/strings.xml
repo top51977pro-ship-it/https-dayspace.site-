@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">הארון שלי</string>
+    <string name="title_activity_main">הארון שלי</string>
+    <string name="package_name">site.dayspace.closetbuddy</string>
+    <string name="custom_url_scheme">site.dayspace.closetbuddy</string>
+</resources>
