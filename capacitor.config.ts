@@ -4,8 +4,8 @@ const config: CapacitorConfig = {
   appId: "site.dayspace.closetbuddy",
   appName: "הארון שלי",
   // Static web assets served inside the Android WebView. `bun run build:mobile`
-  // assembles the client bundle here from the TanStack Start build output.
-  webDir: "dist",
+  // assembles the SPA client bundle here from the TanStack Start build output.
+  webDir: "www",
   android: {
     // Keep IndexedDB / Dexie data stable across updates.
     webContentsDebuggingEnabled: false,

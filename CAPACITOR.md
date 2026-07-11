@@ -29,7 +29,24 @@ This pulls in the Capacitor packages:
 | `@capacitor/device` | detect Samsung devices |
 | `@capacitor/app` | app lifecycle |
 
-## Build & run on Android
+## Get the APK without a computer (GitHub Actions)
+
+A workflow at `.github/workflows/android-apk.yml` builds a debug APK in the
+cloud and publishes it to a GitHub Release, so you can install it straight from
+your phone:
+
+1. On GitHub, open **Actions → Build Android APK → Run workflow** (or just push
+   to the feature branch — it runs automatically).
+2. When it finishes, open the **`android-latest`** release
+   (`.../releases/tag/android-latest`) on your phone and download
+   `closet-buddy-debug.apk`.
+3. Allow "install unknown apps" for your browser if prompted, then open the APK.
+
+The APK is a debug build (signed with the standard Android debug key) — fine for
+installing and testing. For a Play Store / release build, sign it with your own
+keystore.
+
+## Build & run on Android (local)
 
 ```bash
 # 1. Build the web bundle and copy it into dist/, then sync into the native project
@@ -45,20 +62,16 @@ Gradle and copies the web assets into `android/app/src/main/assets/public`.
 
 ### webDir / static build
 
-Capacitor loads static assets from `dist/` (`webDir` in `capacitor.config.ts`).
-`scripts/prepare-mobile.mjs` copies the TanStack Start / Nitro client output
-(`.output/public`, falling back to `dist`) into `dist/` and verifies an
-`index.html` entry exists. If your build target does not emit a static SPA
-shell, enable SPA output for the mobile build in `vite.config.ts`, e.g.:
+Capacitor loads static assets from `www/` (`webDir` in `capacitor.config.ts`).
 
-```ts
-export default defineConfig({
-  tanstackStart: {
-    server: { entry: "server" },
-    spa: { enabled: true }, // prerender a static shell for the native WebView
-  },
-});
-```
+`bun run build:mobile` sets `CAP_BUILD=1`, which switches `vite.config.ts` into
+**SPA mode** (`tanstackStart.spa.enabled` + `nitro: false`). TanStack Start then
+prerenders a client-rendered shell to `dist/client/` (as `_shell.html`).
+`scripts/prepare-mobile.mjs` copies `dist/client/` into `www/` and materialises
+`www/index.html` from `_shell.html`.
+
+The default (web/Lovable) build is untouched — without `CAP_BUILD` it still
+targets Nitro/Cloudflare SSR.
 
 ## What was changed in the app
 

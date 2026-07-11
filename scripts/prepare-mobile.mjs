@@ -1,22 +1,20 @@
-// Assembles the static client bundle that Capacitor loads inside the Android
-// WebView into `dist/`. TanStack Start builds through Nitro, so the client
-// assets and prerendered shell land in `.output/public` (or `dist` for a plain
-// Vite SPA build). This copies whichever exists into `dist/` and verifies that
-// an `index.html` entry is present.
-import { cp, mkdir, rm, access, readdir } from "node:fs/promises";
+// Assembles the static SPA bundle that Capacitor loads inside the Android
+// WebView into `www/`.
+//
+// `CAP_BUILD=1 vite build` runs TanStack Start in SPA mode, which emits the
+// client assets and a prerendered shell to `dist/client/` (the shell is named
+// `_shell.html`). Capacitor's WebView loads `index.html`, so this script copies
+// `dist/client/` into `www/` and materialises `index.html` from `_shell.html`.
+import { cp, mkdir, rm, access, readdir, copyFile } from "node:fs/promises";
 import { constants } from "node:fs";
 import path from "node:path";
 import process from "node:process";
 
 const root = process.cwd();
-const OUT = path.join(root, "dist");
+const OUT = path.join(root, "www");
 
-const CANDIDATES = [
-  ".output/public",
-  ".vinxi/build/client",
-  "dist/client",
-  "dist",
-];
+// Preferred build outputs, most-specific first.
+const CANDIDATES = ["dist/client", ".output/public", "dist"];
 
 async function exists(p) {
   try {
@@ -30,11 +28,6 @@ async function exists(p) {
 async function findSource() {
   for (const rel of CANDIDATES) {
     const abs = path.join(root, rel);
-    if (abs === OUT) {
-      // Only accept `dist` itself if it already contains an index.html (plain SPA build).
-      if (await exists(path.join(abs, "index.html"))) return abs;
-      continue;
-    }
     if (await exists(abs)) return abs;
   }
   return null;
@@ -44,28 +37,32 @@ const src = await findSource();
 if (!src) {
   console.error(
     "\n[prepare-mobile] Could not find a built web bundle.\n" +
-      "Run `bun run build` first, then re-run this script.\n" +
+      "Run `bun run build:mobile` (or `CAP_BUILD=1 vite build`) first.\n" +
       `Looked in: ${CANDIDATES.join(", ")}\n`,
   );
   process.exit(1);
 }
 
-if (path.resolve(src) !== path.resolve(OUT)) {
-  await rm(OUT, { recursive: true, force: true });
-  await mkdir(OUT, { recursive: true });
-  await cp(src, OUT, { recursive: true });
+await rm(OUT, { recursive: true, force: true });
+await mkdir(OUT, { recursive: true });
+await cp(src, OUT, { recursive: true });
+
+// TanStack Start SPA mode emits the entry as `_shell.html`; Capacitor needs `index.html`.
+const indexHtml = path.join(OUT, "index.html");
+const shellHtml = path.join(OUT, "_shell.html");
+if (!(await exists(indexHtml)) && (await exists(shellHtml))) {
+  await copyFile(shellHtml, indexHtml);
 }
 
-const hasIndex = await exists(path.join(OUT, "index.html"));
-if (!hasIndex) {
+if (!(await exists(indexHtml))) {
   const entries = await readdir(OUT);
   console.error(
-    "\n[prepare-mobile] Copied assets to dist/ but no index.html was found.\n" +
-      "The Android WebView needs a static SPA entry (index.html).\n" +
-      "Enable SPA/prerender output for the mobile build (see CAPACITOR.md).\n" +
-      `dist/ currently contains: ${entries.join(", ")}\n`,
+    "\n[prepare-mobile] Copied assets to www/ but produced no index.html.\n" +
+      "Expected a prerendered SPA shell (index.html or _shell.html).\n" +
+      "Confirm CAP_BUILD=1 enabled SPA mode (see vite.config.ts / CAPACITOR.md).\n" +
+      `www/ currently contains: ${entries.join(", ")}\n`,
   );
   process.exit(1);
 }
 
-console.log(`[prepare-mobile] Web bundle ready in dist/ (from ${path.relative(root, src) || "."}).`);
+console.log(`[prepare-mobile] Web bundle ready in www/ (from ${path.relative(root, src)}).`);
