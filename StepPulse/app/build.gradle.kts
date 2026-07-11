@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace = "com.nevo.steppulse"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.nevo.steppulse"
