@@ -40,15 +40,18 @@ function diffFor(level){
   const d = (level - 1) / (MAXLEVEL - 1);           // 0..1
   return {
     d,
-    decide:   0.20 - 0.15 * d,      // AI decision cadence (s) — faster when harder
-    tackle:   0.13 + 0.40 * d,      // per-frame tackle win chance in range
-    pressers: d > 0.66 ? 3 : d > 0.33 ? 2 : 1,
-    shotErr:  1.9 * (1 - 0.78 * d), // shot placement error multiplier
-    shotRange:20 + 10 * d,          // how far out the AI will shoot
-    speed:    1 + 0.075 * d,        // slight athletic edge at the top
-    stamina:  1 + 0.6 * d,          // drains slower
-    gkReach:  1.55 + 0.85 * d,      // keeper catch radius
-    aggro:    d,                    // marking tightness / support runs
+    decide:    0.30 - 0.22 * d,     // easy AI thinks slowly; hard AI reacts fast
+    tackleRate:1.3 + 3.2 * d,       // AI steal-attempts/sec when defending YOU
+    stealScale:1 - 0.62 * d,        // multiplier on YOUR steal rate (easy=1, hard≈0.38)
+    pressers:  d > 0.6 ? 3 : d > 0.3 ? 2 : 1,
+    passErr:   0.42 * (1 - d),      // easy AI misplaces passes → loose balls for you
+    passCd:    0.60 - 0.36 * d,     // easy AI dawdles on the ball; hard AI moves it fast
+    shotErr:   2.4 * (1 - 0.8 * d),
+    shotRange: 16 + 13 * d,
+    speed:     0.9 + 0.2 * d,       // easy AI slower than you, hard AI faster
+    stamina:   1 + 0.6 * d,
+    gkReach:   1.25 + 0.95 * d,
+    aggro:     d,
   };
 }
 const BASE = diffFor(4);            // your AI team-mates play at a steady level
@@ -97,7 +100,7 @@ const fx = { flash:0, parts:[], shake:0 };
 
 const move = { x:0, y:0, mag:0 };
 const held = { sprint:false, shoot:false };
-let shootStart = 0, shootCharge = 0, skillFlash = 0;
+let shootStart = 0, shootCharge = 0, skillFlash = 0, autoChase = false;
 
 // ---------------------------------------------------------------- helpers
 function clamp(v,a,b){ return v<a?a:v>b?b:v; }
@@ -185,7 +188,7 @@ function step(dt){
   fx.shake = Math.max(0, fx.shake - dt*3);
 
   if (teamInPossession() === 0){ active = ball.owner; }
-  else if (performance.now()/1000 - lastActiveSwitch > 0.15){ active = nearestHomeToBall(); }
+  else if (performance.now()/1000 - lastActiveSwitch > 0.4){ active = nearestHomeToBall(); }
 
   // precompute defensive press ranking for the team out of possession
   const possTeam = teamInPossession();
@@ -203,6 +206,7 @@ function step(dt){
 
     if (p.idx === active && p.team === 0 && restartLock <= 0){
       if (move.mag > 0.12){ tgt = { x:p.x + move.x*10, y:p.y + move.y*10 }; sprint = held.sprint; }
+      else if (autoChase){ tgt = { x:ball.x, y:ball.y }; sprint = true; }   // test-only pressing
       else tgt = { x:p.x, y:p.y };
     } else if (p.isGK){
       tgt = gkTarget(p); sprint = dist(p, ball) < 10 && teamInPossession() !== p.team;
@@ -303,14 +307,21 @@ function aiActions(){
   const gx = goalX(owner.team), gy = W/2;
   const distGoal = Math.abs(gx - owner.x);
   const opp = nearestOpponentTo(owner, owner.team);
-  const pressured = opp.p && opp.d < 2.6;
+  const pressured = opp.p && opp.d < 3.0;
+  const sinceAct = performance.now()/1000 - (ball.lastAct || 0);
 
-  if (distGoal < D.shotRange && Math.abs(owner.y - gy) < 20 && (Math.random() < 0.5 || distGoal < 14)){
-    doShoot(owner, 0.55 + Math.random()*0.4, D); return;
+  if (distGoal < D.shotRange && Math.abs(owner.y - gy) < 18 && (distGoal < 12 || Math.random() < 0.4)){
+    doShoot(owner, 0.5 + Math.random()*0.4, D); return;
   }
-  if (pressured || Math.random() < 0.22 + 0.2*D.aggro){
+  // Only move the ball on after a cooldown — otherwise the AI keeps it, dribbles,
+  // and can actually be tackled (easy levels dawdle a lot; hard levels move it fast).
+  if (pressured && sinceAct > D.passCd){
     const mate = bestPassTarget(owner);
-    if (mate){ doPass(owner, mate, false); return; }
+    if (mate){ doPass(owner, mate, false, D); return; }
+  }
+  if (!pressured && sinceAct > D.passCd && Math.random() < 0.12 + 0.4*D.aggro){
+    const mate = bestPassTarget(owner);
+    if (mate) doPass(owner, mate, false, D);
   }
 }
 function bestPassTarget(owner){
@@ -339,17 +350,23 @@ function tackling(){
   if (!owner || ball.kickCd > 0) return;
   for (const p of players){
     if (p.team === owner.team || p.tackleCd > 0) continue;
-    const reach = p.slide > 0 ? TACKLE_R + 0.9 : TACKLE_R;
-    if (dist(p, owner) < reach){
-      const D = teamDiff(p.team);
-      let chance = D.tackle + (p.slide > 0 ? 0.3 : 0) + (owner.stamina < 0.3 ? 0.1 : 0);
-      if (skillFlash > 0 && owner.idx === active) chance *= 0.45;
-      if (Math.random() < chance){
-        ball.owner = players.indexOf(p); lastTouch = p.team; ball.kickCd = KICK_COOLDOWN;
-        p.tackleCd = 0.4; owner.tackleCd = 0.5;
-        const away = norm(p.x - owner.x, p.y - owner.y);
-        owner.vx += away.x * -3; owner.vy += away.y * -3;
-      }
+    const reach = (p.slide > 0 ? TACKLE_R + 1.0 : TACKLE_R + 0.25);   // generous contact range
+    if (dist(p, owner) >= reach) continue;
+    // `rate` = steal attempts per second while in contact (converted per-frame below).
+    let rate;
+    if (p.team === 0){                       // YOU / your team winning it back
+      rate = 3.6 * DF.stealScale + (p.slide > 0 ? 3.0 : 0) + (p.idx === active ? 1.8 : 0);
+    } else {                                 // the AI opponent tackling you (scales with level)
+      rate = DF.tackleRate + (p.slide > 0 ? 2.5 : 0);
+    }
+    if (owner.stamina < 0.3) rate += 1;
+    if (skillFlash > 0 && owner.idx === active) rate *= 0.45;   // skill move shields briefly
+    if (Math.random() < rate * DT){
+      ball.owner = players.indexOf(p); lastTouch = p.team; ball.kickCd = KICK_COOLDOWN;
+      p.tackleCd = 0.3; owner.tackleCd = 0.5;
+      const away = norm(p.x - owner.x, p.y - owner.y);
+      owner.vx += away.x * -3; owner.vy += away.y * -3;
+      if (p.team === 0 && p.idx !== active){ active = players.indexOf(p); lastActiveSwitch = performance.now()/1000; }
     }
   }
 }
@@ -408,7 +425,7 @@ function onGoal(team){
   spawnConfetti(team===0);
   fx.flash = 0.9; fx.shake = 1;
   kickTeam = 1 - team;
-  setTimeout(() => { if (state === 'play'){ resetPositions(kickTeam); showToast('KICK OFF','',800); } }, 1200);
+  setTimeout(() => { if (state === 'play'){ resetPositions(kickTeam); showToast('KICK OFF','',700); } }, 900);
   ball.owner = -2; ball.vx = ball.vy = 0; ball.x = L/2; ball.y = W/2;
 }
 function cameraFollow(dt){
@@ -421,10 +438,12 @@ function cameraFollow(dt){
 }
 
 // ---------------------------------------------------------------- actions
-function doPass(from, to, through){
+function doPass(from, to, through, D){
   if (!from || !to) return;
+  const err = D ? D.passErr : 0;                     // your passes (no D) are accurate
   const lead = through ? 5.5 : 2.0;
-  const tx = to.x + (to.vx||0)*lead*0.12, ty = to.y + (to.vy||0)*lead*0.12;
+  let tx = to.x + (to.vx||0)*lead*0.12, ty = to.y + (to.vy||0)*lead*0.12;
+  if (err){ tx += (Math.random()*2-1)*err*9; ty += (Math.random()*2-1)*err*9; }
   const dir = norm(tx - from.x, ty - from.y);
   const d = Math.hypot(tx-from.x, ty-from.y);
   const speed = clamp((through ? 15 : 12) + d*0.55, 12, through?34:30);
@@ -459,6 +478,7 @@ function doShoot(from, power, D){
 function fireBall(from, dir, speed){
   ball.owner = -1; ball.x = from.x + dir.x*1.1; ball.y = from.y + dir.y*1.1;
   ball.vx = dir.x*speed; ball.vy = dir.y*speed; lastTouch = from.team; from.tackleCd = 0.15;
+  ball.lastAct = performance.now()/1000;
 }
 function pressAction(act){
   const inPoss = teamInPossession() === 0; const me = players[active];
@@ -502,7 +522,7 @@ function trySkill(){
 // ---------------------------------------------------------------- FX
 function spawnConfetti(gold){
   const cols = gold ? ['#F5C518','#fff','#ffd76a','#27AE60'] : ['#8fa9ff','#fff','#2b3a67'];
-  for (let i=0;i<90;i++) fx.parts.push({
+  for (let i=0;i<55;i++) fx.parts.push({
     x:Math.random(), y:-0.05-Math.random()*0.2, vx:(Math.random()-0.5)*0.25,
     vy:0.25+Math.random()*0.45, r:2+Math.random()*4, life:1.6+Math.random()*0.8,
     col:cols[i%cols.length], rot:Math.random()*6.28, vr:(Math.random()-0.5)*8 });
@@ -604,12 +624,9 @@ function drawPitch(scale){
   }
 }
 function drawFloodlight(cw, ch){
-  const g = ctx.createRadialGradient(cw*0.5, ch*0.1, 0, cw*0.5, ch*0.4, ch*0.9);
-  g.addColorStop(0,'rgba(255,255,240,.10)'); g.addColorStop(1,'rgba(0,0,0,0)');
-  ctx.fillStyle = g; ctx.fillRect(0,0,cw,ch);
-  // vignette
-  const v = ctx.createRadialGradient(cw/2, ch/2, ch*0.35, cw/2, ch/2, ch*0.85);
-  v.addColorStop(0,'rgba(0,0,0,0)'); v.addColorStop(1,'rgba(0,0,0,.4)');
+  // single soft vignette (one gradient/frame) — keeps depth without the framerate cost
+  const v = ctx.createRadialGradient(cw/2, ch/2, ch*0.34, cw/2, ch/2, ch*0.86);
+  v.addColorStop(0,'rgba(0,0,0,0)'); v.addColorStop(1,'rgba(0,0,0,.42)');
   ctx.fillStyle = v; ctx.fillRect(0,0,cw,ch);
 }
 function drawBallShadow(){
@@ -637,13 +654,14 @@ function drawPlayer(p, T){
   const legSwing = Math.sin(p.gait) * 0.35 * s.s;
   ctx.fillRect(cx - r*0.55, cy + r*0.2, r*0.4, r*0.7 + legSwing*0.4);
   ctx.fillRect(cx + r*0.15, cy + r*0.2, r*0.4, r*0.7 - legSwing*0.4);
-  // torso (kit) with shading
-  const grad = ctx.createRadialGradient(cx - r*0.3, cy - r*0.4, r*0.2, cx, cy, r*1.2);
+  // torso (kit) — flat fill + one highlight arc (no per-frame gradients → smooth)
   const kit = p.isGK ? team.gk : team.kit;
-  grad.addColorStop(0, shade(kit, 1.25)); grad.addColorStop(1, shade(kit, 0.78));
-  ctx.fillStyle = grad;
+  ctx.fillStyle = kit;
   ctx.beginPath(); ctx.arc(cx, cy, r, 0, 7); ctx.fill();
-  ctx.lineWidth = Math.max(1,0.1*s.s); ctx.strokeStyle='rgba(0,0,0,.35)'; ctx.stroke();
+  ctx.fillStyle = p.kitHi || (p.kitHi = shade(kit, 1.22));
+  ctx.beginPath(); ctx.arc(cx - r*0.28, cy - r*0.33, r*0.5, 0, 7); ctx.fill();
+  ctx.lineWidth = Math.max(1,0.1*s.s); ctx.strokeStyle='rgba(0,0,0,.4)';
+  ctx.beginPath(); ctx.arc(cx, cy, r, 0, 7); ctx.stroke();
   // head
   ctx.fillStyle = p.skin;
   ctx.beginPath(); ctx.arc(cx, cy - r*0.55, r*0.5, 0, 7); ctx.fill();
@@ -674,12 +692,10 @@ function drawBall(T){
   if (spd > 12){ const n = norm(ball.vx, ball.vy);
     ctx.strokeStyle='rgba(255,255,255,.35)'; ctx.lineWidth=r*0.8;
     ctx.beginPath(); ctx.moveTo(s.x, s.y-bounce); ctx.lineTo(s.x-n.x*r*3, s.y-bounce-n.y*r*3); ctx.stroke(); }
-  const grad = ctx.createRadialGradient(s.x-r*0.3, s.y-bounce-r*0.3, r*0.1, s.x, s.y-bounce, r);
-  grad.addColorStop(0,'#fff'); grad.addColorStop(1,'#c9d2d0');
-  ctx.fillStyle=grad; ctx.beginPath(); ctx.arc(s.x, s.y-bounce, r, 0,7); ctx.fill();
-  ctx.lineWidth=1; ctx.strokeStyle='rgba(0,0,0,.35)'; ctx.stroke();
+  ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(s.x, s.y-bounce, r, 0,7); ctx.fill();
+  ctx.lineWidth=1; ctx.strokeStyle='rgba(0,0,0,.4)'; ctx.stroke();
   ctx.fillStyle='rgba(20,20,20,.85)';
-  ctx.beginPath(); ctx.arc(s.x, s.y-bounce, r*0.32, 0,7); ctx.fill();
+  ctx.beginPath(); ctx.arc(s.x, s.y-bounce, r*0.3, 0,7); ctx.fill();
 }
 function drawConfetti(cw, ch){
   for (const p of fx.parts){
@@ -856,7 +872,7 @@ function bindKeyboard(){
 
 // ---------------------------------------------------------------- resize
 function resize(){
-  DPR = Math.min(window.devicePixelRatio||1, 2);
+  DPR = Math.min(window.devicePixelRatio||1, 1.5);   // cap for smooth framerate on phones
   for (const c of [canvas, radar]){ const r = c.getBoundingClientRect();
     c.width = Math.max(1, r.width*DPR); c.height = Math.max(1, r.height*DPR);
     c.getContext('2d').setTransform(DPR,0,0,DPR,0,0); }
@@ -885,5 +901,6 @@ function boot(){
 if (document.readyState==='loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 
 window.GX = { get state(){return state;}, get score(){return score;}, players:()=>players,
-  get clock(){return clock;}, get level(){return level;}, setLevel, endSoon(){ if(state==='play') clock=1.2; } };
+  get clock(){return clock;}, get level(){return level;}, get poss(){return possPct();}, setLevel,
+  play(){ startMatch(); }, autoChase(v){ autoChase = !!v; }, endSoon(){ if(state==='play') clock=1.2; } };
 })();
