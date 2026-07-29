@@ -1,7 +1,14 @@
 name: Deploy Golden XI website
 
-# Publishes the playable web build (golden-xi/www) to GitHub Pages so it can be
-# played from any phone browser — including iPhone/Safari, which cannot install APKs.
+# Publishes the playable web build (golden-xi/www) to a `gh-pages` branch. GitHub
+# Pages then serves it at a public URL playable from any phone browser — including
+# iPhone/Safari, which cannot install APKs.
+#
+# ONE-TIME SETUP (a human must do this once, the workflow token cannot):
+#   Repo Settings → Pages → Build and deployment → Source: "Deploy from a branch"
+#   → Branch: gh-pages / (root) → Save.
+# After that the site auto-updates on every push and lives at:
+#   https://top51977pro-ship-it.github.io/https-dayspace.site-/
 
 on:
   push:
@@ -12,34 +19,24 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
 concurrency:
-  group: pages
+  group: gh-pages
   cancel-in-progress: true
 
 jobs:
-  deploy:
+  publish:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Configure Pages
-        uses: actions/configure-pages@v5
+      - name: Publish golden-xi/www to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
         with:
-          enablement: true
-
-      - name: Upload site artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: golden-xi/www
-
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./golden-xi/www
+          publish_branch: gh-pages
+          force_orphan: true
+          commit_message: "Deploy Golden XI web build"
