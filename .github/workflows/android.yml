@@ -1,8 +1,9 @@
 name: Build Golden XI APK
 
-# Builds the installable Android APK on GitHub's runners, which ship the Android
-# SDK and have full network access to Google's Maven repository. The finished
-# app-debug.apk is uploaded as a downloadable workflow artifact.
+# Builds the installable Android APK on GitHub's runners (which ship the Android
+# SDK and have full network access to Google's Maven repository), then publishes
+# it BOTH as a workflow artifact and as a Release asset with a direct, public,
+# no-login download link that works from a phone browser.
 
 on:
   push:
@@ -11,6 +12,9 @@ on:
       - 'golden-xi/**'
       - '.github/workflows/android.yml'
   workflow_dispatch:
+
+permissions:
+  contents: write   # needed to create/update the Release
 
 jobs:
   build-apk:
@@ -34,9 +38,27 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon --stacktrace
 
+      - name: Stage APK with a friendly name
+        run: cp golden-xi/android/app/build/outputs/apk/debug/app-debug.apk GoldenXI.apk
+
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: golden-xi-debug-apk
-          path: golden-xi/android/app/build/outputs/apk/debug/app-debug.apk
+          path: GoldenXI.apk
           if-no-files-found: error
+
+      - name: Publish APK as a Release (direct download link)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: apk-latest
+          name: Golden XI — latest APK
+          body: |
+            **Golden XI — Ultimate Football** · direct-install Android APK (debug build).
+
+            Download **GoldenXI.apk** below and install it on an Android phone
+            (you may need to allow "Install unknown apps" for your browser/file manager).
+
+            Rebuilt automatically on every update to `golden-xi/`.
+          files: GoldenXI.apk
+          make_latest: true
