@@ -74,6 +74,7 @@ const NAMES = ['Russo','Vance','Okafor','Bianchi','Alvarez','Novak','Sato','Halv
   'Petrov','Costa','Dubois','Larsen','Kim','Reyes','Ferro','Nakamura','Adeyemi','Sorensen',
   'Marchetti','Volkov','Osei','Lindqvist','Baros'];
 const SKINS = ['#f1c9a5','#e0a878','#c98a56','#a9683b','#8a4e2a','#6d3b1f'];
+const HAIRS = ['#140f0a','#2e2013','#0d0d10','#5a3a1e','#c9a24a','#7a4a28'];
 
 const HOME = { name:'Golden XI', abbr:'GXI', crest:'GX', kit:'#F5C518', kit2:'#c99a00',
                num:'#241a00', short:'#141414', crestBg:'#b8860b', gk:'#1f8a4c' };
@@ -125,6 +126,7 @@ function makeTeam(team){
     arr.push({ team, idx:i, role:f.role, form:f, x:p.x, y:p.y, vx:0, vy:0,
       dir:(team===0?0:Math.PI), isGK:f.role==='GK', num:i===0?1:i+1,
       name:NAMES[(team*11 + i) % NAMES.length], skin:SKINS[(team*7+i)%SKINS.length],
+      hair:HAIRS[(team*5+i*3)%HAIRS.length],
       tackleCd:0, stamina:1, slide:0, gait:Math.random()*6.28 });
   }
   return arr;
@@ -196,7 +198,9 @@ function step(dt){
   if (possTeam >= 0){
     const defTeam = 1 - possTeam;
     const D = teamDiff(defTeam);
-    pressSet = new Set(rankByBall(defTeam).slice(0, D.pressers));
+    // the AI opponent always challenges with at least 2 players so it "attacks" the ball
+    const pressN = defTeam === 1 ? Math.max(2, D.pressers) : D.pressers;
+    pressSet = new Set(rankByBall(defTeam).slice(0, pressN));
   }
 
   for (const p of players){
@@ -402,10 +406,23 @@ function handleBounds(){
     const inMouth = Math.abs(ball.y - W/2) < HALF_GOAL;
     const leftGoal = ball.x < 0;
     if (inMouth){ onGoal(leftGoal ? 1 : 0); return; }
-    const defTeam = leftGoal ? 0 : 1;
+    const attackTeam = leftGoal ? 1 : 0;         // team attacking that end
+    const defTeam = 1 - attackTeam;
+    if (lastTouch === defTeam){
+      // CORNER KICK to the attacking team
+      const cornerX = leftGoal ? 1 : L-1;
+      const cornerY = ball.y < W/2 ? 1 : W-1;
+      let best=null, bd=1e9;
+      for (const p of players){ if (p.team!==attackTeam || p.isGK) continue;
+        const d=Math.hypot(p.x-cornerX, p.y-cornerY); if (d<bd){ bd=d; best=p; } }
+      if (best){ best.x=cornerX; best.y=cornerY; ball.owner=players.indexOf(best);
+        ball.vx=ball.vy=0; ball.x=cornerX; ball.y=cornerY; ball.kickCd=KICK_COOLDOWN; lastTouch=attackTeam; }
+      showToast('CORNER','',700); return;
+    }
+    // GOAL KICK to the defending keeper
     const gk = players.find(p => p.isGK && p.team === defTeam);
     ball.owner = players.indexOf(gk); ball.vx = ball.vy = 0; ball.kickCd = KICK_COOLDOWN;
-    ball.x = clamp(ball.x, 0.5, L-0.5); return;
+    ball.x = clamp(ball.x, 0.5, L-0.5); showToast('GOAL KICK','',600); return;
   }
   if (ball.y < 0 || ball.y > W){
     ball.y = clamp(ball.y, 0.6, W-0.6); ball.vx *= 0.2; ball.vy = 0;
@@ -451,6 +468,12 @@ function doPass(from, to, through, D){
 }
 function humanPass(through){
   const owner = ballOwner(); if (!owner || owner.team !== 0) return;
+  // CROSS: a lofted ball into the box when you play THROUGH from the attacking third
+  if (through && owner.x > L*0.64){
+    const tx = L*0.9, ty = W/2 + (Math.random()*2-1)*7;
+    fireBall(owner, norm(tx-owner.x, ty-owner.y), 27);
+    ball.kickCd = KICK_COOLDOWN; touchCount[0]++; showToast('CROSS','',500); return;
+  }
   let target = null;
   if (move.mag > 0.25){ const aim = { x:move.x, y:move.y }; let bs = -1e9;
     for (const q of players){ if (q.team !== 0 || q === owner || q.isGK) continue;
@@ -634,52 +657,55 @@ function drawBallShadow(){
   ctx.fillStyle='rgba(0,0,0,.3)';
   ctx.beginPath(); ctx.ellipse(s.x+0.3*s.s, s.y+0.5*s.s, 0.55*s.s, 0.3*s.s, 0,0,7); ctx.fill();
 }
+function el(x,y,rx,ry){ ctx.beginPath(); ctx.ellipse(x,y,rx,ry,0,0,7); ctx.fill(); }
 function drawPlayer(p, T){
   const s = W2S(p.x, p.y);
   const team = p.team===0?HOME:AWAY;
-  const r = 1.15 * s.s;
-  const bob = Math.sin(p.gait) * 0.12 * s.s;
-  // shadow
-  ctx.fillStyle='rgba(0,0,0,.28)';
-  ctx.beginPath(); ctx.ellipse(s.x+0.6*s.s, s.y+0.8*s.s, r*1.05, r*0.55, 0,0,7); ctx.fill();
-  // active ring
+  const r = 1.25 * s.s;
+  // ground shadow
+  ctx.fillStyle='rgba(0,0,0,.30)';
+  ctx.beginPath(); ctx.ellipse(s.x+0.45*s.s, s.y+0.55*s.s, r*0.95, r*0.5, 0,0,7); ctx.fill();
+  // active ring at feet
   if (p.team===0 && p.idx===active){
-    const pr = r + (0.5+0.12*Math.sin(T*6))*s.s;
+    const pr = r*1.4 + 0.12*Math.sin(T*6)*s.s;
     ctx.strokeStyle = COL.sprint; ctx.lineWidth = Math.max(2,0.22*s.s);
-    ctx.beginPath(); ctx.arc(s.x, s.y+0.6*s.s, pr, 0,7); ctx.stroke();
+    ctx.beginPath(); ctx.arc(s.x, s.y, pr, 0,7); ctx.stroke();
   }
-  const cx = s.x, cy = s.y - bob;
-  // legs (shorts)
-  ctx.fillStyle = p.isGK ? '#111' : team.short;
-  const legSwing = Math.sin(p.gait) * 0.35 * s.s;
-  ctx.fillRect(cx - r*0.55, cy + r*0.2, r*0.4, r*0.7 + legSwing*0.4);
-  ctx.fillRect(cx + r*0.15, cy + r*0.2, r*0.4, r*0.7 - legSwing*0.4);
-  // torso (kit) — flat fill + one highlight arc (no per-frame gradients → smooth)
-  const kit = p.isGK ? team.gk : team.kit;
-  ctx.fillStyle = kit;
-  ctx.beginPath(); ctx.arc(cx, cy, r, 0, 7); ctx.fill();
-  ctx.fillStyle = p.kitHi || (p.kitHi = shade(kit, 1.22));
-  ctx.beginPath(); ctx.arc(cx - r*0.28, cy - r*0.33, r*0.5, 0, 7); ctx.fill();
-  ctx.lineWidth = Math.max(1,0.1*s.s); ctx.strokeStyle='rgba(0,0,0,.4)';
-  ctx.beginPath(); ctx.arc(cx, cy, r, 0, 7); ctx.stroke();
-  // head
+  // rotated top-down footballer (head/kit/arms/legs, running animation)
+  ctx.save(); ctx.translate(s.x, s.y); ctx.rotate(p.dir);
+  const kit = p.isGK?team.gk:team.kit;
+  const sh  = p.isGK?'#161616':team.short;
+  const hi  = p.kitHi || (p.kitHi = shade(kit,1.2));
+  const sw  = Math.sin(p.gait) * r*0.4;
+  ctx.fillStyle = sh;
+  el(-r*0.1+sw, -r*0.32, r*0.3, r*0.15); el(-r*0.1-sw, r*0.32, r*0.3, r*0.15);
+  ctx.fillStyle = '#111';
+  el(r*0.22+sw, -r*0.32, r*0.17, r*0.1); el(r*0.22-sw, r*0.32, r*0.17, r*0.1);
   ctx.fillStyle = p.skin;
-  ctx.beginPath(); ctx.arc(cx, cy - r*0.55, r*0.5, 0, 7); ctx.fill();
-  // number
+  el(-r*0.02, -r*0.7, r*0.2, r*0.12); el(-r*0.02, r*0.7, r*0.2, r*0.12);
+  ctx.fillStyle = kit; el(0, 0, r*0.62, r*0.58);
+  ctx.fillStyle = hi;  el(r*0.14, 0, r*0.34, r*0.4);
+  ctx.strokeStyle='rgba(0,0,0,.35)'; ctx.lineWidth=Math.max(1,0.08*s.s);
+  ctx.beginPath(); ctx.ellipse(0,0,r*0.62,r*0.58,0,0,7); ctx.stroke();
+  ctx.fillStyle = p.skin; el(r*0.46, 0, r*0.4, r*0.4);
+  ctx.fillStyle = p.hair;
+  ctx.beginPath(); ctx.arc(r*0.44, 0, r*0.4, Math.PI*0.55, Math.PI*1.45); ctx.fill();
+  ctx.restore();
+  // upright squad number
   ctx.fillStyle = p.isGK ? '#fff' : team.num;
-  ctx.font = `900 ${Math.max(8,0.95*s.s)}px system-ui, sans-serif`;
+  ctx.font = `900 ${Math.max(7,0.7*s.s)}px system-ui, sans-serif`;
   ctx.textAlign='center'; ctx.textBaseline='middle';
-  ctx.fillText(p.num, cx, cy + r*0.05);
-  // active chevron + name
+  ctx.fillText(p.num, s.x, s.y);
+  // active chevron + name tag
   if (p.team===0 && p.idx===active){
     ctx.fillStyle = '#2fe0d6';
-    const chy = cy - r*1.9;
-    ctx.beginPath(); ctx.moveTo(cx-0.7*s.s, chy); ctx.lineTo(cx+0.7*s.s, chy);
-    ctx.lineTo(cx, chy+0.9*s.s); ctx.closePath(); ctx.fill();
+    const chy = s.y - r*2.0;
+    ctx.beginPath(); ctx.moveTo(s.x-0.7*s.s, chy); ctx.lineTo(s.x+0.7*s.s, chy);
+    ctx.lineTo(s.x, chy+0.9*s.s); ctx.closePath(); ctx.fill();
     ctx.font=`700 ${Math.max(8,0.72*s.s)}px system-ui`;
     const nm=p.name.toUpperCase(); const tw=ctx.measureText(nm).width;
-    ctx.fillStyle='rgba(0,0,0,.55)'; ctx.fillRect(cx-tw/2-3, s.y+r+0.5*s.s, tw+6, 1.25*s.s+2);
-    ctx.fillStyle='#fff'; ctx.textBaseline='top'; ctx.fillText(nm, cx, s.y+r+0.7*s.s);
+    ctx.fillStyle='rgba(0,0,0,.55)'; ctx.fillRect(s.x-tw/2-3, s.y+r*1.35, tw+6, 1.25*s.s+2);
+    ctx.fillStyle='#fff'; ctx.textBaseline='top'; ctx.fillText(nm, s.x, s.y+r*1.45+2);
     ctx.textBaseline='middle';
   }
 }
