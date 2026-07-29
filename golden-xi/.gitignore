@@ -1,0 +1,14 @@
+# Node / tooling
+node_modules/
+package-lock.json
+
+# Playwright smoke-test screenshots
+shot_*.png
+
+# Gradle / Android build outputs
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/captures/
+*.apk

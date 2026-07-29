@@ -1,0 +1,14 @@
+{
+  "name": "golden-xi",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Golden XI — Ultimate Football. Self-contained HTML5 match engine, packaged as an Android APK via a native WebView project.",
+  "scripts": {
+    "dev": "node serve.mjs",
+    "sync-assets": "cp www/index.html www/style.css www/game.js android/app/src/main/assets/www/",
+    "smoke": "node smoke.mjs"
+  },
+  "devDependencies": {
+    "playwright": "1.49.1"
+  }
+}

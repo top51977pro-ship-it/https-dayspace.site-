@@ -1,0 +1,33 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'site.goldenxi.app'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'site.goldenxi.app'
+        minSdk 24
+        targetSdk 34
+        versionCode 1
+        versionName '1.0'
+    }
+
+    buildTypes {
+        release {
+            // Debuggable build is produced by `assembleDebug`; release is unsigned here.
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+// No third-party dependencies: the game is a local WebView loading bundled assets,
+// so the build only needs the Android framework + the Android Gradle Plugin.
+dependencies { }
