@@ -14,6 +14,7 @@ in a **native Android WebView project** so it ships as an installable **`.apk`**
 
 | Feature | Status |
 | --- | --- |
+| **12 difficulty levels** (Rookie → IMPOSSIBLE), saved between sessions, beat one to unlock the next | ✅ |
 | Landscape 11-v-11 match, 3:00 clock | ✅ |
 | Virtual **joystick** + action cluster **PASS / THROUGH / SHOOT / SPRINT & SKILL** | ✅ |
 | Offense→defense button remap (SWITCH / TACKLE / SLIDE / CONTAIN) | ✅ |
@@ -54,6 +55,15 @@ npm run dev          # → http://localhost:5173  (use a landscape / mobile view
 Or just open `golden-xi/www/index.html` directly in a browser.
 
 ---
+
+## Play on a phone
+
+- **iPhone / any browser → the website.** A GitHub Pages deploy
+  ([`.github/workflows/pages.yml`](../.github/workflows/pages.yml)) publishes `golden-xi/www`
+  to a public URL. Open it in Safari/Chrome, rotate to landscape, play. iPhone **cannot** install
+  APKs, so this is the way for iOS. (Pages must be enabled once: repo **Settings → Pages →
+  Source: GitHub Actions**.)
+- **Android → the APK** (below), for an installed, full-screen app.
 
 ## Get the APK
 

@@ -25,7 +25,11 @@ page.on('pageerror', e => errors.push('PAGEERROR: ' + e.message));
 await page.goto(`http://localhost:${port}/`, { waitUntil: 'networkidle' });
 await page.waitForTimeout(300);
 
-// menu screenshot
+// exercise the level stepper → push difficulty up to a hard level
+for (let i = 0; i < 6; i++) { await page.click('#lvlUp'); await page.waitForTimeout(40); }
+const lvl = await page.evaluate(() => ({ v: document.getElementById('lvlValue').textContent,
+                                         name: document.getElementById('lvlName').textContent }));
+console.log('LEVEL SET:', JSON.stringify(lvl));
 await page.screenshot({ path: 'shot_menu.png' });
 
 // start match
@@ -54,9 +58,13 @@ const snap = await page.evaluate(() => {
 console.log('SNAP:', JSON.stringify(snap));
 await page.screenshot({ path: 'shot_match.png' });
 
-// verify full-time flow
+// verify full-time flow (poll — a late goal freeze can delay the clock)
 await page.evaluate(() => window.GX.endSoon());
-await page.waitForTimeout(1600);
+for (let i = 0; i < 20; i++) {
+  await page.waitForTimeout(300);
+  const s = await page.evaluate(() => window.GX.state);
+  if (s === 'fulltime') break;
+}
 const ft = await page.evaluate(() => ({
   state: window.GX.state,
   ftVisible: !document.getElementById('fulltime').classList.contains('hidden'),

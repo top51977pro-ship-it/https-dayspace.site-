@@ -24,6 +24,19 @@
     <div class="crest-badge">XI</div>
     <h1 class="title">GOLDEN&nbsp;XI</h1>
     <p class="subtitle">Ultimate Football</p>
+    <div class="level-card">
+      <div class="level-row">
+        <button id="lvlDown" class="lvl-btn" aria-label="Lower level">−</button>
+        <div class="level-mid">
+          <div class="level-top"><span class="level-tag">LEVEL</span><span id="lvlValue">3</span></div>
+          <div id="lvlName" class="level-name">Semi-Pro</div>
+        </div>
+        <button id="lvlUp" class="lvl-btn" aria-label="Higher level">+</button>
+      </div>
+      <div class="level-track"><div id="lvlFill" class="level-fill"></div></div>
+      <div id="lvlDesc" class="level-desc">Light pressure.</div>
+      <div id="bestLabel" class="best-label">No level cleared yet</div>
+    </div>
     <div class="menu-buttons">
       <button id="btnPlay" class="btn btn-primary">▶ PLAY MATCH</button>
       <button id="btnHowto" class="btn btn-ghost">HOW TO PLAY</button>
@@ -65,6 +78,9 @@
       <div class="clock" id="clock">03:00</div>
     </div>
 
+    <!-- Level badge -->
+    <div class="lvl-badge" id="lvlBadge">Lv 3 · Semi-Pro</div>
+
     <!-- Radar / minimap -->
     <canvas id="radar" class="radar"></canvas>
 
@@ -97,7 +113,8 @@
         <h2 id="ftTitle">FULL TIME</h2>
         <div class="ft-score" id="ftScore">0 – 0</div>
         <div class="ft-motm" id="ftMotm"></div>
-        <button id="btnRematch" class="btn btn-primary">REMATCH</button>
+        <button id="btnNext" class="btn btn-primary hidden">NEXT LEVEL →</button>
+        <button id="btnRematch" class="btn btn-ghost">REMATCH</button>
         <button id="btnQuit" class="btn btn-ghost">MAIN MENU</button>
       </div>
     </div>
