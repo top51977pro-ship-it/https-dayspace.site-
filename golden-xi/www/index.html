@@ -37,6 +37,23 @@
       <div id="lvlDesc" class="level-desc">Light pressure.</div>
       <div id="bestLabel" class="best-label">No level cleared yet</div>
     </div>
+    <details class="settings-card">
+      <summary>⚙ CPU AI &amp; difficulty settings</summary>
+      <label class="set-row"><span>Player-Based Difficulty</span><input type="checkbox" id="optPlayerBased"></label>
+      <label class="set-row"><span>Competitor Mode <em>(Legendary / Ultimate)</em></span><input type="checkbox" id="optCompetitor"></label>
+      <label class="set-row"><span>Debug overlay</span><input type="checkbox" id="optDebug"></label>
+      <label class="set-row"><span>CPU behaviour preset</span>
+        <select id="optPreset"><option>Custom</option><option>Tactical</option><option>Dynamic</option></select></label>
+      <div id="sliderPanel" class="slider-panel">
+        <div class="sl"><label>Tackle Aggression</label><input class="cpu-slider" type="range" min="0" max="100" data-key="tackleAggression"><i id="val_tackleAggression">50</i></div>
+        <div class="sl"><label>Buildup Speed</label><input class="cpu-slider" type="range" min="0" max="100" data-key="buildupSpeed"><i id="val_buildupSpeed">50</i></div>
+        <div class="sl"><label>Shot Frequency</label><input class="cpu-slider" type="range" min="0" max="100" data-key="shotFrequency"><i id="val_shotFrequency">50</i></div>
+        <div class="sl"><label>First-Touch Pass</label><input class="cpu-slider" type="range" min="0" max="100" data-key="firstTouchPass"><i id="val_firstTouchPass">50</i></div>
+        <div class="sl"><label>Crossing Frequency</label><input class="cpu-slider" type="range" min="0" max="100" data-key="crossing"><i id="val_crossing">50</i></div>
+        <div class="sl"><label>Dribble Frequency</label><input class="cpu-slider" type="range" min="0" max="100" data-key="dribble"><i id="val_dribble">50</i></div>
+        <div class="sl"><label>Skill-Move Frequency</label><input class="cpu-slider" type="range" min="0" max="100" data-key="skillMove"><i id="val_skillMove">50</i></div>
+      </div>
+    </details>
     <div class="menu-buttons">
       <button id="btnPlay" class="btn btn-primary">▶ PLAY MATCH</button>
       <button id="btnHowto" class="btn btn-ghost">HOW TO PLAY</button>
@@ -79,7 +96,10 @@
     </div>
 
     <!-- Level badge -->
-    <div class="lvl-badge" id="lvlBadge">Lv 3 · Semi-Pro</div>
+    <div class="lvl-badge" id="lvlBadge">Professional</div>
+
+    <!-- AI debug overlay -->
+    <div class="dbg hidden" id="dbgPanel"></div>
 
     <!-- Radar / minimap -->
     <canvas id="radar" class="radar"></canvas>
@@ -120,6 +140,7 @@
     </div>
   </div>
 
+  <script src="ai.js"></script>
   <script src="three.min.js"></script>
   <script src="scene3d.js"></script>
   <script src="game.js"></script>

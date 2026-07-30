@@ -24,49 +24,29 @@ const KICK_COOLDOWN = 0.28;
 
 const COL = { pass:'#2F80ED', through:'#E0A400', shoot:'#E4572E', sprint:'#27AE60', gold:'#F5C518' };
 
-// ---------------------------------------------------------------- difficulty
-const MAXLEVEL = 12;
-const LEVELS = ['Rookie','Amateur','Semi-Pro','Pro','Veteran','Elite','World Class',
-                'Legendary','Ultimate','Insane','Nightmare','IMPOSSIBLE'];
-const LEVEL_DESC = [
-  'Gentle. The bot barely presses.', 'Learning the ropes.', 'Light pressure.',
-  'A real contest.', 'Sharper, quicker bot.', 'Tight marking, clinical.',
-  'Relentless press, few mistakes.', 'Brutal. Punishes every error.',
-  'Suffocating. Elite finishing.', 'Nearly unbeatable.',
-  'The bot rarely loses the ball.', 'Good luck. You will need it.'];
-
-// Opponent behaviour scales with the selected level; your team stays constant.
-function diffFor(level){
-  const d = (level - 1) / (MAXLEVEL - 1);           // 0..1
-  return {
-    d,
-    decide:    0.30 - 0.22 * d,     // easy AI thinks slowly; hard AI reacts fast
-    tackleRate:1.3 + 3.2 * d,       // AI steal-attempts/sec when defending YOU
-    stealScale:1 - 0.62 * d,        // multiplier on YOUR steal rate (easy=1, hard≈0.38)
-    pressers:  d > 0.6 ? 3 : d > 0.3 ? 2 : 1,
-    passErr:   0.22 * (1 - d),      // easy AI slightly loose (not wild)
-    passCd:    0.60 - 0.36 * d,     // easy AI dawdles on the ball; hard AI moves it fast
-    shotErr:   2.4 * (1 - 0.8 * d),
-    shotRange: 16 + 13 * d,
-    speed:     0.9 + 0.2 * d,       // easy AI slower than you, hard AI faster
-    stamina:   1 + 0.6 * d,
-    gkReach:   1.25 + 0.95 * d,
-    aggro:     d,
-  };
-}
-const BASE = diffFor(4);            // your AI team-mates play at a steady level
-let DF = diffFor(3);               // opponent difficulty (set at kickoff)
-
-let level = 3, bestBeat = 0;
+// ---------------------------------------------------------------- difficulty (FC 7-tier, ai.js)
+const TIERS = GXAI.TIERS, TIER_DESC = GXAI.TIER_DESC, NTIERS = 7;
+let tierIndex = 3;                  // 0..6 → Beginner..Ultimate (Professional default)
+let bestBeat = -1;                  // highest tier index beaten
+const SETTINGS = {
+  playerBased:false, competitor:false, preset:'Custom', debug:false,
+  sliders:{ tackleAggression:50, buildupSpeed:50, shotFrequency:50,
+            firstTouchPass:50, crossing:50, dribble:50, skillMove:50 },
+};
 function loadProgress(){
   try {
-    level = clamp(parseInt(localStorage.getItem('gx_level')||'3',10)||3, 1, MAXLEVEL);
-    bestBeat = clamp(parseInt(localStorage.getItem('gx_best')||'0',10)||0, 0, MAXLEVEL);
+    tierIndex = clamp(parseInt(localStorage.getItem('gx_tier')||'3',10),0,6);
+    bestBeat  = clamp(parseInt(localStorage.getItem('gx_best')||'-1',10),-1,6);
+    const s = JSON.parse(localStorage.getItem('gx_settings')||'null');
+    if (s){ SETTINGS.playerBased=!!s.playerBased; SETTINGS.competitor=!!s.competitor;
+      SETTINGS.preset=s.preset||'Custom'; SETTINGS.debug=!!s.debug;
+      if (s.sliders) Object.assign(SETTINGS.sliders, s.sliders); }
   } catch(e){}
 }
 function saveProgress(){
-  try { localStorage.setItem('gx_level', String(level));
-        localStorage.setItem('gx_best', String(bestBeat)); } catch(e){}
+  try { localStorage.setItem('gx_tier', String(tierIndex));
+        localStorage.setItem('gx_best', String(bestBeat));
+        localStorage.setItem('gx_settings', JSON.stringify(SETTINGS)); } catch(e){}
 }
 
 // ---------------------------------------------------------------- teams
@@ -124,12 +104,14 @@ function makeTeam(team){
   for (let i = 0; i < 11; i++){
     const f = FORMATION[i]; const p = homePos(team, f);
     const tc = team===0?HOME:AWAY, gk = f.role==='GK';
+    const ratings = GXAI.makeRatings(f.role, (team*101 + i*7919 + 13) >>> 0);
     arr.push({ team, idx:i, role:f.role, form:f, x:p.x, y:p.y, vx:0, vy:0,
       dir:(team===0?0:Math.PI), isGK:gk, num:i===0?1:i+1,
       name:NAMES[(team*11 + i) % NAMES.length], skin:SKINS[(team*7+i)%SKINS.length],
       hair:HAIRS[(team*5+i*3)%HAIRS.length],
       kit3d: gk ? tc.gk : tc.kit, short3d: gk ? '#161616' : tc.short,
       h3d: 0.9 + (((team*11+i)*37) % 22) / 100,
+      ratings, ovr:ratings.ovr, profile:null, ai:null, aiNext:0, decideInterval:0.27,
       tackleCd:0, stamina:1, slide:0, gait:Math.random()*6.28 });
   }
   return arr;
@@ -153,19 +135,41 @@ function nearestHomeToBall(){
 }
 function teamInPossession(){ return ball.owner >= 0 ? players[ball.owner].team : -1; }
 function ballOwner(){ return ball.owner >= 0 ? players[ball.owner] : null; }
-const teamDiff = t => (t === 1 ? DF : BASE);
-
-// ---------------------------------------------------------------- AI targets
-function formationTarget(p){
-  const base = homePos(p.team, p.form);
-  const attackRight = (p.team === 0);
-  const ballBias = clamp((ball.x - L/2) / (L/2), -1, 1);
-  const dirSign = attackRight ? 1 : -1;
-  let tx = base.x + dirSign * ballBias * 16;
-  let ty = base.y + (ball.y - W/2) * 0.35;
-  if (p.role === 'FW' && teamInPossession() === p.team) tx += dirSign * 8;
-  if (p.role === 'DF' && teamInPossession() !== p.team) tx -= dirSign * 4;
-  return { x:clamp(tx, 2, L-2), y:clamp(ty, 3, W-3) };
+// ---------------------------------------------------------------- AI wiring (ai.js)
+let simTime = 0, brainAcc = 1, st0 = null, st1 = null, stats0 = null, stats1 = null;
+let cpuTeamProfile = null, userTeamProfile = null;
+function buildWorld(){
+  return { players, ball, L, W, goalW:GOAL_W, time:simTime, clock,
+           matchSecs:MATCH_SECS, score, possTeam:teamInPossession() };
+}
+// Assign an effective difficulty profile to every player at kickoff.
+// CPU (team 1) = selected tier (+Player-Based shifts); your team (0) = steady Professional.
+function assignProfiles(){
+  GXAI.setConfig({ tierIndex, playerBased:SETTINGS.playerBased, competitor:SETTINGS.competitor,
+                   preset:SETTINGS.preset, sliders:SETTINGS.sliders, debug:SETTINGS.debug,
+                   identity: pickIdentity() });
+  cpuTeamProfile  = GXAI.profileByIndex(tierIndex);
+  userTeamProfile = GXAI.PROFILES['Professional'];
+  stats0 = GXAI.squadStats(players, 0);
+  stats1 = GXAI.squadStats(players, 1);
+  for (const p of players){
+    if (p.team === 1){
+      const ti = GXAI.effectiveTierIndex(p, tierIndex, stats1);
+      p.profile = GXAI.profileByIndex(ti);
+      GXAI.starTechnicalBoost(p, stats1);
+    } else {
+      p.profile = userTeamProfile;
+    }
+    p.decideInterval = p.profile.decisionIntervalMs / 1000;
+    p.aiNext = p.idx * 0.017;        // stagger decisions across frames
+    p.ai = null;
+  }
+  st0 = st1 = null; brainAcc = 1;
+}
+function pickIdentity(){
+  if (SETTINGS.preset === 'Custom') return 'Balanced';
+  const ids = ['Possession','Counterattack','Wing Play','High Press','Balanced','Low Block'];
+  return ids[(tierIndex + 2) % ids.length];   // deterministic per tier for Tactical/Dynamic
 }
 function nearestOpponentTo(p, team){
   let best = null, bd = 1e9;
@@ -186,26 +190,28 @@ function rankByBall(team){
 }
 
 function step(dt){
+  simTime += dt;
   if (restartLock > 0) restartLock -= dt;
   ball.kickCd = Math.max(0, ball.kickCd - dt);
   skillFlash = Math.max(0, skillFlash - dt);
   fx.flash = Math.max(0, fx.flash - dt*1.6);
   fx.shake = Math.max(0, fx.shake - dt*3);
 
+  const world = buildWorld();
+  GXAI.tick(world, dt);
+
   if (teamInPossession() === 0){ active = ball.owner; }
   else if (performance.now()/1000 - lastActiveSwitch > 0.4){ active = nearestHomeToBall(); }
 
-  // precompute defensive press ranking for the team out of possession
-  const possTeam = teamInPossession();
-  let pressSet = null;
-  if (possTeam >= 0){
-    const defTeam = 1 - possTeam;
-    const D = teamDiff(defTeam);
-    // the AI opponent always challenges with at least 2 players so it "attacks" the ball
-    const pressN = defTeam === 1 ? Math.max(2, D.pressers) : D.pressers;
-    pressSet = new Set(rankByBall(defTeam).slice(0, pressN));
+  // TeamBrain layer at ~4 Hz (formation shape, presser/cover, marking, phase, tactics)
+  brainAcc += dt;
+  if (brainAcc >= 0.25 || !st1){
+    brainAcc = 0;
+    st0 = GXAI.teamBrain(world, 0, userTeamProfile, stats0);
+    st1 = GXAI.teamBrain(world, 1, cpuTeamProfile, stats1);
   }
 
+  const possTeam = teamInPossession();
   for (const p of players){
     p.tackleCd = Math.max(0, p.tackleCd - dt);
     if (p.slide) p.slide = Math.max(0, p.slide - dt);
@@ -216,16 +222,23 @@ function step(dt){
       else if (autoChase){ tgt = { x:ball.x, y:ball.y }; sprint = true; }   // test-only pressing
       else tgt = { x:p.x, y:p.y };
     } else if (p.isGK){
-      tgt = gkTarget(p); sprint = dist(p, ball) < 10 && teamInPossession() !== p.team;
+      tgt = GXAI.gkTarget(p, world, p.profile);
+      sprint = dist(p, ball) < 12 && teamInPossession() !== p.team;
     } else {
-      const ai = aiTarget(p, pressSet); tgt = ai.tgt; sprint = ai.sprint;
+      // PlayerBrain layer, staggered by profile decision interval (ball carrier decides faster)
+      const carrier = (ball.owner === p.team*11 + p.idx);
+      const interval = carrier ? Math.min(p.decideInterval, 0.11) : p.decideInterval;
+      if (simTime >= (p.aiNext || 0) || !p.ai){
+        GXAI.decide(p, world, p.profile, p.team === 1 ? st1 : st0);
+        p.aiNext = simTime + interval;
+      }
+      tgt = { x:p.ai.tx, y:p.ai.ty }; sprint = p.ai.sprint;
     }
 
     const d = norm(tgt.x - p.x, tgt.y - p.y);
     const arriving = len(tgt.x - p.x, tgt.y - p.y) < 0.6;
-    const D = teamDiff(p.team);
-    let maxSpd = p.isGK ? SPD_GK*(p.team===1?DF.speed:1)
-                        : (sprint && p.stamina > 0.05 ? SPD_SPRINT : SPD_WALK) * (p.team===1?DF.speed:1);
+    // PHYSICAL speed comes from player attributes + sprint/stamina — NEVER from difficulty.
+    const maxSpd = GXAI.speedFromAttributes(p, sprint && p.stamina > 0.05);
     const desVx = arriving ? 0 : d.x * maxSpd;
     const desVy = arriving ? 0 : d.y * maxSpd;
     p.vx += clamp(desVx - p.vx, -ACCEL*dt, ACCEL*dt);
@@ -234,104 +247,67 @@ function step(dt){
     p.y = clamp(p.y + p.vy*dt, 0.5, W-0.5);
     const spd = len(p.vx, p.vy);
     if (spd > 0.4) p.dir = Math.atan2(p.vy, p.vx);
-    p.gait += spd * dt * 1.1;                        // running animation phase
-    const drain = 0.10 / (p.team===1?DF.stamina:1);
-    if (sprint && spd > 3) p.stamina = clamp(p.stamina - dt*drain, 0, 1);
+    p.gait += spd * dt * 1.1;
+    const stam = ((p.ratings && p.ratings.stamina) || 70) / 100;
+    if (sprint && spd > 3) p.stamina = clamp(p.stamina - dt*(0.13 - 0.06*stam), 0, 1);
     else p.stamina = clamp(p.stamina + dt*0.05, 0, 1);
   }
 
-  aiActions();
-  tackling();
+  executeOwnerAction(world);
+  tackling(world);
   updateBall(dt);
   cameraFollow(dt);
   if (possTeam >= 0) possFrames[possTeam]++;
   updateFX(dt);
 }
 
-// -------------------------------------------------- goalkeeper
-function gkTarget(p){
-  const own = goalX(1 - p.team);
-  const line = own === 0 ? 2.2 : L - 2.2;
-  const ballDeep = Math.abs(ball.x - own) < 22 && teamInPossession() !== p.team;
-  const outX = own === 0 ? clamp(line + (22 - Math.abs(ball.x-own))*0.18, 2.2, 9)
-                         : clamp(line - (22 - Math.abs(ball.x-own))*0.18, L-9, L-2.2);
-  const tx = ballDeep ? outX : line;
-  const ty = clamp(ball.y, W/2 - HALF_GOAL - 2.5, W/2 + HALF_GOAL + 2.5);
-  return { x:tx, y:ty };
-}
-
-// -------------------------------------------------- outfield AI
-function aiTarget(p, pressSet){
+// -------------------------------------------------- action execution (CPU/AI on-ball)
+function executeOwnerAction(world){
   const owner = ballOwner();
-  const attackRight = (p.team === 0);
-  const dirSign = attackRight ? 1 : -1;
-  const D = teamDiff(p.team);
-
-  if (owner === p){
-    const gx = goalX(p.team), gy = W/2;
-    const toGoal = norm(gx - p.x, gy - p.y);
-    const opp = nearestOpponentTo(p, p.team);
-    let ax = toGoal.x, ay = toGoal.y;
-    if (opp.p && opp.d < 6){ const away = norm(p.x - opp.p.x, p.y - opp.p.y);
-      ax += away.x * 0.7; ay += away.y * 0.7; }
-    const n = norm(ax, ay);
-    return { tgt:{ x:p.x + n.x*8, y:p.y + n.y*8 }, sprint: opp.d > 3 && Math.abs(gx-p.x) > 12 };
+  if (!owner || owner.isGK) return;
+  if (owner.team === 0 && owner.idx === active) return;   // human on the ball
+  const act = owner.ai && owner.ai.action;
+  if (!act) return;
+  const prof = owner.profile || userTeamProfile;
+  const since = simTime - (ball.lastAct || 0);
+  if (act.kind === 'shoot'){ if (since > 0.22){ cpuShoot(owner, prof); owner.ai.action = null; } }
+  else if (act.kind === 'clear'){ if (since > 0.3){ cpuClear(owner); owner.ai.action = null; } }
+  else if (act.target && (act.kind==='shortPass'||act.kind==='longPass'||act.kind==='throughPass'||act.kind==='cross')){
+    if (since > prof.decisionIntervalMs/1000){ cpuPass(owner, act.target, act.kind, prof); owner.ai.action = null; }
   }
-
-  const possTeam = teamInPossession();
-  if (possTeam === p.team){
-    const t = formationTarget(p);
-    if (p.role === 'FW'){ t.x += dirSign * (6 + 4*D.aggro); t.y += (p.idx % 2 ? 3 : -3); }
-    return { tgt:t, sprint: p.role === 'FW' };
-  }
-  if (possTeam === (1 - p.team)){
-    if (pressSet && pressSet.has(p)){
-      return { tgt:{ x:ball.x, y:ball.y }, sprint:true };   // press the ball
-    }
-    // mark tighter as difficulty rises
-    const t = formationTarget(p);
-    const gx = goalX(1 - p.team);
-    t.x = lerp(t.x, gx + dirSign * 18, 0.25);
-    if (D.aggro > 0.4){ const mk = nearestOpponentTo(p, p.team);
-      if (mk.p && mk.d < 16){ t.x = lerp(t.x, mk.p.x - dirSign*1.5, D.aggro*0.5);
-                              t.y = lerp(t.y, mk.p.y, D.aggro*0.5); } }
-    return { tgt:t, sprint: D.aggro > 0.5 };
-  }
-  const chaser = nearestPlayerToBall(p.team);
-  if (chaser === p) return { tgt:{ x:ball.x, y:ball.y }, sprint:true };
-  return { tgt:formationTarget(p), sprint:false };
+  // carry / shield / dribble → handled by movement target, no discrete kick
 }
-
-function aiActions(){
-  const owner = ballOwner();
-  if (!owner) return;
-  if (owner.team === 0 && owner.idx === active) return;   // human-controlled
-  aiDecideCd -= DT;
-  const D = teamDiff(owner.team);
-  if (aiDecideCd > 0) return;
-  aiDecideCd = D.decide;
-
-  const gx = goalX(owner.team), gy = W/2;
-  const distGoal = Math.abs(gx - owner.x);
+function cpuPass(owner, to, kind, prof){
+  const through = kind==='throughPass'||kind==='longPass', cross = kind==='cross';
+  const lead = through ? 6 : cross ? 4 : 2;
+  let tx = to.x + (to.vx||0)*lead*0.12, ty = to.y + (to.vy||0)*lead*0.12;
+  let dir = norm(tx - owner.x, ty - owner.y);
   const opp = nearestOpponentTo(owner, owner.team);
-  const pressured = opp.p && opp.d < 3.0;
-  const sinceAct = performance.now()/1000 - (ball.lastAct || 0);
-
-  // Shoot when in range of goal.
-  if (distGoal < D.shotRange && Math.abs(owner.y - gy) < 20 && (distGoal < 14 || Math.random() < 0.55)){
-    doShoot(owner, 0.55 + Math.random()*0.4, D); return;
-  }
-  // Only pass to ESCAPE pressure, and prefer a forward option. Otherwise the bot
-  // dribbles straight at the goal (its movement target) instead of passing aimlessly.
-  if (pressured && sinceAct > D.passCd){
-    const mate = bestPassTarget(owner);
-    if (mate){
-      const fwd = owner.team === 0 ? (mate.x > owner.x - 2) : (mate.x < owner.x + 2);
-      if (fwd || Math.random() < 0.5){ doPass(owner, mate, false, D); return; }
-    }
-  }
-  // else: keep the ball and drive toward goal (handled by the movement AI).
+  const wf = (owner.ratings && owner.ratings.weakFoot || 3) <= 2 && Math.random() < 0.3;
+  const sigma = GXAI.passAngleSigma(owner, prof, { long: through||cross, pressure: opp.d < 2.6, weakFoot: wf, badBody:false });
+  const ang = Math.atan2(dir.y, dir.x) + GXAI._randn()*sigma;
+  dir = { x:Math.cos(ang), y:Math.sin(ang) };
+  const dd = Math.hypot(tx-owner.x, ty-owner.y);
+  const speed = clamp((through?15:cross?24:12) + dd*0.55, 12, cross?30:through?34:30);
+  fireBall(owner, dir, speed); ball.kickCd = KICK_COOLDOWN; touchCount[owner.team]++; ball.lastAct = simTime;
 }
+function cpuShoot(owner, prof){
+  const gx = goalX(owner.team), gy = W/2;
+  const opp = nearestOpponentTo(owner, owner.team);
+  const sigmaM = GXAI.shotPlacementError(owner, prof, { pressure: opp.d < 2.6, weakFoot:false });
+  const aimY = gy + GXAI._randn()*sigmaM;                 // unclamped → poor finishers miss the target
+  const dir = norm(gx - owner.x, aimY - owner.y);
+  const power = 0.6 + Math.random()*0.35;
+  fireBall(owner, dir, clamp(24 + power*20, 24, 46)); ball.kickCd = KICK_COOLDOWN;
+  touchCount[owner.team]++; ball.lastAct = simTime;
+}
+function cpuClear(owner){
+  const gx = goalX(owner.team);
+  fireBall(owner, norm(gx - owner.x, (Math.random()*2-1)*0.6), 30);
+  ball.kickCd = KICK_COOLDOWN; ball.lastAct = simTime;
+}
+
+// -------------------------------------------------- human pass helper (kept)
 function bestPassTarget(owner){
   const gx = goalX(owner.team);
   let best = null, bs = -1e9;
@@ -352,29 +328,34 @@ function bestPassTarget(owner){
 function projT(a,b,p){ const dx=b.x-a.x, dy=b.y-a.y; const l2=dx*dx+dy*dy||1;
   return ((p.x-a.x)*dx + (p.y-a.y)*dy)/l2; }
 
-// -------------------------------------------------- tackling
-function tackling(){
+// -------------------------------------------------- tackling (attribute + timing based)
+function tackling(world){
   const owner = ballOwner();
   if (!owner || ball.kickCd > 0) return;
   for (const p of players){
-    if (p.team === owner.team || p.tackleCd > 0) continue;
-    const reach = (p.slide > 0 ? TACKLE_R + 1.0 : TACKLE_R + 0.25);   // generous contact range
+    if (p.team === owner.team || p.isGK || p.tackleCd > 0) continue;
+    const sliding = p.slide > 0;
+    const reach = sliding ? TACKLE_R + 1.0 : TACKLE_R + 0.25;
     if (dist(p, owner) >= reach) continue;
-    // `rate` = steal attempts per second while in contact (converted per-frame below).
-    let rate;
-    if (p.team === 0){                       // YOU / your team winning it back (easier now)
-      rate = 4.8 * DF.stealScale + (p.slide > 0 ? 3.2 : 0) + (p.idx === active ? 2.4 : 0);
-    } else {                                 // the AI opponent tackling you (scales with level)
-      rate = DF.tackleRate + (p.slide > 0 ? 2.5 : 0);
+    const isHuman = (p.team === 0 && p.idx === active);
+    const prof = p.profile || userTeamProfile;
+    // AI defenders sometimes CONTAIN rather than lunge; better tiers pick moments well.
+    if (!isHuman){
+      const commit = 0.35 + 0.55 * prof.defenseIQ;      // willingness to commit to a tackle
+      if (Math.random() > commit) continue;
     }
-    if (owner.stamina < 0.3) rate += 1;
-    if (skillFlash > 0 && owner.idx === active) rate *= 0.45;   // skill move shields briefly
-    if (Math.random() < rate * DT){
-      ball.owner = players.indexOf(p); lastTouch = p.team; ball.kickCd = KICK_COOLDOWN;
-      p.tackleCd = 0.3; owner.tackleCd = 0.5;
-      const away = norm(p.x - owner.x, p.y - owner.y);
-      owner.vx += away.x * -3; owner.vy += away.y * -3;
-      if (p.team === 0 && p.idx !== active){ active = players.indexOf(p); lastActiveSwitch = performance.now()/1000; }
+    // contact frequency (attempts/sec) → per-frame; each attempt resolved by ATTRIBUTES.
+    const contactRate = isHuman ? 11 : 8;
+    if (skillFlash > 0 && owner.idx === active && p.team === 1) { /* shielded */ if (Math.random() < 0.55) continue; }
+    if (Math.random() < contactRate * DT){
+      const out = GXAI.tackleOutcome(p, owner, prof, sliding);
+      if (out.win){
+        ball.owner = players.indexOf(p); lastTouch = p.team; ball.kickCd = KICK_COOLDOWN;
+        p.tackleCd = 0.35; owner.tackleCd = 0.5;
+        const away = norm(p.x - owner.x, p.y - owner.y);
+        owner.vx += away.x * -3; owner.vy += away.y * -3;
+        if (p.team === 0 && p.idx !== active){ active = players.indexOf(p); lastActiveSwitch = performance.now()/1000; }
+      } else { p.tackleCd = 0.25; }   // missed/whiffed timing → brief recovery
     }
   }
 }
@@ -393,7 +374,9 @@ function updateBall(dt){
   ball.x += ball.vx * dt; ball.y += ball.vy * dt;
 
   for (const p of players){ if (!p.isGK) continue;
-    const catchR = 1.4 * (p.team===1?DF.gkReach:1.7);
+    // keeper reach comes from diving/reflexes ATTRIBUTES, not difficulty
+    const gr = p.ratings || {};
+    const catchR = 1.4 + ((gr.diving||60)/100)*1.5 + ((gr.reflexes||60)/100)*0.6;
     if (dist(p, ball) < catchR && len(ball.vx,ball.vy) < 30){
       ball.owner = players.indexOf(p); ball.vx = ball.vy = 0; lastTouch = p.team;
       ball.kickCd = KICK_COOLDOWN; return; } }
@@ -796,21 +779,41 @@ function frame(t){
   updateHudLabels(); updateJoyArc();
   $('clock').textContent = formatClock();
   draw();
+  if (SETTINGS.debug) updateDebug();
   requestAnimationFrame(frame);
 }
 function clockTick(dt){ if (restartLock>0 || ball.owner===-2) return;
   clock -= dt; if (clock<=0){ clock=0; endMatch(); } }
 
+// AI debug overlay (Section 20) — team phase, states, targets, biases
+function updateDebug(){
+  const dp = $('dbgPanel'); if (!dp) return;
+  const carrier = ballOwner(); const L2=[];
+  L2.push(`Tier ${TIERS[tierIndex]}${SETTINGS.competitor?' +COMP':''}${SETTINGS.playerBased?' +PBD':''}  preset:${SETTINGS.preset}`);
+  if (st1) L2.push(`CPU phase:${st1.phase} press#${st1.presser} cover#${st1.cover} runners:${st1.runners} risk:${(st1.risk||0).toFixed(2)}`);
+  if (st0) L2.push(`YOU phase:${st0.phase}`);
+  if (carrier) L2.push(`ball:${carrier.team===0?'GXI':'KES'}#${carrier.num}(${carrier.ovr}) ${carrier.ai?carrier.ai.state:''}${carrier.ai&&carrier.ai.action?' →'+carrier.ai.action.kind:''}`);
+  const def = players.find(p=>p.team===1 && p.role==='DF' && p.ai);
+  if (def) L2.push(`KES DF#${def.num}: ${def.ai.state}`);
+  const fw = players.find(p=>p.team===1 && p.role==='FW' && p.ai);
+  if (fw) L2.push(`KES FW#${fw.num}: ${fw.ai.state}`);
+  L2.push(`bias sh${SETTINGS.sliders.shotFrequency} cr${SETTINGS.sliders.crossing} dr${SETTINGS.sliders.dribble} tk${SETTINGS.sliders.tackleAggression}`);
+  dp.textContent = L2.join('\n');
+}
+
 function startMatch(){
-  DF = diffFor(level);
   score=[0,0]; clock=MATCH_SECS; kickTeam=0; touchCount[0]=touchCount[1]=0; possFrames=[0,0];
-  fx.parts.length=0; fx.flash=0; fx.shake=0;
-  setTeamChrome(); resetPositions(0); state='play';
+  fx.parts.length=0; fx.flash=0; fx.shake=0; simTime=0;
+  setTeamChrome(); resetPositions(0);
+  GXAI.beginMatch((tierIndex*7919 + (SETTINGS.competitor?3:0) + 20260730) >>> 0);   // seed (locks difficulty for the match)
+  assignProfiles();
+  state='play';
   $('menu').classList.add('hidden'); $('fulltime').classList.add('hidden'); $('game').classList.remove('hidden');
   resize();
   if (window.Scene3D && Scene3D.ready()) Scene3D.buildTeams(players);
-  $('lvlBadge').textContent = 'Lv '+level+' · '+LEVELS[level-1];
-  showToast(LEVELS[level-1].toUpperCase(),'',1100);
+  $('lvlBadge').textContent = TIERS[tierIndex] + (SETTINGS.competitor?' · COMP':'');
+  showToast(TIERS[tierIndex].toUpperCase(),'',1100);
+  { const dp=$('dbgPanel'); if(dp) dp.classList.toggle('hidden', !SETTINGS.debug); }
   lastT = performance.now()/1000; acc=0; requestAnimationFrame(frame);
 }
 function endMatch(){
@@ -818,21 +821,19 @@ function endMatch(){
   const win = score[0] > score[1], draw = score[0]===score[1];
   let title = draw ? 'FULL TIME' : (win ? 'YOU WIN!' : `${AWAY.abbr} WIN`);
   let sub = '';
-  if (win && level === bestBeat + 1 && level <= MAXLEVEL){
-    bestBeat = level; saveProgress();
-    sub = level < MAXLEVEL ? `Level ${level} cleared — Level ${level+1} unlocked!`
-                           : `You beat ${LEVELS[MAXLEVEL-1]} — the final level!`;
+  if (win && tierIndex > bestBeat){ bestBeat = tierIndex; saveProgress();
+    sub = `You beat ${TIERS[tierIndex]}` + (tierIndex<6?` — ${TIERS[tierIndex+1]} awaits!`:` — the top tier!`);
     title = '🏆 ' + title;
   }
   $('ftTitle').textContent = title;
   $('ftScore').textContent = `${score[0]} – ${score[1]}`;
   const pool = players.filter(p=>p.team===0 && !p.isGK);
-  const motm = pool[Math.floor(Math.random()*pool.length)];
-  $('ftMotm').innerHTML = `${sub ? sub+'<br>' : ''}<span style="opacity:.7">Level ${level} · ${LEVELS[level-1]} · `
-    + `MOTM ${motm.name.toUpperCase()} · Possession ${possPct()}%</span>`;
-  // offer "next level" button when you just cleared and can go up
+  const motm = pool.slice().sort((a,b)=>b.ovr-a.ovr)[0] || pool[0];
+  $('ftMotm').innerHTML = `${sub ? sub+'<br>' : ''}<span style="opacity:.7">${TIERS[tierIndex]}`
+    + (SETTINGS.playerBased?' · PBD':'') + (SETTINGS.competitor?' · Competitor':'')
+    + ` · MOTM ${motm.name.toUpperCase()} (${motm.ovr}) · Possession ${possPct()}%</span>`;
   const nextBtn = $('btnNext');
-  if (win && level < MAXLEVEL){ nextBtn.classList.remove('hidden'); nextBtn.textContent = `NEXT LEVEL (${LEVELS[level]}) →`; }
+  if (win && tierIndex < 6){ nextBtn.classList.remove('hidden'); nextBtn.textContent = `NEXT TIER (${TIERS[tierIndex+1]}) →`; }
   else nextBtn.classList.add('hidden');
   $('fulltime').classList.remove('hidden');
 }
@@ -842,16 +843,21 @@ function setTeamChrome(){
   $('crestHome').style.background=HOME.crestBg; $('crestAway').style.background=AWAY.crestBg;
 }
 
-// ---------------------------------------------------------------- level UI
+// ---------------------------------------------------------------- difficulty (tier) UI
 function refreshLevelUI(){
-  $('lvlValue').textContent = level;
-  $('lvlName').textContent = LEVELS[level-1];
-  $('lvlDesc').textContent = LEVEL_DESC[level-1];
-  $('bestLabel').textContent = bestBeat>0 ? `Best cleared: Lv ${bestBeat} · ${LEVELS[bestBeat-1]}` : 'No level cleared yet';
-  const bar = $('lvlFill'); if (bar) bar.style.width = (level/MAXLEVEL*100)+'%';
-  $('lvlDown').disabled = level<=1; $('lvlUp').disabled = level>=MAXLEVEL;
+  $('lvlValue').textContent = tierIndex+1;
+  $('lvlName').textContent = TIERS[tierIndex];
+  $('lvlDesc').textContent = TIER_DESC[tierIndex];
+  $('bestLabel').textContent = bestBeat>=0 ? `Best beaten: ${TIERS[bestBeat]}` : 'No tier beaten yet';
+  const bar = $('lvlFill'); if (bar) bar.style.width = ((tierIndex+1)/NTIERS*100)+'%';
+  $('lvlDown').disabled = tierIndex<=0; $('lvlUp').disabled = tierIndex>=6;
+  // Competitor Mode only on Legendary/Ultimate
+  const compAllowed = tierIndex >= 5;
+  const compEl = $('optCompetitor'); if (compEl){ compEl.disabled = !compAllowed;
+    if (!compAllowed && SETTINGS.competitor){ SETTINGS.competitor=false; compEl.checked=false; } }
+  const sl = $('sliderPanel'); if (sl) sl.classList.toggle('hidden', SETTINGS.preset!=='Custom');
 }
-function setLevel(n){ level = clamp(n,1,MAXLEVEL); saveProgress(); refreshLevelUI(); }
+function setLevel(n){ tierIndex = clamp(n,0,6); saveProgress(); refreshLevelUI(); }
 
 // ---------------------------------------------------------------- input
 function updateJoyArc(){
@@ -935,16 +941,38 @@ function boot(){
   $('btnPlay').addEventListener('click', startMatch);
   $('btnHowto').addEventListener('click', ()=>$('howto').classList.remove('hidden'));
   $('btnHowtoClose').addEventListener('click', ()=>$('howto').classList.add('hidden'));
-  $('lvlUp').addEventListener('click', ()=>setLevel(level+1));
-  $('lvlDown').addEventListener('click', ()=>setLevel(level-1));
+  $('lvlUp').addEventListener('click', ()=>setLevel(tierIndex+1));
+  $('lvlDown').addEventListener('click', ()=>setLevel(tierIndex-1));
   $('btnRematch').addEventListener('click', startMatch);
-  $('btnNext').addEventListener('click', ()=>{ setLevel(level+1); startMatch(); });
+  $('btnNext').addEventListener('click', ()=>{ setLevel(tierIndex+1); startMatch(); });
   $('btnQuit').addEventListener('click', ()=>{ state='menu'; refreshLevelUI();
     $('game').classList.add('hidden'); $('fulltime').classList.add('hidden'); $('menu').classList.remove('hidden'); });
+  bindSettings();
+}
+// -------- settings UI wiring (Player-Based Difficulty, Competitor, preset, sliders, debug) --------
+function bindSettings(){
+  const pb = $('optPlayerBased'), cm = $('optCompetitor'), pr = $('optPreset'), db = $('optDebug');
+  if (pb){ pb.checked = SETTINGS.playerBased; pb.addEventListener('change', ()=>{ SETTINGS.playerBased=pb.checked; saveProgress(); }); }
+  if (cm){ cm.checked = SETTINGS.competitor; cm.addEventListener('change', ()=>{ SETTINGS.competitor=cm.checked; saveProgress(); }); }
+  if (db){ db.checked = SETTINGS.debug; db.addEventListener('change', ()=>{ SETTINGS.debug=db.checked; saveProgress(); }); }
+  if (pr){ pr.value = SETTINGS.preset; pr.addEventListener('change', ()=>{ SETTINGS.preset=pr.value; saveProgress(); refreshLevelUI(); }); }
+  document.querySelectorAll('.cpu-slider').forEach(s=>{
+    const key = s.dataset.key; s.value = SETTINGS.sliders[key];
+    const out = document.getElementById('val_'+key); if (out) out.textContent = s.value;
+    s.addEventListener('input', ()=>{ SETTINGS.sliders[key]=+s.value; if(out) out.textContent=s.value; saveProgress(); });
+  });
+  refreshLevelUI();
 }
 if (document.readyState==='loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 
 window.GX = { get state(){return state;}, get score(){return score;}, players:()=>players,
-  get clock(){return clock;}, get level(){return level;}, get poss(){return possPct();}, setLevel,
-  play(){ startMatch(); }, autoChase(v){ autoChase = !!v; }, endSoon(){ if(state==='play') clock=1.2; } };
+  get clock(){return clock;}, get tier(){return tierIndex;}, get poss(){return possPct();},
+  setLevel, setTier:setLevel,
+  setConfig(c){ if(c.tierIndex!=null) tierIndex=clamp(c.tierIndex,0,6);
+    if(c.playerBased!=null) SETTINGS.playerBased=!!c.playerBased;
+    if(c.competitor!=null) SETTINGS.competitor=!!c.competitor;
+    if(c.preset) SETTINGS.preset=c.preset;
+    if(c.sliders) Object.assign(SETTINGS.sliders,c.sliders); refreshLevelUI(); },
+  play(){ startMatch(); }, autoChase(v){ autoChase = !!v; }, endSoon(){ if(state==='play') clock=1.2; },
+  teamState(){ return GXAI.teamState; } };
 })();

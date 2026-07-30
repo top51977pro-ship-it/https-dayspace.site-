@@ -1,5 +1,5 @@
-// Proves difficulty levels change AI possession. Runs each level with NO human
-// input for ~12s and reports YOUR possession % (home). Low level → you keep more.
+// Scenario: you press (autoChase) for 14s at 3 tiers. Higher tier = CPU keeps
+// the ball better & defends better → your possession should fall as tier rises.
 import { chromium } from 'playwright';
 import http from 'node:http'; import fs from 'node:fs'; import path from 'node:path';
 const ROOT = path.resolve('www');
@@ -13,12 +13,13 @@ await new Promise(r=>server.listen(0,r)); const port=server.address().port;
 const browser = await chromium.launch({ executablePath:'/opt/pw-browsers/chromium', args:['--enable-unsafe-swiftshader'] });
 const page = await browser.newPage({ viewport:{width:1280,height:720} });
 await page.goto(`http://localhost:${port}/`, { waitUntil:'networkidle' });
-for (const lvl of [1, 6, 12]){
-  await page.evaluate(l => { window.GX.setLevel(l); window.GX.play(); window.GX.autoChase(true); }, lvl);
-  await page.waitForTimeout(12000);
+const TIERS = ['Beginner','Professional','Ultimate'];
+for (const [i,t] of [[0,'Beginner'],[3,'Professional'],[6,'Ultimate']]){
+  await page.evaluate(l => { window.GX.setTier(l); window.GX.play(); window.GX.autoChase(true); }, i);
+  await page.waitForTimeout(14000);
   const poss = await page.evaluate(() => window.GX.poss);
-  console.log(`Level ${String(lvl).padStart(2)} → YOUR possession ${poss}%`);
-  await page.evaluate(() => { window.GX.endSoon(); });
+  console.log(`${t.padEnd(13)} → YOUR possession ${poss}%`);
+  await page.evaluate(() => window.GX.endSoon());
   await page.waitForTimeout(1400);
   await page.click('#btnQuit').catch(()=>{});
   await page.waitForTimeout(200);

@@ -14,7 +14,8 @@ in a **native Android WebView project** so it ships as an installable **`.apk`**
 
 | Feature | Status |
 | --- | --- |
-| **12 difficulty levels** (Rookie → IMPOSSIBLE), saved between sessions, beat one to unlock the next | ✅ |
+| **FC-style CPU AI**: 7 tiers (Beginner→Ultimate) + Player-Based Difficulty + Competitor Mode + 7 CPU sliders (`www/ai.js`) | ✅ |
+| Four AI layers — Perception (latency+noise) · TeamBrain (phases, press/cover, marking) · PlayerBrain (states, utility+softmax) · Execution — no ball-swarming; difficulty changes decisions, never raw speed | ✅ |
 | Landscape 11-v-11 match, 3:00 clock | ✅ |
 | Virtual **joystick** + action cluster **PASS / THROUGH / SHOOT / SPRINT & SKILL** | ✅ |
 | Offense→defense button remap (SWITCH / TACKLE / SLIDE / CONTAIN) | ✅ |
