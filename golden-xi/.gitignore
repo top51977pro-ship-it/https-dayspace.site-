@@ -12,3 +12,8 @@ android/app/build/
 android/local.properties
 android/captures/
 *.apk
+shot3d_*.png
+gl_*.png
+webgltest.mjs
+shot3d.mjs
+diff-test.mjs

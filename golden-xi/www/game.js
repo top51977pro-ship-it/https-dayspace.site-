@@ -123,10 +123,13 @@ function makeTeam(team){
   const arr = [];
   for (let i = 0; i < 11; i++){
     const f = FORMATION[i]; const p = homePos(team, f);
+    const tc = team===0?HOME:AWAY, gk = f.role==='GK';
     arr.push({ team, idx:i, role:f.role, form:f, x:p.x, y:p.y, vx:0, vy:0,
-      dir:(team===0?0:Math.PI), isGK:f.role==='GK', num:i===0?1:i+1,
+      dir:(team===0?0:Math.PI), isGK:gk, num:i===0?1:i+1,
       name:NAMES[(team*11 + i) % NAMES.length], skin:SKINS[(team*7+i)%SKINS.length],
       hair:HAIRS[(team*5+i*3)%HAIRS.length],
+      kit3d: gk ? tc.gk : tc.kit, short3d: gk ? '#161616' : tc.short,
+      h3d: 0.9 + (((team*11+i)*37) % 22) / 100,
       tackleCd:0, stamina:1, slide:0, gait:Math.random()*6.28 });
   }
   return arr;
@@ -573,6 +576,12 @@ function makeCrowd(){
   crowdPat = ctx.createPattern(t, 'repeat');
 }
 function draw(){
+  // 3D render path: the pitch/players/ball are drawn by the WebGL scene.
+  if (window.Scene3D && Scene3D.ready()) { Scene3D.frame(players, ball, active, cam.x, cam.y); requestRadar(); return; }
+  draw2D();
+}
+// Legacy 2D renderer (kept as a fallback if WebGL is unavailable).
+function draw2D(){
   const cw = canvas.width/DPR, ch = canvas.height/DPR;
   const T = performance.now()/1000;
   ctx.clearRect(0,0,cw,ch);
@@ -798,6 +807,7 @@ function startMatch(){
   setTeamChrome(); resetPositions(0); state='play';
   $('menu').classList.add('hidden'); $('fulltime').classList.add('hidden'); $('game').classList.remove('hidden');
   resize();
+  if (window.Scene3D && Scene3D.ready()) Scene3D.buildTeams(players);
   $('lvlBadge').textContent = 'Lv '+level+' · '+LEVELS[level-1];
   showToast(LEVELS[level-1].toUpperCase(),'',1100);
   lastT = performance.now()/1000; acc=0; requestAnimationFrame(frame);
@@ -899,17 +909,24 @@ function bindKeyboard(){
 // ---------------------------------------------------------------- resize
 function resize(){
   DPR = Math.min(window.devicePixelRatio||1, 1.5);   // cap for smooth framerate on phones
-  for (const c of [canvas, radar]){ const r = c.getBoundingClientRect();
-    c.width = Math.max(1, r.width*DPR); c.height = Math.max(1, r.height*DPR);
-    c.getContext('2d').setTransform(DPR,0,0,DPR,0,0); }
-  ctx = canvas.getContext('2d'); rctx = radar.getContext('2d');
-  makeCrowd(); checkOrient();
+  // radar stays a 2D canvas
+  const rr = radar.getBoundingClientRect();
+  radar.width = Math.max(1, rr.width*DPR); radar.height = Math.max(1, rr.height*DPR);
+  rctx = radar.getContext('2d'); rctx.setTransform(DPR,0,0,DPR,0,0);
+  // pitch is the WebGL canvas (3D)
+  if (window.Scene3D && Scene3D.ready()){
+    const pr = canvas.getBoundingClientRect();
+    Scene3D.resize(pr.width, pr.height, DPR);
+  }
+  checkOrient();
 }
 function checkOrient(){ $('rotate').classList.toggle('hidden', window.innerWidth >= window.innerHeight); }
 
 // ---------------------------------------------------------------- boot
 function boot(){
-  canvas=$('pitch'); radar=$('radar'); ctx=canvas.getContext('2d'); rctx=radar.getContext('2d');
+  canvas=$('pitch'); radar=$('radar');
+  try { Scene3D.init(canvas, L, W); } catch(e){ console.error('3D init failed', e); }
+  rctx=radar.getContext('2d');
   loadProgress(); resize(); refreshLevelUI();
   window.addEventListener('resize', resize);
   window.addEventListener('orientationchange', ()=>setTimeout(resize,200));
