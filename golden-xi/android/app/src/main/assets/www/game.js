@@ -44,7 +44,7 @@ function diffFor(level){
     tackleRate:1.3 + 3.2 * d,       // AI steal-attempts/sec when defending YOU
     stealScale:1 - 0.62 * d,        // multiplier on YOUR steal rate (easy=1, hard≈0.38)
     pressers:  d > 0.6 ? 3 : d > 0.3 ? 2 : 1,
-    passErr:   0.42 * (1 - d),      // easy AI misplaces passes → loose balls for you
+    passErr:   0.22 * (1 - d),      // easy AI slightly loose (not wild)
     passCd:    0.60 - 0.36 * d,     // easy AI dawdles on the ball; hard AI moves it fast
     shotErr:   2.4 * (1 - 0.8 * d),
     shotRange: 16 + 13 * d,
@@ -77,9 +77,9 @@ const SKINS = ['#f1c9a5','#e0a878','#c98a56','#a9683b','#8a4e2a','#6d3b1f'];
 const HAIRS = ['#140f0a','#2e2013','#0d0d10','#5a3a1e','#c9a24a','#7a4a28'];
 
 const HOME = { name:'Golden XI', abbr:'GXI', crest:'GX', kit:'#F5C518', kit2:'#c99a00',
-               num:'#241a00', short:'#141414', crestBg:'#b8860b', gk:'#1f8a4c' };
+               num:'#241a00', short:'#141414', crestBg:'#b8860b', gk:'#12d6c2' };   // bright teal keeper
 const AWAY = { name:'Kestrel United', abbr:'KES', crest:'KS', kit:'#2b3a67', kit2:'#1a2340',
-               num:'#eef2ff', short:'#e9edf7', crestBg:'#1a2340', gk:'#e08a1e' };
+               num:'#eef2ff', short:'#e9edf7', crestBg:'#1a2340', gk:'#ff2fa0' };   // bright pink keeper
 
 const FORMATION = [
   {x:0.05,y:0.50,role:'GK'},
@@ -317,19 +317,20 @@ function aiActions(){
   const pressured = opp.p && opp.d < 3.0;
   const sinceAct = performance.now()/1000 - (ball.lastAct || 0);
 
-  if (distGoal < D.shotRange && Math.abs(owner.y - gy) < 18 && (distGoal < 12 || Math.random() < 0.4)){
-    doShoot(owner, 0.5 + Math.random()*0.4, D); return;
+  // Shoot when in range of goal.
+  if (distGoal < D.shotRange && Math.abs(owner.y - gy) < 20 && (distGoal < 14 || Math.random() < 0.55)){
+    doShoot(owner, 0.55 + Math.random()*0.4, D); return;
   }
-  // Only move the ball on after a cooldown — otherwise the AI keeps it, dribbles,
-  // and can actually be tackled (easy levels dawdle a lot; hard levels move it fast).
+  // Only pass to ESCAPE pressure, and prefer a forward option. Otherwise the bot
+  // dribbles straight at the goal (its movement target) instead of passing aimlessly.
   if (pressured && sinceAct > D.passCd){
     const mate = bestPassTarget(owner);
-    if (mate){ doPass(owner, mate, false, D); return; }
+    if (mate){
+      const fwd = owner.team === 0 ? (mate.x > owner.x - 2) : (mate.x < owner.x + 2);
+      if (fwd || Math.random() < 0.5){ doPass(owner, mate, false, D); return; }
+    }
   }
-  if (!pressured && sinceAct > D.passCd && Math.random() < 0.12 + 0.4*D.aggro){
-    const mate = bestPassTarget(owner);
-    if (mate) doPass(owner, mate, false, D);
-  }
+  // else: keep the ball and drive toward goal (handled by the movement AI).
 }
 function bestPassTarget(owner){
   const gx = goalX(owner.team);
@@ -361,8 +362,8 @@ function tackling(){
     if (dist(p, owner) >= reach) continue;
     // `rate` = steal attempts per second while in contact (converted per-frame below).
     let rate;
-    if (p.team === 0){                       // YOU / your team winning it back
-      rate = 3.6 * DF.stealScale + (p.slide > 0 ? 3.0 : 0) + (p.idx === active ? 1.8 : 0);
+    if (p.team === 0){                       // YOU / your team winning it back (easier now)
+      rate = 4.8 * DF.stealScale + (p.slide > 0 ? 3.2 : 0) + (p.idx === active ? 2.4 : 0);
     } else {                                 // the AI opponent tackling you (scales with level)
       rate = DF.tackleRate + (p.slide > 0 ? 2.5 : 0);
     }
@@ -752,7 +753,7 @@ function requestRadar(){
   if (!rctx) return;
   const w = radar.width/DPR, h = radar.height/DPR;
   rctx.clearRect(0,0,w,h);
-  rctx.fillStyle='rgba(10,26,15,.85)'; rctx.fillRect(0,0,w,h);
+  rctx.fillStyle='rgba(10,26,15,.30)'; rctx.fillRect(0,0,w,h);
   rctx.strokeStyle='rgba(255,255,255,.35)'; rctx.lineWidth=1; rctx.strokeRect(2,2,w-4,h-4);
   rctx.beginPath(); rctx.moveTo(w/2,2); rctx.lineTo(w/2,h-2); rctx.stroke();
   rctx.beginPath(); rctx.arc(w/2,h/2,Math.min(w,h)*0.12,0,7); rctx.stroke();

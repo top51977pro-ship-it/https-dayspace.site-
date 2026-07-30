@@ -10,7 +10,7 @@ const server = http.createServer((req,res)=>{ let f=decodeURIComponent(req.url.s
   res.writeHead(200,{'content-type':MIME[path.extname(fp)]||'application/octet-stream'});
   fs.createReadStream(fp).pipe(res); });
 await new Promise(r=>server.listen(0,r)); const port=server.address().port;
-const browser = await chromium.launch({ executablePath:'/opt/pw-browsers/chromium' });
+const browser = await chromium.launch({ executablePath:'/opt/pw-browsers/chromium', args:['--enable-unsafe-swiftshader'] });
 const page = await browser.newPage({ viewport:{width:1280,height:720} });
 await page.goto(`http://localhost:${port}/`, { waitUntil:'networkidle' });
 for (const lvl of [1, 6, 12]){

@@ -41,10 +41,10 @@ window.Scene3D = (function () {
     pitch.position.set(L / 2, 0, W / 2);
     scene.add(pitch);
 
-    // ball
+    // ball (bigger, easier to see)
     ball3d = new THREE.Mesh(
-      new THREE.SphereGeometry(0.22, 18, 14),
-      new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.45 }));
+      new THREE.SphereGeometry(0.55, 20, 16),
+      new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.4 }));
     scene.add(ball3d);
 
     // active-player ring
@@ -55,8 +55,40 @@ window.Scene3D = (function () {
     ring.visible = false;
     scene.add(ring);
 
+    buildStands();
     buildGoals();
     ready = true;
+  }
+
+  function makeCrowdCanvas() {
+    const c = document.createElement('canvas'); c.width = 256; c.height = 96;
+    const g = c.getContext('2d');
+    g.fillStyle = '#243043'; g.fillRect(0, 0, 256, 96);
+    const cols = ['#e8ecf5', '#c9d2e0', '#9aa6bd', '#ff6a8a', '#6a8aff', '#ffd76a', '#7affc0', '#ff9a5a'];
+    for (let i = 0; i < 2200; i++) {
+      g.fillStyle = cols[(Math.random() * cols.length) | 0];
+      g.fillRect((Math.random() * 256) | 0, (Math.random() * 96) | 0, 2, 3);
+    }
+    return c;
+  }
+
+  function buildStands() {
+    const crowd = new THREE.CanvasTexture(makeCrowdCanvas());
+    crowd.wrapS = crowd.wrapT = THREE.RepeatWrapping;
+    const m = new THREE.MeshBasicMaterial({ map: crowd });   // unlit → crowd stays bright
+    // four raised, inward-tilted slabs around the pitch
+    const slab = (cx, cy, cz, w, h, d, rotY, rotX) => {
+      const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m);
+      mesh.position.set(cx, cy, cz);
+      mesh.rotation.y = rotY; mesh.rotation.x = rotX;
+      scene.add(mesh);
+    };
+    const long = L + 46, side = W + 46;
+    slab(L / 2, 5, -12, long, 13, 7, 0, 0.4);          // far touchline
+    slab(L / 2, 5, W + 12, long, 13, 7, 0, -0.4);      // near touchline
+    slab(-12, 5, W / 2, 7, 13, side, 0, 0);            // left end
+    slab(L + 12, 5, W / 2, 7, 13, side, 0, 0);         // right end
+    crowd.repeat.set(28, 3);
   }
 
   function makePitchCanvas() {
@@ -130,7 +162,7 @@ window.Scene3D = (function () {
       g.position.set(p.x, 0, p.y);
       g.rotation.y = -p.dir;
     }
-    ball3d.position.set(ball.x, 0.22, ball.y);
+    ball3d.position.set(ball.x, 0.55, ball.y);
     const a = players[active];
     if (a && a.team === 0) { ring.visible = true; ring.position.set(a.x, 0.06, a.y); }
     else ring.visible = false;

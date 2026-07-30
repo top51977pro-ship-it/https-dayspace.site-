@@ -91,9 +91,9 @@ html,body{margin:0;height:100%;overflow:hidden;background:#000;color:var(--ink);
   background:rgba(39,174,96,.16);border-radius:6px;padding:1px 0;letter-spacing:1px;}
 
 /* Radar */
-.radar{position:absolute;top:calc(env(safe-area-inset-top,0px) + 50px);left:50%;transform:translateX(-50%);
-  width:132px;height:70px;border-radius:8px;border:1px solid rgba(255,255,255,.14);
-  background:rgba(8,20,12,.4);opacity:.62;pointer-events:none;}
+.radar{position:absolute;bottom:calc(env(safe-area-inset-bottom,0px) + 12px);left:50%;transform:translateX(-50%);
+  width:150px;height:80px;border-radius:8px;border:1px solid rgba(255,255,255,.12);
+  background:transparent;opacity:.5;pointer-events:none;}
 
 /* Joystick */
 .joystick{position:absolute;bottom:calc(env(safe-area-inset-bottom,0px) + 26px);left:calc(env(safe-area-inset-left,0px) + 34px);
