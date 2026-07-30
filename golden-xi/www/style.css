@@ -95,6 +95,9 @@ html,body{margin:0;height:100%;overflow:hidden;background:#000;color:var(--ink);
 /* ---------- Game canvas ---------- */
 .game{z-index:10;background:#0a1410;}
 #pitch{position:absolute;inset:0;width:100%;height:100%;display:block;}
+.flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:25;}
+.flash.go{animation:goalflash .55s ease-out;}
+@keyframes goalflash{0%{opacity:.6}100%{opacity:0}}
 
 /* Scoreboard */
 .scoreboard{position:absolute;top:calc(env(safe-area-inset-top,0px) + 10px);left:calc(env(safe-area-inset-left,0px) + 12px);

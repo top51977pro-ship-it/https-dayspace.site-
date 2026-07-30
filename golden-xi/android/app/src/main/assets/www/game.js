@@ -428,6 +428,7 @@ function onGoal(team){
   navigator.vibrate && navigator.vibrate(team===0?[40,40,80]:40);
   spawnConfetti(team===0);
   fx.flash = 0.9; fx.shake = 1;
+  { const fl=$('flash'); if(fl){ fl.classList.remove('go'); void fl.offsetWidth; fl.classList.add('go'); } }
   kickTeam = 1 - team;
   setTimeout(() => { if (state === 'play'){ resetPositions(kickTeam); showToast('KICK OFF','',700); } }, 900);
   ball.owner = -2; ball.vx = ball.vy = 0; ball.x = L/2; ball.y = W/2;

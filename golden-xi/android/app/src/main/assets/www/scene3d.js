@@ -7,6 +7,7 @@ window.Scene3D = (function () {
   'use strict';
   let renderer, scene, camera, ready = false;
   let L, W, ball3d, ring, groups = [];
+  let ballShadow, shadowGeo, shadowMat;
 
   function init(canvas, worldL, worldW) {
     L = worldL; W = worldW;
@@ -41,11 +42,18 @@ window.Scene3D = (function () {
     pitch.position.set(L / 2, 0, W / 2);
     scene.add(pitch);
 
-    // ball (bigger, easier to see)
+    // shared soft blob shadow
+    shadowGeo = new THREE.CircleGeometry(1, 18);
+    shadowMat = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.28, depthWrite: false });
+
+    // ball (bigger, easier to see) with a pentagon-ish pattern + shadow
     ball3d = new THREE.Mesh(
       new THREE.SphereGeometry(0.55, 20, 16),
-      new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.4 }));
+      new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.4, map: makeBallTexture() }));
     scene.add(ball3d);
+    ballShadow = new THREE.Mesh(shadowGeo, shadowMat);
+    ballShadow.rotation.x = -Math.PI / 2; ballShadow.scale.set(0.55, 0.55, 0.55); ballShadow.position.y = 0.02;
+    scene.add(ballShadow);
 
     // active-player ring
     ring = new THREE.Mesh(
@@ -115,12 +123,17 @@ window.Scene3D = (function () {
   function buildGoals() {
     const white = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.6 });
     const gw = 12, half = gw / 2;
-    for (const ex of [0.3, L - 0.3]) {
+    const netMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.14, side: THREE.DoubleSide });
+    for (const end of [0, 1]) {
+      const ex = end === 0 ? 0.3 : L - 0.3, out = end === 0 ? -1 : 1;
       const post = new THREE.BoxGeometry(0.28, 2.5, 0.28);
       const p1 = new THREE.Mesh(post, white); p1.position.set(ex, 1.25, W / 2 - half); scene.add(p1);
       const p2 = new THREE.Mesh(post, white); p2.position.set(ex, 1.25, W / 2 + half); scene.add(p2);
       const bar = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.28, gw), white);
       bar.position.set(ex, 2.5, W / 2); scene.add(bar);
+      // net (translucent box behind the line) + back panel
+      const net = new THREE.Mesh(new THREE.BoxGeometry(2.0, 2.5, gw), netMat);
+      net.position.set(ex + out * 1.1, 1.25, W / 2); scene.add(net);
     }
   }
 
@@ -128,22 +141,49 @@ window.Scene3D = (function () {
     return new THREE.MeshStandardMaterial({ color: new THREE.Color(cssColor), roughness: rough });
   }
 
+  // a limb hanging from a pivot at (xoff, pivotY) so it can swing when running
+  function limb(material, w, ht, d, xoff, pivotY) {
+    const pivot = new THREE.Group(); pivot.position.set(xoff, pivotY, 0);
+    const m = new THREE.Mesh(new THREE.BoxGeometry(w, ht, d), material); m.position.y = -ht / 2;
+    pivot.add(m); return pivot;
+  }
+  function roundRect(g, x, y, w, h, r) { g.beginPath(); g.moveTo(x + r, y);
+    g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r);
+    g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); }
+  function numberSprite(num, fg, bg) {
+    const c = document.createElement('canvas'); c.width = 64; c.height = 34; const g = c.getContext('2d');
+    g.fillStyle = 'rgba(0,0,0,.4)'; roundRect(g, 0, 0, 64, 34, 9); g.fill();
+    g.fillStyle = bg; roundRect(g, 3, 3, 58, 28, 7); g.fill();
+    g.fillStyle = fg; g.font = 'bold 22px system-ui,Arial'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillText(String(num), 32, 18);
+    const spr = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), depthTest: false }));
+    return spr;
+  }
+  function makeBallTexture() {
+    const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d');
+    g.fillStyle = '#fff'; g.fillRect(0, 0, 64, 64); g.fillStyle = '#1a1a1a';
+    for (const [x, y] of [[20, 18], [46, 22], [32, 44], [10, 46], [52, 50]]) {
+      g.beginPath(); g.arc(x, y, 5, 0, 7); g.fill();
+    }
+    return new THREE.CanvasTexture(c);
+  }
   function buildPlayer(p) {
     const g = new THREE.Group();
     const h = p.h3d || 1;
     const kit = mat(p.kit3d, 0.7), skin = mat(p.skin, 0.85), hair = mat(p.hair, 0.9), sh = mat(p.short3d, 0.8);
-    const leg = new THREE.BoxGeometry(0.22, 0.75 * h, 0.22);
-    const l1 = new THREE.Mesh(leg, sh); l1.position.set(0.16, 0.38 * h, 0); g.add(l1);
-    const l2 = new THREE.Mesh(leg, sh); l2.position.set(-0.16, 0.38 * h, 0); g.add(l2);
-    const torso = new THREE.Mesh(new THREE.BoxGeometry(0.74, 1.0 * h, 0.42), kit);
-    torso.position.y = 1.05 * h; g.add(torso);
-    const arm = new THREE.BoxGeometry(0.16, 0.7 * h, 0.16);
-    const a1 = new THREE.Mesh(arm, skin); a1.position.set(0.5, 1.05 * h, 0); g.add(a1);
-    const a2 = new THREE.Mesh(arm, skin); a2.position.set(-0.5, 1.05 * h, 0); g.add(a2);
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.27, 16, 12), skin);
-    head.position.y = 1.78 * h; g.add(head);
-    const hairm = new THREE.Mesh(new THREE.SphereGeometry(0.29, 16, 10), hair);
-    hairm.scale.y = 0.6; hairm.position.y = 1.86 * h; g.add(hairm);
+    const shadow = new THREE.Mesh(shadowGeo, shadowMat);
+    shadow.rotation.x = -Math.PI / 2; shadow.position.y = 0.02; shadow.scale.set(1.15, 1.15, 1.15); g.add(shadow);
+    const legL = limb(sh, 0.24, 0.75 * h, 0.24, 0.17, 0.75 * h); g.add(legL);
+    const legR = limb(sh, 0.24, 0.75 * h, 0.24, -0.17, 0.75 * h); g.add(legR);
+    const torso = new THREE.Mesh(new THREE.BoxGeometry(0.76, 1.0 * h, 0.42), kit); torso.position.y = 1.05 * h; g.add(torso);
+    const armL = limb(skin, 0.16, 0.72 * h, 0.16, 0.5, 1.42 * h); g.add(armL);
+    const armR = limb(skin, 0.16, 0.72 * h, 0.16, -0.5, 1.42 * h); g.add(armR);
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.28, 16, 12), skin); head.position.y = 1.8 * h; g.add(head);
+    const hairm = new THREE.Mesh(new THREE.SphereGeometry(0.30, 16, 10), hair);
+    hairm.scale.y = 0.6; hairm.position.y = 1.88 * h; g.add(hairm);
+    const spr = numberSprite(p.num, p.team === 0 ? '#241a00' : '#eef2ff', p.team === 0 ? '#F5C518' : '#2b3a67');
+    spr.position.y = 2.7 * h; spr.scale.set(1.5, 0.8, 1); g.add(spr);
+    g.userData = { legL, legR, armL, armR };
     return g;
   }
 
@@ -161,8 +201,16 @@ window.Scene3D = (function () {
       const p = players[i], g = groups[i];
       g.position.set(p.x, 0, p.y);
       g.rotation.y = -p.dir;
+      // running animation: swing legs/arms proportional to speed
+      const spd = Math.hypot(p.vx || 0, p.vy || 0);
+      const sw = Math.sin(p.gait) * Math.min(1, spd / 6) * 0.8;
+      const u = g.userData;
+      if (u) { u.legL.rotation.z = sw; u.legR.rotation.z = -sw; u.armL.rotation.z = -sw * 0.7; u.armR.rotation.z = sw * 0.7; }
     }
     ball3d.position.set(ball.x, 0.55, ball.y);
+    ballShadow.position.set(ball.x, 0.02, ball.y);
+    ball3d.rotation.x += (ball.vy || 0) * 0.02;      // roll
+    ball3d.rotation.z -= (ball.vx || 0) * 0.02;
     const a = players[active];
     if (a && a.team === 0) { ring.visible = true; ring.position.set(a.x, 0.06, a.y); }
     else ring.visible = false;
