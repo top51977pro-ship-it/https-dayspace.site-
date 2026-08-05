@@ -288,7 +288,7 @@ window.Scene3D = (function () {
     g.traverse(function (o) { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); });
   }
 
-  function frame(players, ball, active, camX, camY) {
+  function frame(players, ball, active, camX, camY, cam) {
     const now = performance.now() / 1000;
     const dt = Math.min(0.05, now - (lastFrameT || now)); lastFrameT = now;
 
@@ -317,14 +317,18 @@ window.Scene3D = (function () {
       if (u.life <= 0 || m.position.y < 0) { scene.remove(m); m.material.dispose(); confetti.splice(i, 1); }
     }
 
-    // dynamic camera: a touch closer near goal, with a punch-in on goals
     punch = Math.max(0, punch - dt * 1.1);
-    const nearGoal = Math.min(ball.x, L - ball.x) / (L / 2);   // 0 at a goal, 1 at halfway
-    const zoom = 1 - punch * 0.32;
-    const height = (27 - (1 - nearGoal) * 3.5) * zoom;
-    const dist = (31 - (1 - nearGoal) * 3) * zoom;
-    camera.position.set(camX, height, camY + dist);
-    camera.lookAt(camX, 0.5, camY - 3);
+    if (cam) {                                    // replay / custom camera
+      camera.position.set(cam.px, cam.py, cam.pz);
+      camera.lookAt(cam.lx, cam.ly, cam.lz);
+    } else {                                      // dynamic follow with goal punch-in
+      const nearGoal = Math.min(ball.x, L - ball.x) / (L / 2);
+      const zoom = 1 - punch * 0.32;
+      const height = (27 - (1 - nearGoal) * 3.5) * zoom;
+      const dist = (31 - (1 - nearGoal) * 3) * zoom;
+      camera.position.set(camX, height, camY + dist);
+      camera.lookAt(camX, 0.5, camY - 3);
+    }
     renderer.render(scene, camera);
   }
 

@@ -41,6 +41,7 @@
       <summary>⚙ CPU AI &amp; difficulty settings</summary>
       <label class="set-row"><span>Player-Based Difficulty</span><input type="checkbox" id="optPlayerBased"></label>
       <label class="set-row"><span>Competitor Mode <em>(Legendary / Ultimate)</em></span><input type="checkbox" id="optCompetitor"></label>
+      <label class="set-row"><span>Instant Replays <em>(slow-mo + player view)</em></span><input type="checkbox" id="optReplays" checked></label>
       <label class="set-row"><span>Debug overlay</span><input type="checkbox" id="optDebug"></label>
       <label class="set-row"><span>CPU behaviour preset</span>
         <select id="optPreset"><option>Custom</option><option>Tactical</option><option>Dynamic</option></select></label>
@@ -123,6 +124,13 @@
     <!-- Shot power bar -->
     <div class="powerwrap" id="powerwrap">
       <div class="powerbar"><div class="power-fill" id="powerFill"></div><div class="power-window"></div></div>
+    </div>
+
+    <!-- Instant replay badge -->
+    <div class="replay-badge hidden" id="replayBadge">
+      <span class="rec-dot"></span>
+      <span class="replay-txt">REPLAY</span>
+      <span class="replay-label" id="replayLabel">SLOW MOTION</span>
     </div>
 
     <!-- Kickoff / toast -->

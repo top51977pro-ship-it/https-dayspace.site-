@@ -29,7 +29,7 @@ const TIERS = GXAI.TIERS, TIER_DESC = GXAI.TIER_DESC, NTIERS = 7;
 let tierIndex = 3;                  // 0..6 → Beginner..Ultimate (Professional default)
 let bestBeat = -1;                  // highest tier index beaten
 const SETTINGS = {
-  playerBased:false, competitor:false, preset:'Custom', debug:false,
+  playerBased:false, competitor:false, preset:'Custom', debug:false, replays:true,
   sliders:{ tackleAggression:50, buildupSpeed:50, shotFrequency:50,
             firstTouchPass:50, crossing:50, dribble:50, skillMove:50 },
 };
@@ -39,7 +39,7 @@ function loadProgress(){
     bestBeat  = clamp(parseInt(localStorage.getItem('gx_best')||'-1',10),-1,6);
     const s = JSON.parse(localStorage.getItem('gx_settings')||'null');
     if (s){ SETTINGS.playerBased=!!s.playerBased; SETTINGS.competitor=!!s.competitor;
-      SETTINGS.preset=s.preset||'Custom'; SETTINGS.debug=!!s.debug;
+      SETTINGS.preset=s.preset||'Custom'; SETTINGS.debug=!!s.debug; SETTINGS.replays=s.replays!==false;
       if (s.sliders) Object.assign(SETTINGS.sliders, s.sliders); }
   } catch(e){}
 }
@@ -77,6 +77,9 @@ let lastTouch = 0, active = 10, lastActiveSwitch = 0;
 let restartLock = 0, secondHalf = false;
 const touchCount = [0,0]; let possFrames = [0,0];
 let acc = 0, lastT = 0, aiDecideCd = 0;
+// instant-replay recording + playback
+let recBuf = [], replay = null, lastShooter = null, saveReplayCd = 0, repLastT = 0;
+const REC_MAX = 340;               // ~5.7s of history at 60 Hz
 const fx = { flash:0, parts:[], shake:0 };
 
 const move = { x:0, y:0, mag:0 };
@@ -262,6 +265,72 @@ function step(dt){
   cameraFollow(dt);
   if (possTeam >= 0) possFrames[possTeam]++;
   updateFX(dt);
+  recBuf.push(snapshot()); if (recBuf.length > REC_MAX) recBuf.shift();   // record for replays
+  saveReplayCd = Math.max(0, saveReplayCd - dt);
+}
+
+// ---------------------------------------------------------------- instant replay
+function snapshot(){
+  const a = new Float32Array(22*6 + 2);
+  for (let i=0;i<22;i++){ const p=players[i], o=i*6;
+    a[o]=p.x; a[o+1]=p.y; a[o+2]=p.dir; a[o+3]=p.gait; a[o+4]=p.vx; a[o+5]=p.vy; }
+  a[132]=ball.x; a[133]=ball.y; return a;
+}
+function applyFrame(a){
+  for (let i=0;i<22;i++){ const p=players[i], o=i*6;
+    p.x=a[o]; p.y=a[o+1]; p.dir=a[o+2]; p.gait=a[o+3]; p.vx=a[o+4]; p.vy=a[o+5]; }
+  ball.x=a[132]; ball.y=a[133];
+}
+function startReplay(focus, kind){
+  if (!SETTINGS.replays || recBuf.length < 40){ if (kind==='goal') scheduleKickoff(); return; }
+  const end = recBuf.length - 1;
+  const start = Math.max(0, end - Math.floor(3.4*60));      // last ~3.4 seconds
+  replay = { kind, focus: focus ? players.indexOf(focus) : nearestHomeToBall(),
+             start, end, segs:['sideLow','behindGoal','pov'], seg:0, cursor:start };
+  players.forEach(p=>{ p.celebrateT=0; });   // replayed footage shows natural running, not frozen celebration
+  state = 'replay'; repLastT = 0;
+  { const g=$('game'); if(g) g.classList.add('replaying'); }
+  const b = $('replayBadge'); if (b) b.classList.remove('hidden');
+  showToast(kind==='goal' ? 'REPLAY' : 'CHANCE!', '', 800);
+}
+function scheduleKickoff(){
+  setTimeout(()=>{ if (state==='play'){ resetPositions(kickTeam); showToast('KICK OFF','',700); } }, 900);
+}
+function replayCam(mode){
+  const bx=ball.x, bz=ball.y;
+  if (mode==='sideLow')    return { px:bx, py:6.5, pz:W+13, lx:bx, ly:1.2, lz:W/2 };
+  if (mode==='behindGoal'){ const right = bx > L/2;
+    return right ? { px:L+16, py:9, pz:W/2, lx:L-14, ly:1.2, lz:W/2 }
+                 : { px:-16,  py:9, pz:W/2, lx:14,   ly:1.2, lz:W/2 }; }
+  // pov — first person from the focus player's eyes, gaze toward the ball & pitch ahead
+  const f = players[replay.focus] || players[0];
+  let gx = bx - f.x, gz = bz - f.y;                 // look toward the ball he's chasing/carrying
+  const gm = Math.hypot(gx, gz);
+  if (gm < 3){ gx = Math.cos(f.dir); gz = Math.sin(f.dir); }   // ball right at feet → look along run
+  else { gx/=gm; gz/=gm; }
+  return { px:f.x + gx*0.35, py:1.74, pz:f.y + gz*0.35,        // eye height, just ahead of the head
+           lx:f.x + gx*9, ly:0.35, lz:f.y + gz*9 };            // gaze tilts down onto the grass ahead
+}
+function replayTick(){
+  const now=performance.now()/1000; let dtR=now-(repLastT||now); repLastT=now; if(dtR>0.05)dtR=0.05;
+  const seg = replay.segs[replay.seg];
+  const speed = seg==='pov' ? 1.0 : 0.42;                  // slow-mo except the POV pass
+  replay.cursor += dtR*60*speed;
+  if (replay.cursor >= replay.end){
+    replay.seg++;
+    if (replay.seg >= replay.segs.length){ finishReplay(); return; }
+    replay.cursor = replay.start;
+  }
+  applyFrame(recBuf[Math.min(replay.end, Math.floor(replay.cursor))]);
+  if (window.Scene3D && Scene3D.ready()) Scene3D.frame(players, ball, -1, 0, 0, replayCam(seg));
+  const lbl = $('replayLabel'); if (lbl) lbl.textContent = seg==='pov' ? 'PLAYER VIEW' : 'SLOW MOTION';
+}
+function finishReplay(){
+  const kind = replay.kind; replay = null; repLastT = 0;
+  { const g=$('game'); if(g) g.classList.remove('replaying'); }
+  const b = $('replayBadge'); if (b) b.classList.add('hidden');
+  if (kind==='goal'){ resetPositions(kickTeam); showToast('KICK OFF','',700); }
+  state='play'; lastT=performance.now()/1000; acc=0;
 }
 
 // -------------------------------------------------- action execution (CPU/AI on-ball)
@@ -295,6 +364,7 @@ function cpuPass(owner, to, kind, prof){
   fireBall(owner, dir, speed); ball.kickCd = KICK_COOLDOWN; touchCount[owner.team]++; ball.lastAct = simTime;
 }
 function cpuShoot(owner, prof){
+  lastShooter = owner;
   const gx = goalX(owner.team), gy = W/2;
   const opp = nearestOpponentTo(owner, owner.team);
   const sigmaM = GXAI.shotPlacementError(owner, prof, { pressure: opp.d < 2.6, weakFoot:false });
@@ -384,7 +454,13 @@ function updateBall(dt){
     if (dist(p, ball) < catchR && bsp < 30){
       if (bsp > 15){ p.gkDiveT = 0.6; p.gkDiveSide = Math.sign(ball.y - p.y) || 1; }   // save animation
       ball.owner = players.indexOf(p); ball.vx = ball.vy = 0; lastTouch = p.team;
-      ball.kickCd = KICK_COOLDOWN; return; } }
+      ball.kickCd = KICK_COOLDOWN;
+      // instant replay of a strong save from a real chance
+      if (bsp > 24 && SETTINGS.replays && saveReplayCd <= 0 && lastShooter &&
+          Math.abs(goalX(lastShooter.team) - lastShooter.x) < 30){
+        saveReplayCd = 14; startReplay(lastShooter, 'save');
+      }
+      return; } }
 
   if (ball.kickCd <= 0){
     let best = null, bd = CONTROL_R;
@@ -443,8 +519,10 @@ function onGoal(team){
   fx.flash = 0.9; fx.shake = 1;
   { const fl=$('flash'); if(fl){ fl.classList.remove('go'); void fl.offsetWidth; fl.classList.add('go'); } }
   kickTeam = 1 - team;
-  setTimeout(() => { if (state === 'play'){ resetPositions(kickTeam); showToast('KICK OFF','',700); } }, 900);
   ball.owner = -2; ball.vx = ball.vy = 0; ball.x = L/2; ball.y = W/2;
+  const scorer = (lastShooter && lastShooter.team === team) ? lastShooter
+    : players.filter(p => p.team === team && !p.isGK).sort((a,b)=>dist(a,ball)-dist(b,ball))[0];
+  if (SETTINGS.replays) startReplay(scorer, 'goal'); else scheduleKickoff();
 }
 function cameraFollow(dt){
   const scale = (canvas.height / DPR) / VIEW_H;
@@ -489,6 +567,7 @@ function humanPass(through){
 }
 function doShoot(from, power, D){
   if (!from) return;
+  lastShooter = from;
   const gx = goalX(from.team), gy = W/2;
   let aimY = gy + move.y * HALF_GOAL * 0.9;
   aimY = clamp(aimY, gy - HALF_GOAL + 0.6, gy + HALF_GOAL - 0.6);
@@ -783,6 +862,7 @@ function updateHudLabels(){
 function possPct(){ const t=possFrames[0]+possFrames[1]||1; return Math.round(possFrames[0]/t*100); }
 
 function frame(t){
+  if (state === 'replay'){ replayTick(); requestAnimationFrame(frame); return; }
   if (state !== 'play') return;
   const now = t/1000; let dtR = now - lastT; lastT = now;
   if (dtR > 0.05) dtR = 0.05; acc += dtR;
@@ -818,6 +898,8 @@ function updateDebug(){
 function startMatch(){
   score=[0,0]; clock=MATCH_SECS; kickTeam=0; touchCount[0]=touchCount[1]=0; possFrames=[0,0];
   fx.parts.length=0; fx.flash=0; fx.shake=0; simTime=0;
+  recBuf=[]; replay=null; lastShooter=null; saveReplayCd=0; repLastT=0;
+  { const b=$('replayBadge'); if(b) b.classList.add('hidden'); const g=$('game'); if(g) g.classList.remove('replaying'); }
   setTeamChrome(); resetPositions(0);
   GXAI.beginMatch((tierIndex*7919 + (SETTINGS.competitor?3:0) + 20260730) >>> 0);   // seed (locks difficulty for the match)
   assignProfiles();
@@ -965,10 +1047,11 @@ function boot(){
 }
 // -------- settings UI wiring (Player-Based Difficulty, Competitor, preset, sliders, debug) --------
 function bindSettings(){
-  const pb = $('optPlayerBased'), cm = $('optCompetitor'), pr = $('optPreset'), db = $('optDebug');
+  const pb = $('optPlayerBased'), cm = $('optCompetitor'), pr = $('optPreset'), db = $('optDebug'), rp = $('optReplays');
   if (pb){ pb.checked = SETTINGS.playerBased; pb.addEventListener('change', ()=>{ SETTINGS.playerBased=pb.checked; saveProgress(); }); }
   if (cm){ cm.checked = SETTINGS.competitor; cm.addEventListener('change', ()=>{ SETTINGS.competitor=cm.checked; saveProgress(); }); }
   if (db){ db.checked = SETTINGS.debug; db.addEventListener('change', ()=>{ SETTINGS.debug=db.checked; saveProgress(); }); }
+  if (rp){ rp.checked = SETTINGS.replays; rp.addEventListener('change', ()=>{ SETTINGS.replays=rp.checked; saveProgress(); }); }
   if (pr){ pr.value = SETTINGS.preset; pr.addEventListener('change', ()=>{ SETTINGS.preset=pr.value; saveProgress(); refreshLevelUI(); }); }
   document.querySelectorAll('.cpu-slider').forEach(s=>{
     const key = s.dataset.key; s.value = SETTINGS.sliders[key];
@@ -988,5 +1071,9 @@ window.GX = { get state(){return state;}, get score(){return score;}, players:()
     if(c.preset) SETTINGS.preset=c.preset;
     if(c.sliders) Object.assign(SETTINGS.sliders,c.sliders); refreshLevelUI(); },
   play(){ startMatch(); }, autoChase(v){ autoChase = !!v; }, endSoon(){ if(state==='play') clock=1.2; },
-  teamState(){ return GXAI.teamState; } };
+  teamState(){ return GXAI.teamState; },
+  get replay(){ return replay; },
+  forceReplay(seg){ lastShooter = nearestHomeToBall(); startReplay(lastShooter,'goal');
+    if(replay && seg!=null){ replay.seg = seg; } },
+  replaySeg(){ return replay ? replay.segs[replay.seg] : null; } };
 })();
