@@ -110,9 +110,10 @@ function makeTeam(team){
       name:NAMES[(team*11 + i) % NAMES.length], skin:SKINS[(team*7+i)%SKINS.length],
       hair:HAIRS[(team*5+i*3)%HAIRS.length],
       kit3d: gk ? tc.gk : tc.kit, short3d: gk ? '#161616' : tc.short,
-      h3d: 0.9 + (((team*11+i)*37) % 22) / 100,
+      h3d: 0.92 + (((ratings.pace||60)) % 18) / 100,                 // height varies a bit
+      build3d: 0.90 + clamp(((ratings.strength||60)-40)/60,0,1)*0.26, // slim → stocky by strength
       ratings, ovr:ratings.ovr, profile:null, ai:null, aiNext:0, decideInterval:0.27,
-      tackleCd:0, stamina:1, slide:0, gait:Math.random()*6.28 });
+      tackleCd:0, stamina:1, slide:0, gait:Math.random()*6.28, gkDiveT:0, gkDiveSide:0 });
   }
   return arr;
 }
@@ -215,6 +216,7 @@ function step(dt){
   for (const p of players){
     p.tackleCd = Math.max(0, p.tackleCd - dt);
     if (p.slide) p.slide = Math.max(0, p.slide - dt);
+    if (p.gkDiveT) p.gkDiveT = Math.max(0, p.gkDiveT - dt);
     let tgt, sprint = false;
 
     if (p.idx === active && p.team === 0 && restartLock <= 0){
@@ -377,7 +379,9 @@ function updateBall(dt){
     // keeper reach comes from diving/reflexes ATTRIBUTES, not difficulty
     const gr = p.ratings || {};
     const catchR = 1.4 + ((gr.diving||60)/100)*1.5 + ((gr.reflexes||60)/100)*0.6;
-    if (dist(p, ball) < catchR && len(ball.vx,ball.vy) < 30){
+    const bsp = len(ball.vx, ball.vy);
+    if (dist(p, ball) < catchR && bsp < 30){
+      if (bsp > 15){ p.gkDiveT = 0.6; p.gkDiveSide = Math.sign(ball.y - p.y) || 1; }   // save animation
       ball.owner = players.indexOf(p); ball.vx = ball.vy = 0; lastTouch = p.team;
       ball.kickCd = KICK_COOLDOWN; return; } }
 
@@ -423,6 +427,8 @@ function handleBounds(){
 }
 function onGoal(team){
   score[team]++;
+  const cgk = players.find(p => p.isGK && p.team === 1-team);   // conceding keeper dives (in vain)
+  if (cgk){ cgk.gkDiveT = 0.7; cgk.gkDiveSide = Math.sign(ball.y - cgk.y) || 1; }
   $('scoreHome').textContent = score[0]; $('scoreAway').textContent = score[1];
   showToast(team===0?'GOAL!':'CONCEDED', team===0?'goal':'', 1200);
   navigator.vibrate && navigator.vibrate(team===0?[40,40,80]:40);

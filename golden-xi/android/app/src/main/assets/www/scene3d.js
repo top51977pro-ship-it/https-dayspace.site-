@@ -167,24 +167,76 @@ window.Scene3D = (function () {
     }
     return new THREE.CanvasTexture(c);
   }
+  // a bone: pivot group at (x,y) with a box hanging down length `len` (child attaches at y=-len)
+  function joint(parent, material, w, len, d, x, y) {
+    const pv = new THREE.Group(); pv.position.set(x, y, 0); parent.add(pv);
+    const m = new THREE.Mesh(new THREE.BoxGeometry(w, len, d), material); m.position.y = -len / 2; pv.add(m);
+    return pv;
+  }
   function buildPlayer(p) {
     const g = new THREE.Group();
-    const h = p.h3d || 1;
-    const kit = mat(p.kit3d, 0.7), skin = mat(p.skin, 0.85), hair = mat(p.hair, 0.9), sh = mat(p.short3d, 0.8);
+    const h = p.h3d || 1, bw = p.build3d || 1;
+    const kit = mat(p.kit3d, 0.62), skin = mat(p.skin, 0.85), hair = mat(p.hair, 0.9),
+          sh = mat(p.short3d, 0.8), sock = mat(p.kit3d, 0.85), boot = mat('#141414', 0.5);
     const shadow = new THREE.Mesh(shadowGeo, shadowMat);
     shadow.rotation.x = -Math.PI / 2; shadow.position.y = 0.02; shadow.scale.set(1.15, 1.15, 1.15); g.add(shadow);
-    const legL = limb(sh, 0.24, 0.75 * h, 0.24, 0.17, 0.75 * h); g.add(legL);
-    const legR = limb(sh, 0.24, 0.75 * h, 0.24, -0.17, 0.75 * h); g.add(legR);
-    const torso = new THREE.Mesh(new THREE.BoxGeometry(0.76, 1.0 * h, 0.42), kit); torso.position.y = 1.05 * h; g.add(torso);
-    const armL = limb(skin, 0.16, 0.72 * h, 0.16, 0.5, 1.42 * h); g.add(armL);
-    const armR = limb(skin, 0.16, 0.72 * h, 0.16, -0.5, 1.42 * h); g.add(armR);
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.28, 16, 12), skin); head.position.y = 1.8 * h; g.add(head);
-    const hairm = new THREE.Mesh(new THREE.SphereGeometry(0.30, 16, 10), hair);
-    hairm.scale.y = 0.6; hairm.position.y = 1.88 * h; g.add(hairm);
+    const body = new THREE.Group(); g.add(body);
+    const hip = 0.86 * h, shoulder = 1.5 * h;
+    // legs: thigh → shin → foot (articulated for a real run cycle)
+    const hips = new THREE.Group(); hips.position.y = hip; body.add(hips);
+    const thighL = joint(hips, sh, 0.17 * bw, 0.42 * h, 0.19, 0.13 * bw, 0);
+    const shinL = joint(thighL, sock, 0.15 * bw, 0.42 * h, 0.16, 0, -0.42 * h);
+    const footL = joint(shinL, boot, 0.16, 0.12, 0.38, 0, -0.42 * h); footL.children[0].position.set(0.1, -0.06, 0);
+    const thighR = joint(hips, sh, 0.17 * bw, 0.42 * h, 0.19, -0.13 * bw, 0);
+    const shinR = joint(thighR, sock, 0.15 * bw, 0.42 * h, 0.16, 0, -0.42 * h);
+    const footR = joint(shinR, boot, 0.16, 0.12, 0.38, 0, -0.42 * h); footR.children[0].position.set(0.1, -0.06, 0);
+    // torso + shoulders
+    const torso = new THREE.Mesh(new THREE.BoxGeometry(0.66 * bw, 0.64 * h, 0.34 * bw), kit);
+    torso.position.y = 1.18 * h; body.add(torso);
+    const chest = new THREE.Group(); chest.position.y = shoulder; body.add(chest);
+    const upperArmL = joint(chest, kit, 0.15, 0.32 * h, 0.15, 0.40 * bw, 0);
+    const foreArmL = joint(upperArmL, skin, 0.13, 0.30 * h, 0.13, 0, -0.32 * h);
+    const upperArmR = joint(chest, kit, 0.15, 0.32 * h, 0.15, -0.40 * bw, 0);
+    const foreArmR = joint(upperArmR, skin, 0.13, 0.30 * h, 0.13, 0, -0.32 * h);
+    // neck, head, hair, number
+    const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.11, 0.13, 8), skin); neck.position.y = 1.6 * h; body.add(neck);
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.25, 16, 14), skin);
+    head.scale.set(0.92, 1.06, 0.98); head.position.y = 1.78 * h; body.add(head);
+    const hairm = new THREE.Mesh(new THREE.SphereGeometry(0.27, 16, 12), hair);
+    hairm.scale.set(1, 0.62, 1); hairm.position.y = 1.86 * h; body.add(hairm);
     const spr = numberSprite(p.num, p.team === 0 ? '#241a00' : '#eef2ff', p.team === 0 ? '#F5C518' : '#2b3a67');
-    spr.position.y = 2.7 * h; spr.scale.set(1.5, 0.8, 1); g.add(spr);
-    g.userData = { legL, legR, armL, armR };
+    spr.position.y = 2.7 * h; spr.scale.set(1.5, 0.8, 1); body.add(spr);
+    g.userData = { body, thighL, shinL, thighR, shinR, upperArmL, foreArmL, upperArmR, foreArmR, isGK: p.isGK };
     return g;
+  }
+  function runCycle(u, phase, spd) {
+    const amp = Math.min(1, spd / 6.5);
+    u.thighL.rotation.z = Math.sin(phase) * 0.95 * amp;
+    u.thighR.rotation.z = Math.sin(phase + Math.PI) * 0.95 * amp;
+    u.shinL.rotation.z = -Math.max(0, Math.sin(phase + 1.0)) * 1.3 * amp - 0.08 * amp;
+    u.shinR.rotation.z = -Math.max(0, Math.sin(phase + Math.PI + 1.0)) * 1.3 * amp - 0.08 * amp;
+    u.upperArmL.rotation.set(0, 0, Math.sin(phase + Math.PI) * 0.75 * amp);
+    u.upperArmR.rotation.set(0, 0, Math.sin(phase) * 0.75 * amp);
+    u.foreArmL.rotation.z = -0.4 - 0.35 * amp;
+    u.foreArmR.rotation.z = -0.4 - 0.35 * amp;
+    u.body.position.y = Math.abs(Math.sin(phase)) * 0.06 * amp;
+    u.body.rotation.set(0, 0, -0.16 * amp);   // lean forward into the run
+  }
+  function poseGK(p, u, g) {
+    g.rotation.y = (p.team === 0 ? 0 : Math.PI);   // keeper faces the pitch
+    const k = Math.min(1, (p.gkDiveT || 0) / 0.6);
+    if (k > 0.01) {                                // DIVE / SAVE
+      const side = p.gkDiveSide || 1;
+      u.body.rotation.set(0, 0, 0); u.body.rotation.x = -side * 1.3 * k; u.body.position.y = 0.55 * k;
+      u.upperArmL.rotation.set(-1.5 * k, 0, 0.5); u.upperArmR.rotation.set(-1.5 * k, 0, -0.5);
+      u.foreArmL.rotation.z = -0.2; u.foreArmR.rotation.z = -0.2;
+      u.thighL.rotation.z = 0.15; u.thighR.rotation.z = 0.15; u.shinL.rotation.z = -0.25; u.shinR.rotation.z = -0.25;
+    } else {                                       // READY crouch, arms spread
+      u.body.rotation.set(0, 0, 0); u.body.position.y = 0;
+      u.thighL.rotation.z = 0.36; u.thighR.rotation.z = 0.36; u.shinL.rotation.z = -0.62; u.shinR.rotation.z = -0.62;
+      u.upperArmL.rotation.set(-0.7, 0, 0.55); u.upperArmR.rotation.set(-0.7, 0, -0.55);
+      u.foreArmL.rotation.z = -0.5; u.foreArmR.rotation.z = -0.5;
+    }
   }
 
   function buildTeams(players) {
@@ -198,14 +250,11 @@ window.Scene3D = (function () {
 
   function frame(players, ball, active, camX, camY) {
     for (let i = 0; i < groups.length && i < players.length; i++) {
-      const p = players[i], g = groups[i];
+      const p = players[i], g = groups[i], u = g.userData;
       g.position.set(p.x, 0, p.y);
-      g.rotation.y = -p.dir;
-      // running animation: swing legs/arms proportional to speed
       const spd = Math.hypot(p.vx || 0, p.vy || 0);
-      const sw = Math.sin(p.gait) * Math.min(1, spd / 6) * 0.8;
-      const u = g.userData;
-      if (u) { u.legL.rotation.z = sw; u.legR.rotation.z = -sw; u.armL.rotation.z = -sw * 0.7; u.armR.rotation.z = sw * 0.7; }
+      if (u && u.isGK) { poseGK(p, u, g); }
+      else { g.rotation.y = -p.dir; if (u) runCycle(u, p.gait, spd); }
     }
     ball3d.position.set(ball.x, 0.55, ball.y);
     ballShadow.position.set(ball.x, 0.02, ball.y);
