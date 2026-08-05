@@ -113,7 +113,7 @@ function makeTeam(team){
       h3d: 0.92 + (((ratings.pace||60)) % 18) / 100,                 // height varies a bit
       build3d: 0.90 + clamp(((ratings.strength||60)-40)/60,0,1)*0.26, // slim → stocky by strength
       ratings, ovr:ratings.ovr, profile:null, ai:null, aiNext:0, decideInterval:0.27,
-      tackleCd:0, stamina:1, slide:0, gait:Math.random()*6.28, gkDiveT:0, gkDiveSide:0 });
+      tackleCd:0, stamina:1, slide:0, gait:Math.random()*6.28, gkDiveT:0, gkDiveSide:0, celebrateT:0 });
   }
   return arr;
 }
@@ -217,6 +217,7 @@ function step(dt){
     p.tackleCd = Math.max(0, p.tackleCd - dt);
     if (p.slide) p.slide = Math.max(0, p.slide - dt);
     if (p.gkDiveT) p.gkDiveT = Math.max(0, p.gkDiveT - dt);
+    if (p.celebrateT) p.celebrateT = Math.max(0, p.celebrateT - dt);
     let tgt, sprint = false;
 
     if (p.idx === active && p.team === 0 && restartLock <= 0){
@@ -429,6 +430,12 @@ function onGoal(team){
   score[team]++;
   const cgk = players.find(p => p.isGK && p.team === 1-team);   // conceding keeper dives (in vain)
   if (cgk){ cgk.gkDiveT = 0.7; cgk.gkDiveSide = Math.sign(ball.y - cgk.y) || 1; }
+  // celebration: confetti at the goal + scoring team's nearest players celebrate
+  if (window.Scene3D && Scene3D.ready() && Scene3D.celebrate){
+    Scene3D.celebrate(ball.x, ball.y, team===0 ? 0xF5C518 : 0x2b3a67);
+  }
+  players.filter(p=>p.team===team && !p.isGK).sort((a,b)=>dist(a,ball)-dist(b,ball))
+         .slice(0,3).forEach(p=> p.celebrateT = 1.7);
   $('scoreHome').textContent = score[0]; $('scoreAway').textContent = score[1];
   showToast(team===0?'GOAL!':'CONCEDED', team===0?'goal':'', 1200);
   navigator.vibrate && navigator.vibrate(team===0?[40,40,80]:40);

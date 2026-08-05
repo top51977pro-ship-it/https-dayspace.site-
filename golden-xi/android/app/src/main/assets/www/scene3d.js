@@ -8,6 +8,7 @@ window.Scene3D = (function () {
   let renderer, scene, camera, ready = false;
   let L, W, ball3d, ring, groups = [];
   let ballShadow, shadowGeo, shadowMat;
+  let confetti = [], confettiGeo, punch = 0, lastFrameT = 0;
 
   function init(canvas, worldL, worldW) {
     L = worldL; W = worldW;
@@ -45,6 +46,7 @@ window.Scene3D = (function () {
     // shared soft blob shadow
     shadowGeo = new THREE.CircleGeometry(1, 18);
     shadowMat = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.28, depthWrite: false });
+    confettiGeo = new THREE.BoxGeometry(0.28, 0.28, 0.05);
 
     // ball (bigger, easier to see) with a pentagon-ish pattern + shadow
     ball3d = new THREE.Mesh(
@@ -173,6 +175,23 @@ window.Scene3D = (function () {
     const m = new THREE.Mesh(new THREE.BoxGeometry(w, len, d), material); m.position.y = -len / 2; pv.add(m);
     return pv;
   }
+  // varied hairstyles (short / buzz / afro / bald / long / mohawk)
+  function addHair(body, hairMat, p, h) {
+    const style = (p.num * 7 + p.team * 3) % 6;
+    if (style === 3) return;                                  // bald
+    if (style === 2) { const m = new THREE.Mesh(new THREE.SphereGeometry(0.33, 14, 12), hairMat);
+      m.position.y = 1.9 * h; body.add(m); return; }          // afro
+    if (style === 5) {                                        // mohawk
+      const cap = new THREE.Mesh(new THREE.SphereGeometry(0.26, 14, 10), hairMat);
+      cap.scale.set(1, 0.26, 1); cap.position.y = 1.82 * h; body.add(cap);
+      const m = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.2, 0.36), hairMat);
+      m.position.y = 1.99 * h; body.add(m); return;
+    }
+    const cap = new THREE.Mesh(new THREE.SphereGeometry(0.27, 16, 12), hairMat);
+    cap.scale.set(1, style === 1 ? 0.42 : 0.64, 1); cap.position.y = 1.86 * h; body.add(cap);
+    if (style === 4) { const back = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.24, 0.12), hairMat);
+      back.position.set(-0.12, 1.72 * h, 0); body.add(back); }   // long (nape, behind face)
+  }
   function buildPlayer(p) {
     const g = new THREE.Group();
     const h = p.h3d || 1, bw = p.build3d || 1;
@@ -202,8 +221,11 @@ window.Scene3D = (function () {
     const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.11, 0.13, 8), skin); neck.position.y = 1.6 * h; body.add(neck);
     const head = new THREE.Mesh(new THREE.SphereGeometry(0.25, 16, 14), skin);
     head.scale.set(0.92, 1.06, 0.98); head.position.y = 1.78 * h; body.add(head);
-    const hairm = new THREE.Mesh(new THREE.SphereGeometry(0.27, 16, 12), hair);
-    hairm.scale.set(1, 0.62, 1); hairm.position.y = 1.86 * h; body.add(hairm);
+    addHair(body, hair, p, h);
+    // simple face: two eyes on the front (+x = facing)
+    const eyeMat = mat('#20140c', 0.4);
+    for (const s of [-1, 1]) { const e = new THREE.Mesh(new THREE.SphereGeometry(0.035, 6, 6), eyeMat);
+      e.position.set(0.2, 1.81 * h, s * 0.085); body.add(e); }
     const spr = numberSprite(p.num, p.team === 0 ? '#241a00' : '#eef2ff', p.team === 0 ? '#F5C518' : '#2b3a67');
     spr.position.y = 2.7 * h; spr.scale.set(1.5, 0.8, 1); body.add(spr);
     g.userData = { body, thighL, shinL, thighR, shinR, upperArmL, foreArmL, upperArmR, foreArmR, isGK: p.isGK };
@@ -221,6 +243,24 @@ window.Scene3D = (function () {
     u.foreArmR.rotation.z = -0.4 - 0.35 * amp;
     u.body.position.y = Math.abs(Math.sin(phase)) * 0.06 * amp;
     u.body.rotation.set(0, 0, -0.16 * amp);   // lean forward into the run
+  }
+  function celebratePose(u) {
+    const hop = Math.abs(Math.sin(performance.now() / 130)) * 0.32;
+    u.body.position.y = hop; u.body.rotation.set(0, 0, 0);
+    u.upperArmL.rotation.set(-2.6, 0, 0.3); u.upperArmR.rotation.set(-2.6, 0, -0.3);
+    u.foreArmL.rotation.z = 0; u.foreArmR.rotation.z = 0;
+    u.thighL.rotation.z = 0.12; u.thighR.rotation.z = -0.12; u.shinL.rotation.z = -0.2; u.shinR.rotation.z = -0.2;
+  }
+  function celebrate(x, z, colorHex) {
+    punch = 1.0;
+    const cols = [colorHex, 0xffffff, 0xF5C518, 0x27e0a0, 0xE4572E];
+    for (let i = 0; i < 90; i++) {
+      const m = new THREE.Mesh(confettiGeo, new THREE.MeshBasicMaterial({ color: cols[i % cols.length] }));
+      m.position.set(x + (Math.random() - 0.5) * 7, 3 + Math.random() * 7, z + (Math.random() - 0.5) * 7);
+      m.userData = { vx: (Math.random() - 0.5) * 6, vy: 4 + Math.random() * 7, vz: (Math.random() - 0.5) * 6,
+        life: 1.7 + Math.random() * 1.1, rx: (Math.random() - 0.5) * 10, rz: (Math.random() - 0.5) * 10 };
+      scene.add(m); confetti.push(m);
+    }
   }
   function poseGK(p, u, g) {
     g.rotation.y = (p.team === 0 ? 0 : Math.PI);   // keeper faces the pitch
@@ -249,12 +289,17 @@ window.Scene3D = (function () {
   }
 
   function frame(players, ball, active, camX, camY) {
+    const now = performance.now() / 1000;
+    const dt = Math.min(0.05, now - (lastFrameT || now)); lastFrameT = now;
+
     for (let i = 0; i < groups.length && i < players.length; i++) {
       const p = players[i], g = groups[i], u = g.userData;
       g.position.set(p.x, 0, p.y);
       const spd = Math.hypot(p.vx || 0, p.vy || 0);
       if (u && u.isGK) { poseGK(p, u, g); }
-      else { g.rotation.y = -p.dir; if (u) runCycle(u, p.gait, spd); }
+      else { g.rotation.y = -p.dir;
+        if (u && p.celebrateT > 0) celebratePose(u);
+        else if (u) runCycle(u, p.gait, spd); }
     }
     ball3d.position.set(ball.x, 0.55, ball.y);
     ballShadow.position.set(ball.x, 0.02, ball.y);
@@ -264,7 +309,21 @@ window.Scene3D = (function () {
     if (a && a.team === 0) { ring.visible = true; ring.position.set(a.x, 0.06, a.y); }
     else ring.visible = false;
 
-    camera.position.set(camX, 27, camY + 31);
+    // confetti
+    for (let i = confetti.length - 1; i >= 0; i--) {
+      const m = confetti[i], u = m.userData;
+      u.vy -= 13 * dt; m.position.x += u.vx * dt; m.position.y += u.vy * dt; m.position.z += u.vz * dt;
+      m.rotation.x += u.rx * dt; m.rotation.z += u.rz * dt; u.life -= dt;
+      if (u.life <= 0 || m.position.y < 0) { scene.remove(m); m.material.dispose(); confetti.splice(i, 1); }
+    }
+
+    // dynamic camera: a touch closer near goal, with a punch-in on goals
+    punch = Math.max(0, punch - dt * 1.1);
+    const nearGoal = Math.min(ball.x, L - ball.x) / (L / 2);   // 0 at a goal, 1 at halfway
+    const zoom = 1 - punch * 0.32;
+    const height = (27 - (1 - nearGoal) * 3.5) * zoom;
+    const dist = (31 - (1 - nearGoal) * 3) * zoom;
+    camera.position.set(camX, height, camY + dist);
     camera.lookAt(camX, 0.5, camY - 3);
     renderer.render(scene, camera);
   }
@@ -277,5 +336,6 @@ window.Scene3D = (function () {
     camera.updateProjectionMatrix();
   }
 
-  return { init: init, buildTeams: buildTeams, frame: frame, resize: resize, ready: function () { return ready; } };
+  return { init: init, buildTeams: buildTeams, frame: frame, resize: resize,
+    celebrate: celebrate, ready: function () { return ready; } };
 })();
