@@ -64,13 +64,17 @@ const R = await page.evaluate(async () => {
   // ---- BUG 3: freeze after goal — 50 goals, each reaches kick-off & scores once ----
   { let reached=0, frozen=0, dup=0;
     for (let i=0;i<50;i++){
-      const b0 = GX.score.slice(); const s0 = b0[0]+b0[1];
+      const s0 = GX.score[0] + GX.score[1];
       GX.forceGoal(i%2);
+      // 1) wait for the goal to actually be COUNTED (ball must cross first)
+      let counted=false;
+      for (let f=0; f<180; f++){ await nf(); if (GX.score[0]+GX.score[1] > s0){ counted=true; break; } }
+      // 2) then wait to reach the next kick-off (phase back to IN_PLAY)
       let back=false;
       for (let f=0; f<180; f++){ await nf(); if (GX.phase==='IN_PLAY' && GX.state==='play'){ back=true; break; } }
       back ? reached++ : frozen++;
-      const s1 = GX.score[0]+GX.score[1];
-      if (s1 - s0 !== 1) dup++;
+      const delta = (GX.score[0]+GX.score[1]) - s0;
+      if (!counted || delta !== 1) dup++;         // must be counted exactly once
     }
     out.goalsReached = reached; out.goalsFrozen = frozen; out.goalsDup = dup;
     // heartbeat: loop still ticking after 50 goals

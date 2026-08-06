@@ -698,9 +698,10 @@ function updateRestart(dt){
     if (restart.t >= restart.ready || restart.t >= restart.hard) takeRestartKick(restart.t >= restart.hard);
     return;
   }
-  // ball kicked: resume once it is clearly in play (moved away from the spot), or by watchdog
-  const moved = Math.hypot(ball.x-restart.spot.x, ball.y-restart.spot.y) > 2.0;
-  if (moved || restart.t >= restart.hard + 1.5){
+  // ball kicked: resume once it is clearly in play (moved away from the spot), or shortly after
+  const moved = Math.hypot(ball.x-restart.spot.x, ball.y-restart.spot.y) > 1.5;
+  const settle = (restart.t - (restart.kickAt || restart.t)) > 0.4;   // bounded post-kick settle
+  if (moved || settle || restart.t >= restart.hard + 1.0){
     phase = 'IN_PLAY'; flowGen++;
     if (ball.state === BS.RESTART_LOCKED) setBallState(BS.FREE, -1);
     restart = null;
@@ -725,7 +726,7 @@ function takeRestartKick(forced){
     dir = norm(best.x-r.spot.x, best.y-r.spot.y); speed = r.type==='THROW_IN'?16:(long?30:20); }
   if (taker) fireBall(taker, dir, speed);
   else { ball.owner=-1; ball.vx=dir.x*30; ball.vy=dir.y*30; setBallState(BS.IN_FLIGHT,-1); }
-  ball.kickCd = KICK_COOLDOWN; r.kicked = true; ball.noReHandle = -1;
+  ball.kickCd = KICK_COOLDOWN; r.kicked = true; r.kickAt = r.t; ball.noReHandle = -1;
 }
 
 // ======================================================= goal + reset (bug-3 fix)
