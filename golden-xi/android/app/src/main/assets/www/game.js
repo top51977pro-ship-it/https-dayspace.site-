@@ -86,6 +86,63 @@ const move = { x:0, y:0, mag:0 };
 const held = { sprint:false, shoot:false };
 let shootStart = 0, shootCharge = 0, skillFlash = 0, autoChase = false;
 
+/* ============================================================================
+   AUTHORITATIVE RULES + MATCH FLOW  (fixes the three freeze/steal bugs)
+   - GXR: pure Rules Engine (rules.js) — decides; never acts.
+   - BallStateController: the ball has exactly ONE authoritative state.
+   - MatchFlowController: the ONLY authority that changes the match phase, via a
+     single validated TryTransition(). Every restart/goal carries a generation id
+     so stale async callbacks can never drive the current match.
+   ========================================================================== */
+const GXR = (typeof window!=='undefined' && window.GXRules) || null;
+const BS = GXR ? GXR.BALL : { DEAD_BALL:'DEAD_BALL',FREE:'FREE',FOOT_CONTROLLED:'FOOT_CONTROLLED',
+  KEEPER_HAND_CONTROLLED:'KEEPER_HAND_CONTROLLED',RESTART_LOCKED:'RESTART_LOCKED',
+  IN_FLIGHT:'IN_FLIGHT',OUT_OF_PLAY:'OUT_OF_PLAY' };
+const PH = GXR ? GXR.PHASE : {};
+
+// match-flow phase (distinct from `state`, which governs the screen: menu/play/replay/fulltime)
+let phase = 'IN_PLAY';
+let flowGen = 0;          // bumped on every phase change — invalidates stale callbacks
+let restartId = 0;        // unique id per restart — stale restart events are ignored
+let goalSeq = 0;          // unique id per goal crossing — a goal is processed exactly once
+let processedGoal = -1;   // highest goalSeq already scored (dedupe)
+let restart = null;       // active restart descriptor (taker, target, timers) or null
+let goalTimer = 0;        // real-seconds watchdog inside GOAL/RESET states
+let testFastFlow = false; // tests only: shorten celebration/restart delays for fast regression runs
+
+// The one validated transition method. Rejects stale/duplicate transitions.
+function tryTransition(expected, next, reason){
+  if (phase !== expected){
+    if (SETTINGS.debug) console.warn(`[flow] rejected ${phase}→${next} (expected ${expected}) :: ${reason}`);
+    return false;
+  }
+  phase = next; flowGen++;
+  if (SETTINGS.debug) console.log(`[flow] ${expected}→${next} gen=${flowGen} :: ${reason}`);
+  return true;
+}
+
+// ---- BallStateController: one authoritative state, no contradictory booleans ----
+function setBallState(s, owner){
+  ball.state = s;
+  if (owner !== undefined) ball.owner = owner;
+  if (s !== BS.KEEPER_HAND_CONTROLLED){ ball.gkHolder = -1; ball.gkHoldT = 0; }
+}
+function keeperHolding(){ return ball.state === BS.KEEPER_HAND_CONTROLLED && ball.gkHolder >= 0; }
+
+// Dev-build invariant checks — surface contradictory state instead of freezing on it.
+function assertInvariants(where){
+  if (!SETTINGS.debug) return;
+  const problems = [];
+  if ((ball.state===BS.DEAD_BALL || ball.state===BS.RESTART_LOCKED) && ball.owner>=0
+      && !(restart && restart.takerIdx===ball.owner))
+    problems.push('DEAD/LOCKED ball has a dribble owner');
+  if (ball.state===BS.KEEPER_HAND_CONTROLLED && !(ball.gkHolder>=0 && players[ball.gkHolder] && players[ball.gkHolder].isGK))
+    problems.push('KEEPER_HAND_CONTROLLED without a valid GK owner');
+  if (ball.state===BS.FREE && ball.gkHolder>=0) problems.push('ball is both FREE and keeper-held');
+  if (problems.length) console.error(`[invariant@${where}]`, problems.join(' | '),
+    { phase, state:ball.state, owner:ball.owner, gk:ball.gkHolder, restartId, goalSeq });
+}
+
 // ---------------------------------------------------------------- helpers
 function clamp(v,a,b){ return v<a?a:v>b?b:v; }
 const lerp = (a,b,t) => a + (b - a) * t;
@@ -120,14 +177,41 @@ function makeTeam(team){
   }
   return arr;
 }
+function newBall(){
+  return { x:L/2, y:W/2, vx:0, vy:0, owner:-1, kickCd:0,
+           state:BS.RESTART_LOCKED, prevx:L/2, prevy:W/2,
+           gkHolder:-1, gkHoldT:0, noReHandle:-1 };
+}
+// FULL (re)build — match start / half start only. Rebuilds squads from scratch.
 function resetPositions(kick){
   secondHalf = false;
   players = [...makeTeam(0), ...makeTeam(1)];
-  ball = { x:L/2, y:W/2, vx:0, vy:0, owner:-1, kickCd:0 };
-  const g = players.filter(p => p.team === kick);
-  const taker = g[9]; taker.x = L/2 - (kick===0?1.2:-1.2); taker.y = W/2;
-  ball.owner = players.indexOf(taker); lastTouch = kick;
-  active = kick === 0 ? players.indexOf(taker) : nearestHomeToBall();
+  ball = newBall();
+  placeKickoff(kick);
+}
+// Reposition the EXISTING players to their kick-off formation, PRESERVING their
+// profiles / AI / ratings. This is the bug-3 fix: the old code rebuilt every player
+// with profile:null and never re-assigned, so the next AI tick threw and the frame
+// loop died (permanent freeze). Force-placing existing players cannot do that.
+function placeKickoff(kick){
+  for (const p of players){
+    const hp = homePos(p.team, p.form);
+    p.x = hp.x; p.y = hp.y; p.vx = 0; p.vy = 0;
+    p.dir = p.team === 0 ? 0 : Math.PI;
+    p.ai = null; p.slide = 0; p.tackleCd = 0; p.celebrateT = 0; p.gkDiveT = 0;
+    if (p.stamina == null) p.stamina = 1;
+  }
+  ball.x = L/2; ball.y = W/2; ball.vx = 0; ball.vy = 0; ball.prevx = L/2; ball.prevy = W/2;
+  ball.kickCd = 0; ball.gkHolder = -1; ball.gkHoldT = 0; ball.noReHandle = -1;
+  const g = players.filter(p => p.team === kick && !p.isGK).sort((a,b)=>a.idx-b.idx);
+  const taker = g.find(p=>p.role==='FW') || g[g.length-1] || players[kick*11+9];
+  taker.x = L/2 - (kick===0 ? 1.2 : -1.2); taker.y = W/2;
+  const ti = players.indexOf(taker);
+  ball.owner = ti; setBallState(BS.FOOT_CONTROLLED, ti); lastTouch = kick;
+  // safety net: if any profile is missing (e.g. loaded state), re-assign so AI never
+  // dereferences null. Cheap and idempotent.
+  if (players.some(p=>!p.profile)) { try { assignProfiles(); } catch(e){} }
+  active = kick === 0 ? ti : nearestHomeToBall();
   restartLock = 0.6; cam.x = L/2; cam.y = W/2;
 }
 function nearestHomeToBall(){
@@ -259,9 +343,15 @@ function step(dt){
     else p.stamina = clamp(p.stamina + dt*0.05, 0, 1);
   }
 
-  executeOwnerAction(world);
-  tackling(world);
-  updateBall(dt);
+  if (restart && !restart.kicked){
+    updateRestart(dt);                 // restart being set up / taken — RestartManager owns the ball
+  } else {
+    executeOwnerAction(world);
+    tackling(world);
+    updateBall(dt);
+    if (restart && restart.kicked) updateRestart(dt);   // detect the restart is now in play
+  }
+  assertInvariants('step');
   cameraFollow(dt);
   if (possTeam >= 0) possFrames[possTeam]++;
   updateFX(dt);
@@ -282,7 +372,8 @@ function applyFrame(a){
   ball.x=a[132]; ball.y=a[133];
 }
 function startReplay(focus, kind){
-  if (!SETTINGS.replays || recBuf.length < 40){ if (kind==='goal') scheduleKickoff(); return; }
+  // too little footage → skip the replay; the goal flow's flowTick watchdog reaches kick-off
+  if (!SETTINGS.replays || recBuf.length < 40) return;
   const end = recBuf.length - 1;
   const start = Math.max(0, end - Math.floor(3.4*60));      // last ~3.4 seconds
   replay = { kind, focus: focus ? players.indexOf(focus) : nearestHomeToBall(),
@@ -293,9 +384,7 @@ function startReplay(focus, kind){
   const b = $('replayBadge'); if (b) b.classList.remove('hidden');
   showToast(kind==='goal' ? 'REPLAY' : 'CHANCE!', '', 800);
 }
-function scheduleKickoff(){
-  setTimeout(()=>{ if (state==='play'){ resetPositions(kickTeam); showToast('KICK OFF','',700); } }, 900);
-}
+function scheduleKickoff(){ beginGoalReset(); }   // kept for compatibility; routes through the flow
 function replayCam(mode){
   const bx=ball.x, bz=ball.y;
   if (mode==='sideLow')    return { px:bx, py:6.5, pz:W+13, lx:bx, ly:1.2, lz:W/2 };
@@ -329,8 +418,8 @@ function finishReplay(){
   const kind = replay.kind; replay = null; repLastT = 0;
   { const g=$('game'); if(g) g.classList.remove('replaying'); }
   const b = $('replayBadge'); if (b) b.classList.add('hidden');
-  if (kind==='goal'){ resetPositions(kickTeam); showToast('KICK OFF','',700); }
   state='play'; lastT=performance.now()/1000; acc=0;
+  if (kind==='goal') beginGoalReset();    // robust reset (force-place, preserve profiles) → kick-off
 }
 
 // -------------------------------------------------- action execution (CPU/AI on-ball)
@@ -405,6 +494,11 @@ function projT(a,b,p){ const dx=b.x-a.x, dy=b.y-a.y; const l2=dx*dx+dy*dy||1;
 function tackling(world){
   const owner = ballOwner();
   if (!owner || ball.kickCd > 0) return;
+  // BUG-1 FIX: a keeper in secure hand control is challenge-protected. No tackle,
+  // no "steal", no possession transfer until the release frame. (Law 12 / keeper
+  // hand control.) A parry/rebound is state FREE, not KEEPER_HAND_CONTROLLED, so
+  // those loose balls are still contestable — this guard only fires on a real catch.
+  if (owner.isGK && keeperHolding()) return;
   for (const p of players){
     if (p.team === owner.team || p.isGK || p.tackleCd > 0) continue;
     const sliding = p.slide > 0;
@@ -433,96 +527,259 @@ function tackling(world){
   }
 }
 
-// -------------------------------------------------- ball + rules
+// ==================================================================== ball + rules
+// One authoritative ball state; continuous whole-ball boundary/goal detection;
+// keeper hand-control protection; all restarts through the RestartManager.
+function recordTouch(idx, bodyPart, touchType, controlled, deliberate){
+  const p = players[idx]; if (!p) return;
+  ball.lastTouchEvent = { playerId:p.idx, teamId:p.team, timestamp:simTime, physicsFrame:0,
+    position:{x:ball.x,y:ball.y}, bodyPart, touchType,
+    deliberatePlay:!!deliberate, deliberateSave:false, controlledPossession:!!controlled };
+  lastTouch = p.team;
+}
 function updateBall(dt){
+  ball.prevx = ball.x; ball.prevy = ball.y;      // swept-crossing baseline (whole-ball test)
+
+  // --- keeper in SECURE hand control: glued, protected, 8-second timer, distribution ---
+  if (keeperHolding()){ keeperUpdate(dt); return; }
+
   const owner = ballOwner();
-  if (owner){
+  if (owner && ball.state !== BS.RESTART_LOCKED){
+    if (ball.state !== BS.FOOT_CONTROLLED) setBallState(BS.FOOT_CONTROLLED, ball.owner);
     const lead = DRIBBLE_LEAD * (held.sprint && owner.idx===active ? 1.9 : 1.15);
     ball.x = lerp(ball.x, owner.x + Math.cos(owner.dir)*lead, 0.5);
     ball.y = lerp(ball.y, owner.y + Math.sin(owner.dir)*lead, 0.5);
-    ball.vx = owner.vx; ball.vy = owner.vy; lastTouch = owner.team; return;
+    ball.vx = owner.vx; ball.vy = owner.vy; lastTouch = owner.team;
+    if (ball.noReHandle >= 0 && ball.owner !== ball.noReHandle) ball.noReHandle = -1;
+    return;
   }
+
+  // --- FREE ball physics ---
   const fr = Math.pow(BALL_FRICTION, dt);
   ball.vx *= fr; ball.vy *= fr;
   ball.x += ball.vx * dt; ball.y += ball.vy * dt;
+  if (ball.state !== BS.FREE && ball.state !== BS.IN_FLIGHT) setBallState(BS.FREE, -1);
 
+  // --- goalkeeper reaching a free ball: SECURE CATCH vs PARRY (rebound stays FREE) ---
   for (const p of players){ if (!p.isGK) continue;
-    // keeper reach comes from diving/reflexes ATTRIBUTES, not difficulty
+    const gi = players.indexOf(p);
+    if (gi === ball.noReHandle) continue;                 // may not re-handle own release yet
     const gr = p.ratings || {};
     const catchR = 1.4 + ((gr.diving||60)/100)*1.5 + ((gr.reflexes||60)/100)*0.6;
     const bsp = len(ball.vx, ball.vy);
-    if (dist(p, ball) < catchR && bsp < 30){
-      if (bsp > 15){ p.gkDiveT = 0.6; p.gkDiveSide = Math.sign(ball.y - p.y) || 1; }   // save animation
-      ball.owner = players.indexOf(p); ball.vx = ball.vy = 0; lastTouch = p.team;
-      ball.kickCd = KICK_COOLDOWN;
-      // instant replay of a strong save from a real chance
-      if (bsp > 24 && SETTINGS.replays && saveReplayCd <= 0 && lastShooter &&
-          Math.abs(goalX(lastShooter.team) - lastShooter.x) < 30){
-        saveReplayCd = 14; startReplay(lastShooter, 'save');
-      }
-      return; } }
+    if (dist(p, ball) >= catchR) continue;
+    const res = GXR ? GXR.keeperCatch({ dist:dist(p,ball), catchR, ballSpeed:bsp,
+                        handling:(gr.reflexes||gr.diving||60), rng:Math.random() })
+                    : { secure: bsp < 20, parry: bsp >= 20 };
+    if (bsp > 15){ p.gkDiveT = 0.6; p.gkDiveSide = Math.sign(ball.y - p.y) || 1; }   // dive anim
+    if (bsp > 24 && SETTINGS.replays && saveReplayCd <= 0 && lastShooter && phase==='IN_PLAY' &&
+        Math.abs(goalX(lastShooter.team) - lastShooter.x) < 30){
+      saveReplayCd = 14; startReplay(lastShooter, 'save');
+    }
+    if (res.secure){
+      // back-pass / handling offence: keeper may not handle a deliberate team-mate pass / throw-in
+      const off = GXR && GXR.keeperHandlingOffence(ball.lastTouchEvent, p);
+      if (off && phase==='IN_PLAY'){ off.x = p.x; off.y = p.y; awardRestart(off); return; }
+      ball.gkHolder = gi; ball.gkHoldT = 0;
+      setBallState(BS.KEEPER_HAND_CONTROLLED, gi); lastTouch = p.team;
+      recordTouch(gi, 'hand', 'save', true, false);
+      ball.vx = ball.vy = 0; ball.kickCd = KICK_COOLDOWN;
+      return;
+    } else {                                              // PARRY — deflect, ball stays contestable
+      const away = norm(ball.x - p.x, ball.y - p.y);
+      const psp = Math.min(bsp*0.55, 15);
+      ball.vx = away.x*psp + (Math.random()*2-1)*2; ball.vy = away.y*psp + (Math.random()*2-1)*2;
+      lastTouch = p.team; ball.noReHandle = -1; setBallState(BS.FREE, -1);
+      recordTouch(gi, 'hand', 'parry', false, false); ball.kickCd = 0.12;
+      return;
+    }
+  }
 
+  // --- outfield control acquisition ---
   if (ball.kickCd <= 0){
     let best = null, bd = CONTROL_R;
-    for (const p of players){ const d = dist(p, ball); if (d < bd){ bd = d; best = p; } }
-    if (best){ ball.owner = players.indexOf(best); ball.vx = ball.vy = 0; lastTouch = best.team; }
+    for (const p of players){ if (p.isGK) continue; const d = dist(p, ball); if (d < bd){ bd = d; best = p; } }
+    if (best){ const bi = players.indexOf(best); setBallState(BS.FOOT_CONTROLLED, bi);
+      ball.vx = ball.vy = 0; lastTouch = best.team; ball.noReHandle = -1;
+      recordTouch(bi, 'foot', 'control', true, false); }
   }
-  handleBounds();
-}
-function handleBounds(){
-  if (ball.x < 0 || ball.x > L){
-    const inMouth = Math.abs(ball.y - W/2) < HALF_GOAL;
-    const leftGoal = ball.x < 0;
-    if (inMouth){ onGoal(leftGoal ? 1 : 0); return; }
-    const attackTeam = leftGoal ? 1 : 0;         // team attacking that end
-    const defTeam = 1 - attackTeam;
-    if (lastTouch === defTeam){
-      // CORNER KICK to the attacking team
-      const cornerX = leftGoal ? 1 : L-1;
-      const cornerY = ball.y < W/2 ? 1 : W-1;
-      let best=null, bd=1e9;
-      for (const p of players){ if (p.team!==attackTeam || p.isGK) continue;
-        const d=Math.hypot(p.x-cornerX, p.y-cornerY); if (d<bd){ bd=d; best=p; } }
-      if (best){ best.x=cornerX; best.y=cornerY; ball.owner=players.indexOf(best);
-        ball.vx=ball.vy=0; ball.x=cornerX; ball.y=cornerY; ball.kickCd=KICK_COOLDOWN; lastTouch=attackTeam; }
-      showToast('CORNER','',700); return;
+
+  // --- continuous whole-ball boundary / goal detection (open play only) ---
+  if (phase === 'IN_PLAY' && GXR){
+    const dec = GXR.evaluateBoundary({ prev:{x:ball.prevx,y:ball.prevy},
+                  cur:{x:ball.x,y:ball.y}, lastTouchTeam:lastTouch });
+    if (dec){
+      if (dec.type === 'GOAL') onGoal(dec.scoringTeamId);
+      else awardRestart(dec);
     }
-    // GOAL KICK to the defending keeper
-    const gk = players.find(p => p.isGK && p.team === defTeam);
-    ball.owner = players.indexOf(gk); ball.vx = ball.vy = 0; ball.kickCd = KICK_COOLDOWN;
-    ball.x = clamp(ball.x, 0.5, L-0.5); showToast('GOAL KICK','',600); return;
-  }
-  if (ball.y < 0 || ball.y > W){
-    ball.y = clamp(ball.y, 0.6, W-0.6); ball.vx *= 0.2; ball.vy = 0;
-    const inTeam = 1 - lastTouch;
-    let best = null, bd = 1e9;
-    for (const p of players){ if (p.team !== inTeam || p.isGK) continue;
-      const d = dist(p, ball); if (d < bd){ bd = d; best = p; } }
-    if (best){ best.x = ball.x; best.y = clamp(ball.y, 1, W-1);
-      ball.owner = players.indexOf(best); ball.vx = ball.vy = 0; ball.kickCd = KICK_COOLDOWN; }
   }
 }
-function onGoal(team){
-  score[team]++;
-  const cgk = players.find(p => p.isGK && p.team === 1-team);   // conceding keeper dives (in vain)
-  if (cgk){ cgk.gkDiveT = 0.7; cgk.gkDiveSide = Math.sign(ball.y - cgk.y) || 1; }
-  // celebration: confetti at the goal + scoring team's nearest players celebrate
-  if (window.Scene3D && Scene3D.ready() && Scene3D.celebrate){
-    Scene3D.celebrate(ball.x, ball.y, team===0 ? 0xF5C518 : 0x2b3a67);
+
+// ---- goalkeeper hand control (bug-1 fix: protected, 8s rule, legal release) ----
+function keeperUpdate(dt){
+  const gk = players[ball.gkHolder];
+  if (!gk || !gk.isGK){ setBallState(BS.FREE, -1); return; }
+  ball.x = gk.x + Math.cos(gk.dir)*0.7; ball.y = gk.y + Math.sin(gk.dir)*0.7;
+  ball.vx = ball.vy = 0; ball.owner = ball.gkHolder; lastTouch = gk.team;
+  ball.gkHoldT += dt;
+  const viol = GXR && GXR.keeperHoldViolation(ball.gkHoldT, gk.team, gk.y);   // 8-second rule → corner
+  if (viol){ awardRestart(viol); return; }
+  const pressed = nearestOpponentTo(gk, gk.team).d < 6.5;
+  const holdMax = pressed ? 0.7 : 1.6;                    // release before pressure / after a beat
+  if (ball.gkHoldT >= holdMax) keeperDistribute(gk);
+}
+function keeperDistribute(gk){
+  const mates = players.filter(p => p.team===gk.team && !p.isGK);
+  const dirSign = gk.team===0 ? 1 : -1;
+  let best=null, bs=-1e9;
+  for (const m of mates){ const forward=(m.x-gk.x)*dirSign; const opp=nearestOpponentTo(m,gk.team).d;
+    const sc = forward*0.5 + opp*0.7 - Math.abs(m.y-gk.y)*0.04; if (sc>bs){ bs=sc; best=m; } }
+  const target = best || mates[0] || gk;
+  const long = nearestOpponentTo(gk,gk.team).d < 6 || Math.random() < 0.35;
+  const dir = norm(target.x - gk.x, target.y - gk.y);
+  const gi = ball.gkHolder;
+  ball.gkHolder = -1; ball.gkHoldT = 0;
+  fireBall(gk, dir, long ? 30 : 18);                      // detach → restore physics → velocity
+  ball.noReHandle = gi;                                   // no re-handle before another player touches
+  ball.kickCd = KICK_COOLDOWN; lastTouch = gk.team;
+}
+
+// ======================================================= RestartManager
+// One authoritative, transactional path for every restart (goal kick / corner /
+// throw-in / indirect FK). Guarantees the ball is put back into play — never an
+// infinite wait on an animation, a path or an unavailable player (bug-2 fix).
+function pickRestartTaker(type, team, spot){
+  if (type === 'GOAL_KICK'){
+    const gk = players.find(p => p.isGK && p.team===team);
+    if (gk) return gk;
   }
+  let best=null, bd=1e9;
+  for (const p of players){ if (p.team!==team) continue;
+    if (type!=='GOAL_KICK' && p.isGK) continue;
+    const d = Math.hypot(p.x-spot.x, p.y-spot.y); if (d<bd){ bd=d; best=p; } }
+  return best || players.find(p=>p.team===team && !p.isGK) || players.find(p=>p.team===team);
+}
+function awardRestart(dec){
+  if (!dec) return;
+  restartId++;
+  let type = dec.type, team = dec.restartTeamId, spot, label, ph;
+  if (type==='CORNER'){ spot=GXR.cornerSpot(dec.lineX, dec.side); label='CORNER'; ph='CORNER_SETUP'; }
+  else if (type==='THROW_IN'){ spot={x:clamp(dec.x,1,L-1), y: dec.side===0?0.6:W-0.6}; label='THROW IN'; ph='THROW_IN_SETUP'; }
+  else if (type==='INDIRECT_FK'){ spot={x:clamp(dec.x,2,L-2), y:clamp(dec.y,2,W-2)}; label='FREE KICK'; ph='THROW_IN_SETUP'; }
+  else { type='GOAL_KICK'; spot=GXR.goalKickSpot(team); label='GOAL KICK'; ph='GOAL_KICK_SETUP'; }
+  // transactional entry: stop battles, lock ball, clear owner/keeper, place legally, zero velocity
+  setBallState(BS.RESTART_LOCKED, -1);
+  ball.vx=ball.vy=0; ball.gkHolder=-1; ball.gkHoldT=0; ball.kickCd=0; ball.noReHandle=-1;
+  ball.x=spot.x; ball.y=spot.y; ball.prevx=spot.x; ball.prevy=spot.y;
+  for (const p of players){ if (p.ai) p.ai.action=null; p.slide=0; }
+  phase = ph; flowGen++;
+  const taker = pickRestartTaker(type, team, spot);
+  const ti = players.indexOf(taker);
+  if (taker){ taker.x = (type==='THROW_IN') ? clamp(spot.x,1,L-1) : spot.x - (team===0?1.0:-1.0);
+    taker.y = spot.y; taker.vx=taker.vy=0; }
+  ball.owner = ti;
+  restart = { id:restartId, type, team, takerIdx:ti, spot:{x:spot.x,y:spot.y},
+              t:0, kicked:false, gen:flowGen, ready: testFastFlow?0.15:0.7, hard: testFastFlow?1.0:3.5 };
+  lastTouch = team;
+  active = team===0 ? (ti>=0?ti:nearestHomeToBall()) : nearestHomeToBall();
+  restartLock = 0.3;
+  showToast(label,'',700);
+}
+function updateRestart(dt){
+  if (!restart) return;
+  restart.t += dt;
+  const taker = players[restart.takerIdx];
+  if (!restart.kicked){
+    ball.x = restart.spot.x; ball.y = restart.spot.y; ball.vx=ball.vy=0;
+    if (taker){ ball.owner = restart.takerIdx;
+      taker.x = lerp(taker.x, restart.spot.x - (restart.team===0?0.9:-0.9), 0.4);
+      taker.y = lerp(taker.y, restart.spot.y, 0.4); }
+    // take the kick after the ready delay; FORCE it at the hard deadline (no infinite wait)
+    if (restart.t >= restart.ready || restart.t >= restart.hard) takeRestartKick(restart.t >= restart.hard);
+    return;
+  }
+  // ball kicked: resume once it is clearly in play (moved away from the spot), or by watchdog
+  const moved = Math.hypot(ball.x-restart.spot.x, ball.y-restart.spot.y) > 2.0;
+  if (moved || restart.t >= restart.hard + 1.5){
+    phase = 'IN_PLAY'; flowGen++;
+    if (ball.state === BS.RESTART_LOCKED) setBallState(BS.FREE, -1);
+    restart = null;
+  }
+}
+function takeRestartKick(forced){
+  const r = restart; if (!r) return;
+  let taker = players[r.takerIdx];
+  if (!taker){ taker = pickRestartTaker(r.type, r.team, r.spot); r.takerIdx = players.indexOf(taker); }
+  if (!taker){                                            // last resort — force-place the keeper
+    const gk = players.find(p=>p.isGK && p.team===r.team);
+    if (gk){ gk.x=r.spot.x; gk.y=r.spot.y; taker=gk; r.takerIdx=players.indexOf(gk); }
+  }
+  const dirSign = r.team===0 ? 1 : -1;
+  const mates = players.filter(p => p.team===r.team && !p.isGK && players.indexOf(p)!==r.takerIdx);
+  let best=null, bs=-1e9;
+  for (const m of mates){ const forward=(m.x-r.spot.x)*dirSign; const opp=nearestOpponentTo(m,r.team).d;
+    const sc = forward*0.5 + opp*0.7 - Math.abs(m.y-r.spot.y)*0.03; if (sc>bs){ bs=sc; best=m; } }
+  let dir, speed;
+  if (forced || !best){ dir = { x:dirSign, y:(Math.random()*2-1)*0.25 }; speed = r.type==='THROW_IN'?16:30; }
+  else { const long = r.type!=='THROW_IN' && (Math.random()<0.5 || nearestOpponentTo(taker,r.team).d<7);
+    dir = norm(best.x-r.spot.x, best.y-r.spot.y); speed = r.type==='THROW_IN'?16:(long?30:20); }
+  if (taker) fireBall(taker, dir, speed);
+  else { ball.owner=-1; ball.vx=dir.x*30; ball.vy=dir.y*30; setBallState(BS.IN_FLIGHT,-1); }
+  ball.kickCd = KICK_COOLDOWN; r.kicked = true; ball.noReHandle = -1;
+}
+
+// ======================================================= goal + reset (bug-3 fix)
+function onGoal(team){
+  const seq = ++goalSeq;
+  if (phase !== 'IN_PLAY') return;                        // only score from open play
+  if (processedGoal >= seq) return;                       // dedupe
+  if (!tryTransition('IN_PLAY','GOAL_SCORED','goal by team '+team)) return;
+  processedGoal = seq;
+  score[team]++;                                          // score EXACTLY once
+  kickTeam = 1 - team;
+  for (const p of players){ if (p.ai) p.ai.action = null; }   // cancel pending AI
+  restart = null;
+  setBallState(BS.DEAD_BALL, -2); ball.vx=ball.vy=0; ball.x=L/2; ball.y=W/2;
+  ball.gkHolder=-1; ball.gkHoldT=0;
+  const cgk = players.find(p => p.isGK && p.team === 1-team);
+  if (cgk){ cgk.gkDiveT = 0.7; cgk.gkDiveSide = Math.sign(ball.y - cgk.y) || 1; }
+  if (window.Scene3D && Scene3D.ready() && Scene3D.celebrate)
+    Scene3D.celebrate(ball.x, ball.y, team===0 ? 0xF5C518 : 0x2b3a67);
   players.filter(p=>p.team===team && !p.isGK).sort((a,b)=>dist(a,ball)-dist(b,ball))
          .slice(0,3).forEach(p=> p.celebrateT = 1.7);
   $('scoreHome').textContent = score[0]; $('scoreAway').textContent = score[1];
   showToast(team===0?'GOAL!':'CONCEDED', team===0?'goal':'', 1200);
   navigator.vibrate && navigator.vibrate(team===0?[40,40,80]:40);
-  spawnConfetti(team===0);
-  fx.flash = 0.9; fx.shake = 1;
+  spawnConfetti(team===0); fx.flash = 0.9; fx.shake = 1;
   { const fl=$('flash'); if(fl){ fl.classList.remove('go'); void fl.offsetWidth; fl.classList.add('go'); } }
-  kickTeam = 1 - team;
-  ball.owner = -2; ball.vx = ball.vy = 0; ball.x = L/2; ball.y = W/2;
+  goalTimer = 0;
+  tryTransition('GOAL_SCORED','GOAL_CELEBRATION','celebrate');
   const scorer = (lastShooter && lastShooter.team === team) ? lastShooter
     : players.filter(p => p.team === team && !p.isGK).sort((a,b)=>dist(a,ball)-dist(b,ball))[0];
-  if (SETTINGS.replays) startReplay(scorer, 'goal'); else scheduleKickoff();
+  if (SETTINGS.replays) startReplay(scorer, 'goal');     // finishReplay → beginGoalReset
+  // (if replays off, the flowTick watchdog in frame() calls beginGoalReset)
+}
+// Robust post-goal reset: FORCE-PLACE existing players (preserving profiles), re-arm,
+// reach kick-off. Cannot deadlock — no waiting for perfect navigation.
+function beginGoalReset(){
+  if (phase!=='GOAL_CELEBRATION' && phase!=='GOAL_SCORED' && phase!=='RESET_AFTER_GOAL') return;
+  phase = 'RESET_AFTER_GOAL'; flowGen++;
+  restart = null;
+  placeKickoff(kickTeam);          // preserves profiles/AI/ratings → no null-profile crash
+  restartId++;
+  goalTimer = 0;
+  phase = 'IN_PLAY'; flowGen++;    // (KICKOFF_READY collapsed; restartLock briefly gates input)
+  showToast('KICK OFF','',700);
+}
+function flowTick(dt){
+  goalTimer += dt;
+  if (goalTimer > (testFastFlow ? 0.25 : 1.2)) beginGoalReset();   // absolute watchdog — never stuck
+}
+function recoverFromError(){
+  try { restart = null; phase = 'IN_PLAY';
+        if (players.some(p=>!p.profile)){ try { assignProfiles(); } catch(e){} }
+        placeKickoff(kickTeam); }
+  catch(e){ console.error('[recover] failed', e); }
 }
 function cameraFollow(dt){
   const scale = (canvas.height / DPR) / VIEW_H;
@@ -580,8 +837,10 @@ function doShoot(from, power, D){
 }
 function fireBall(from, dir, speed){
   ball.owner = -1; ball.x = from.x + dir.x*1.1; ball.y = from.y + dir.y*1.1;
-  ball.vx = dir.x*speed; ball.vy = dir.y*speed; lastTouch = from.team; from.tackleCd = 0.15;
+  ball.vx = dir.x*speed; ball.vy = dir.y*speed; from.tackleCd = 0.15;
   ball.lastAct = performance.now()/1000;
+  setBallState(BS.IN_FLIGHT, -1); ball.noReHandle = -1;
+  recordTouch(players.indexOf(from), 'foot', 'kick', false, true);   // deliberate foot play
 }
 function pressAction(act){
   const inPoss = teamInPossession() === 0; const me = players[active];
@@ -866,7 +1125,16 @@ function frame(t){
   if (state !== 'play') return;
   const now = t/1000; let dtR = now - lastT; lastT = now;
   if (dtR > 0.05) dtR = 0.05; acc += dtR;
-  while (acc >= DT){ if (ball.owner !== -2) step(DT); else updateFX(DT); acc -= DT; clockTick(DT); }
+  // A stray exception must NEVER kill the loop (that was the permanent freeze). Any throw
+  // is caught, logged, and the match force-recovers to kick-off; rAF keeps running.
+  try {
+    while (acc >= DT){
+      const frozen = (phase==='GOAL_SCORED' || phase==='GOAL_CELEBRATION' || phase==='RESET_AFTER_GOAL');
+      if (frozen){ flowTick(DT); updateFX(DT); }
+      else { step(DT); clockTick(DT); }
+      acc -= DT;
+    }
+  } catch(err){ console.error('[frame] step threw — recovering to kick-off', err); recoverFromError(); acc = 0; }
   if (held.shoot){ shootCharge = clamp((performance.now()-shootStart)/900,0,1);
     $('powerwrap').classList.add('show'); $('powerFill').style.width=(shootCharge*100)+'%'; }
   else $('powerwrap').classList.remove('show');
@@ -876,7 +1144,7 @@ function frame(t){
   if (SETTINGS.debug) updateDebug();
   requestAnimationFrame(frame);
 }
-function clockTick(dt){ if (restartLock>0 || ball.owner===-2) return;
+function clockTick(dt){ if (restartLock>0 || phase!=='IN_PLAY') return;
   clock -= dt; if (clock<=0){ clock=0; endMatch(); } }
 
 // AI debug overlay (Section 20) — team phase, states, targets, biases
@@ -899,9 +1167,12 @@ function startMatch(){
   score=[0,0]; clock=MATCH_SECS; kickTeam=0; touchCount[0]=touchCount[1]=0; possFrames=[0,0];
   fx.parts.length=0; fx.flash=0; fx.shake=0; simTime=0;
   recBuf=[]; replay=null; lastShooter=null; saveReplayCd=0; repLastT=0;
+  // reset the match-flow state machine + ball-state controller
+  phase='IN_PLAY'; flowGen=0; restartId=0; goalSeq=0; processedGoal=-1; restart=null; goalTimer=0;
   { const b=$('replayBadge'); if(b) b.classList.add('hidden'); const g=$('game'); if(g) g.classList.remove('replaying'); }
-  setTeamChrome(); resetPositions(0);
+  setTeamChrome();
   GXAI.beginMatch((tierIndex*7919 + (SETTINGS.competitor?3:0) + 20260730) >>> 0);   // seed (locks difficulty for the match)
+  resetPositions(0);
   assignProfiles();
   state='play';
   $('menu').classList.add('hidden'); $('fulltime').classList.add('hidden'); $('game').classList.remove('hidden');
@@ -1075,5 +1346,38 @@ window.GX = { get state(){return state;}, get score(){return score;}, players:()
   get replay(){ return replay; },
   forceReplay(seg){ lastShooter = nearestHomeToBall(); startReplay(lastShooter,'goal');
     if(replay && seg!=null){ replay.seg = seg; } },
-  replaySeg(){ return replay ? replay.segs[replay.seg] : null; } };
+  replaySeg(){ return replay ? replay.segs[replay.seg] : null; },
+  // ---- authoritative-flow inspection + deterministic test hooks ----
+  get phase(){ return phase; },
+  get ballState(){ return ball ? ball.state : null; },
+  get gkHolder(){ return ball ? ball.gkHolder : -1; },
+  get gkHoldT(){ return ball ? ball.gkHoldT : 0; },
+  get restartActive(){ return !!restart; },
+  ball(){ return { x:ball.x, y:ball.y, vx:ball.vx, vy:ball.vy, owner:ball.owner,
+                   state:ball.state, gkHolder:ball.gkHolder }; },
+  // force the keeper of `team` into secure hand control right now (steal-protection test)
+  gkGrab(team){ const gk = players.find(p=>p.isGK && p.team===team); if(!gk) return false;
+    ball.x = gk.x + Math.cos(gk.dir)*0.7; ball.y = gk.y + Math.sin(gk.dir)*0.7;
+    ball.vx=ball.vy=0; ball.gkHolder=players.indexOf(gk); ball.gkHoldT=0;
+    setBallState(BS.KEEPER_HAND_CONTROLLED, players.indexOf(gk)); lastTouch=team; return true; },
+  // drop an attacker of `1-team` right on top of the keeper to try to steal
+  swarmKeeper(team){ const gk=players.find(p=>p.isGK&&p.team===team); if(!gk) return;
+    players.filter(p=>p.team!==team && !p.isGK).slice(0,3).forEach((a,i)=>{
+      a.x=gk.x+(i-1)*0.4; a.y=gk.y+0.3; a.vx=a.vy=0; }); },
+  // fire the ball into `team`'s goal from open play (goal-processing test)
+  forceGoal(team){ const intoX = team===0 ? L : 0;   // team scores into the OTHER goal
+    if (phase!=='IN_PLAY'){ phase='IN_PLAY'; }
+    ball.gkHolder=-1; setBallState(BS.IN_FLIGHT,-1); ball.owner=-1;
+    // place it just short of the line and past the keeper's reach so it crosses cleanly
+    ball.x = intoX===0 ? 1.5 : L-1.5; ball.y = W/2;
+    ball.prevx = ball.x; ball.prevy = ball.y;
+    ball.vx = (intoX===0 ? -1 : 1)*60; ball.vy = 0; lastTouch = team;
+    ball.lastTouchEvent = { playerId:9, teamId:team, bodyPart:'foot', touchType:'shot', deliberatePlay:true }; },
+  // put the ball out for a goal kick to `team` (goal-kick restart test)
+  forceGoalKick(team){ if (GXR) awardRestart({ type:'GOAL_KICK', restartTeamId:team, decisionId:0 }); },
+  forceCorner(team){ if (GXR) awardRestart({ type:'CORNER', restartTeamId:team, lineX: team===0?0:L, side:0 }); },
+  restartInfo(){ return restart ? { type:restart.type, team:restart.team, kicked:restart.kicked,
+                   t:+restart.t.toFixed(2), takerIdx:restart.takerIdx } : null; },
+  testFast(v){ testFastFlow = !!v; },
+  setReplays(v){ SETTINGS.replays = !!v; } };
 })();

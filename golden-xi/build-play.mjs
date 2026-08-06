@@ -5,6 +5,7 @@ const R = (f) => fs.readFileSync('www/' + f, 'utf8');
 const css   = R('style.css');
 const three = R('three.min.js');
 const ai    = R('ai.js');
+const rules = R('rules.js');
 const scene = R('scene3d.js');
 const game  = R('game.js');
 
@@ -18,8 +19,9 @@ body = body
 const out = [
   '<style>', css, '</style>',
   body.trim(),
-  '<script>', three, '</script>',
   '<script>', ai, '</script>',
+  '<script>', rules, '</script>',
+  '<script>', three, '</script>',
   '<script>', scene, '</script>',
   '<script>', game, '</script>',
   ''
