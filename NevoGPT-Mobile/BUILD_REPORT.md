@@ -8,13 +8,33 @@ Honest account of what was done, what was verified, and what was **not**.
 [#31258697545](https://github.com/top51977pro-ship-it/https-dayspace.site-/actions/runs/31258697545),
 commit `1b8f47c`, `BUILD SUCCESSFUL`, ~4m of Gradle on a cold cache:
 
-| Artifact | Task | Size |
+| APK | Task | Size |
 | --- | --- | --- |
-| `app-debug.apk` | `assembleDebug` | 14,228,579 bytes |
-| `app-release.apk` | `assembleRelease` | 10,653,365 bytes |
+| `app-release.apk` | `assembleRelease` | 40,835,257 bytes (~39 MB) |
+| `app-debug.apk` | `assembleDebug` | ~56 MB |
 
-Download them from the run's **Artifacts** section. Both are debug-key signed, so
-they install directly on a phone (enable "install from unknown sources").
+**Direct download, no GitHub login required** — the `android-latest` release:
+
+```
+https://github.com/top51977pro-ship-it/https-dayspace.site-/releases/download/android-latest/app-release.apk
+```
+
+Verified by fetching it unauthenticated: `HTTP 200`,
+`Content-Type: application/vnd.android.package-archive`, 146 zip entries,
+`AndroidManifest.xml` + `classes.dex` + `resources.arsc` present, and an
+`APK Sig Block 42` — i.e. a valid v2/v3 signature (debug key). With `minSdk 29`
+there is no `META-INF/*.RSA`, which is correct: v1 JAR signing is not used above API 24.
+
+The same APKs are also attached to each run as Action artifacts, but those are
+zipped and need a logged-in account.
+
+> Note on sizes: an Action artifact reports its *zip* size (10.7 MB for release),
+> which is much smaller than the APK because AGP stores `classes.dex` uncompressed
+> and the artifact zip re-compresses it. The real installable APK is ~39 MB.
+> Most of that is one 32 MB `classes.dex`, almost entirely
+> `material-icons-extended` — the app uses 4 icons out of a few thousand. Enabling
+> R8 (`isMinifyEnabled = true`) would cut it dramatically; left off deliberately so
+> the first build had no shrinker variables in it.
 
 The project as delivered could not be built by any Gradle toolchain — it had no
 Gradle wrapper, no launcher icon, no `strings.xml`, no build types, and no explicit
@@ -72,9 +92,13 @@ where those hosts are reachable. That is where the APKs above came from.
 
 ## How to get the APK
 
-**Via CI (no local setup):** the workflow runs on every push touching
-`NevoGPT-Mobile/**`, and can be started by hand from the Actions tab
-("Build NevoGPT APK" → Run workflow). The APKs land in the run's Artifacts section.
+**Direct link (easiest, works from a phone browser, no login):**
+`https://github.com/top51977pro-ship-it/https-dayspace.site-/releases/download/android-latest/app-release.apk`
+The workflow clobbers this asset on every build, so the URL always serves the newest APK.
+
+**Via CI artifacts:** the workflow runs on every push touching `NevoGPT-Mobile/**`, and
+can be started by hand from the Actions tab ("Build NevoGPT APK" → Run workflow). The
+APKs land in the run's Artifacts section — zipped, and only for logged-in accounts.
 
 **Locally**, on a machine that can reach `dl.google.com`:
 
