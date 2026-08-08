@@ -2,69 +2,58 @@
 
 Honest account of what was done, what was verified, and what was **not**.
 
-## Summary
+## Result
 
-The project as delivered could not be built by any Gradle-based toolchain: it had no
+**Both APKs were built successfully.** GitHub Actions run
+[#31258697545](https://github.com/top51977pro-ship-it/https-dayspace.site-/actions/runs/31258697545),
+commit `1b8f47c`, `BUILD SUCCESSFUL`, ~4m of Gradle on a cold cache:
+
+| Artifact | Task | Size |
+| --- | --- | --- |
+| `app-debug.apk` | `assembleDebug` | 14,228,579 bytes |
+| `app-release.apk` | `assembleRelease` | 10,653,365 bytes |
+
+Download them from the run's **Artifacts** section. Both are debug-key signed, so
+they install directly on a phone (enable "install from unknown sources").
+
+The project as delivered could not be built by any Gradle toolchain — it had no
 Gradle wrapper, no launcher icon, no `strings.xml`, no build types, and no explicit
-JVM target. Those gaps are fixed here, and a GitHub Actions workflow now performs the
-actual APK build.
+JVM target. Those gaps are fixed here.
 
-**No APK was produced inside this session.** The reason is environmental, not a code
-problem — see "Blocked" below.
+## Where the build ran, and why not locally
 
-## Blocked: `dl.google.com` is denied by the session egress policy
+The build ran on a GitHub-hosted runner, not in the authoring session. An Android
+build needs two things served only from `dl.google.com`:
 
-An Android build needs two things that are only served from `dl.google.com`:
-
-1. **The Android SDK** — platform 35, build-tools, platform-tools
-   (`dl.google.com/android/repository/...`).
+1. **The Android SDK** — platform 35, build-tools, platform-tools.
 2. **Google's Maven repository** — the Android Gradle Plugin and every `androidx.*` /
    Compose artifact. `maven.google.com` is only a redirector; it answers `301` to
    `https://dl.google.com/dl/android/maven2/...`.
 
-Both are refused by this environment's outbound proxy:
+Both are refused by the authoring sandbox's egress policy (`CONNECT dl.google.com:443
+-> 403`), and they are not mirrored on Maven Central (`androidx.activity:activity-compose`
+and `com.android.tools.build:gradle` both 404 there). Per the proxy's own guidance,
+policy denials are reported rather than routed around — so the build was moved to CI,
+where those hosts are reachable. That is where the APKs above came from.
 
-```
-CONNECT dl.google.com:443 -> 403   (policy denial)
-```
+## What was verified
 
-Reachability actually observed from this session:
-
-| Host | Result |
-| --- | --- |
-| `repo1.maven.org` (Maven Central) | 200 |
-| `services.gradle.org` | 200 |
-| `developer.android.com` | 200 |
-| `maven.google.com` | 301 → `dl.google.com` |
-| `dl.google.com` | **403 (blocked)** |
-
-Those artifacts are not mirrored on Maven Central (`androidx.activity:activity-compose`
-and `com.android.tools.build:gradle` both return 404 there), so there is no compliant
-substitute. Per the proxy's own guidance, policy denials are reported rather than
-routed around.
-
-## What WAS verified in this session
-
-Kotlin **2.0.21** compiler (`kotlin-compiler-embeddable`, from Maven Central), JVM
-target 17, compiled against real `kotlinx-coroutines-core-jvm:1.9.0` and the Android 15
-platform classes (`org.robolectric:android-all:15-robolectric-13954326`):
-
-| File | Result |
-| --- | --- |
-| `Models.kt` | compiles, no errors |
-| `LocalLlmEngine.kt` | compiles, no errors |
-| `ChatStore.kt` | compiles, no errors |
-| `NevoGPTApp.kt` | **not compiled** — needs Jetpack Compose (Google Maven) |
-
-Also verified: every XML resource parses as well-formed XML; the Gradle wrapper
-(8.11.1) is present and executable.
+- **Full Gradle build, both variants** — `assembleDebug` and `assembleRelease`, AGP
+  8.7.3 / Gradle 8.11.1 / Kotlin 2.0.21 / JDK 17, `compileSdk 35`. Zero compile errors.
+  This covers all four Kotlin sources, including the Compose UI in `NevoGPTApp.kt`,
+  plus resource merging, manifest merging, D8 and APK packaging/signing.
+- **Kotlin sources, independently** — before CI, `Models.kt`, `LocalLlmEngine.kt` and
+  `ChatStore.kt` were compiled locally with `kotlin-compiler-embeddable:2.0.21` against
+  real `kotlinx-coroutines-core-jvm:1.9.0` and Android 15 platform classes: no errors.
+- **XML resources** — every resource file parses as well-formed XML.
 
 ## What was NOT verified
 
-- No Gradle build was run. `assembleDebug` / `assembleRelease` have never executed here.
-- `NevoGPTApp.kt` was never compiled — the Compose UI is unverified against the compiler.
-- No emulator or device run. The app has not been launched.
-- No prompt, Hebrew or English, was run through anything.
+- **No emulator or device run.** Neither APK has been installed or launched. The build
+  proves it compiles and packages; it does not prove the UI behaves correctly at runtime.
+- **No prompt was run through anything**, in Hebrew or English. There is no model to
+  run one through (see below).
+- No instrumentation or unit tests exist in the project, so none were run.
 
 ## Changes made
 
@@ -79,8 +68,7 @@ Also verified: every XML resource parses as well-formed XML; the Gradle wrapper
   Hebrew/English), `windowSoftInputMode="adjustResize"` so the composer isn't hidden by
   the keyboard, and `label="@string/app_name"`.
 - Added `.gitignore` for Gradle/Android build output.
-- Added `.github/workflows/android-apk.yml`, which runs the real build on a GitHub
-  runner (JDK 17 + Android SDK 35) and uploads `app-debug.apk` and `app-release.apk`.
+- Added `.github/workflows/android-apk.yml` — the workflow that produced the APKs above.
 
 ## How to get the APK
 
@@ -103,7 +91,8 @@ Android Studio (or a standalone SDK with `ANDROID_HOME` set) is required.
 `CLAUDE_BUILD_PROMPT.md` asks for real on-device inference. That is **not done**.
 `DemoLocalEngine` is still a scripted placeholder: it echoes a fixed sentence, choosing
 Hebrew or English by scanning the input for Hebrew codepoints. It is not a language
-model and must not be described as one. Replacing it with a real llama.cpp/GGUF runtime
-is a separate, substantially larger task than getting the project to compile, and it
-cannot be validated in an environment that can neither build the app nor download a
-model.
+model and must not be described as one. The APKs above are a working chat *shell* —
+UI, conversation storage, streaming plumbing, Stop — with a stub where the model goes.
+
+Replacing it with a real llama.cpp/GGUF runtime is a separate, substantially larger
+task than getting the project to compile.
