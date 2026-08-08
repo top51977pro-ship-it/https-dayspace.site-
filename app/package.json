@@ -1,9 +1,9 @@
 {
-  "name": "dayspace-family",
+  "name": "familymap",
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "DaySpace Family — אפליקציית מפה ושיתוף מיקום למשפחה",
+  "description": "FamilyMap — מפת משפחה: אפליקציית מפה ושיתוף מיקום למשפחה",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

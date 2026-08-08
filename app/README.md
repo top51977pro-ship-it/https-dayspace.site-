@@ -1,4 +1,4 @@
-# DaySpace משפחה — אפליקציית מפה ומיקום למשפחה
+# מפת משפחה (FamilyMap) — אפליקציית מפה ומיקום למשפחה
 
 אפליקציית אנדרואיד (APK) שמציגה את כל בני המשפחה על מפה חיה אחת — בסגנון Google Maps,
 בעברית מלאה (RTL), בעיצוב כהה ומודרני.
@@ -33,12 +33,14 @@
 תמיד מצביע על הגרסה האחרונה ואפשר לפתוח אותו ישירות מהטלפון, בלי להתחבר לגיטהאב:
 
 ```
-https://github.com/top51977pro-ship-it/https-dayspace.site-/releases/download/apk-latest/dayspace-family.apk
+https://github.com/top51977pro-ship-it/https-dayspace.site-/releases/download/apk-latest/familymap.apk
 ```
+
+(הקישור הישן `dayspace-family.apk` ממשיך לעבוד ומצביע על אותו קובץ.)
 
 פותחים בטלפון → הקובץ יורד → מאשרים "התקנה ממקור לא ידוע" → מתקינים.
 
-אפשר גם להוריד את הארטיפקט **dayspace-family-apk** מלשונית **Actions** (דורש
+אפשר גם להוריד את הארטיפקט **familymap-apk** מלשונית **Actions** (דורש
 התחברות לגיטהאב), או להריץ את ה-workflow ידנית דרך **Run workflow**.
 ה-workflow רץ אוטומטית בכל push שנוגע בתיקיית `app/`.
 
@@ -74,19 +76,55 @@ cd android
 
 ---
 
-## הפעלת מצב ענן (Firebase)
+## איך עוברים ממשפחה מדומה למשפחה אמיתית (Firebase)
 
-1. פותחים פרויקט ב-[console.firebase.google.com](https://console.firebase.google.com)
-2. **Authentication → Sign-in method → Anonymous** → הפעלה
-3. **Realtime Database** (לא Firestore) → יצירה
-4. מדביקים את הכללים מהסעיף הבא
-5. מוסיפים אפליקציית **Web** ומעתיקים את פרטי ה-config
-6. יוצרים `app/.env` לפי `app/.env.example` ובונים מחדש
+זה השלב היחיד שדורש חשבון חיצוני, והוא חינמי לחלוטין בהיקף של משפחה.
+**רק אדם אחד במשפחה עושה את זה** — כל השאר פשוט מתקינים את האפליקציה.
 
-לבנייה דרך GitHub Actions: מוסיפים את אותם ערכים כ-**Repository secrets** בשמות
-`VITE_FIREBASE_API_KEY`, `VITE_FIREBASE_AUTH_DOMAIN`, `VITE_FIREBASE_DATABASE_URL`,
-`VITE_FIREBASE_PROJECT_ID`, `VITE_FIREBASE_APP_ID`. אם הם קיימים — ה-APK ייבנה
-אוטומטית במצב ענן.
+### שלב א׳ — פרויקט Firebase (כ-5 דקות)
+
+1. נכנסים ל-[console.firebase.google.com](https://console.firebase.google.com) עם חשבון גוגל
+   ולוחצים **Add project**. נותנים שם (למשל `family-map`) ומדלגים על Google Analytics.
+2. בתפריט הצד: **Build → Authentication → Get started → Sign-in method**,
+   בוחרים **Anonymous** ומפעילים (Enable → Save).
+3. בתפריט הצד: **Build → Realtime Database → Create Database**
+   (⚠️ **Realtime Database**, לא Firestore). בוחרים אזור, ואז **Start in locked mode**.
+4. עוברים ללשונית **Rules** בתוך ה-Database, מוחקים את מה שיש ומדביקים את הכללים
+   מהסעיף הבא, ולוחצים **Publish**.
+5. חוזרים ל-**Project settings** (גלגל השיניים למעלה) → גוללים ל-**Your apps** →
+   לוחצים על אייקון ה-**Web** (`</>`) → נותנים כינוי → **Register app**.
+   מופיע בלוק קוד עם `firebaseConfig` — משאירים אותו פתוח, צריך אותו בשלב הבא.
+
+### שלב ב׳ — מחברים את האפליקציה (כ-2 דקות)
+
+בגיטהאב: **Settings → Secrets and variables → Actions → New repository secret**.
+מוסיפים חמישה סודות, כשהערכים מגיעים מה-`firebaseConfig` שראיתם:
+
+| שם הסוד | מאיפה לוקחים |
+|---|---|
+| `VITE_FIREBASE_API_KEY` | `apiKey` |
+| `VITE_FIREBASE_AUTH_DOMAIN` | `authDomain` |
+| `VITE_FIREBASE_DATABASE_URL` | `databaseURL` |
+| `VITE_FIREBASE_PROJECT_ID` | `projectId` |
+| `VITE_FIREBASE_APP_ID` | `appId` |
+
+> אם `databaseURL` לא מופיע ב-`firebaseConfig`, מעתיקים אותו מראש עמוד ה-Realtime
+> Database. הוא נראה כמו `https://<project>-default-rtdb.firebaseio.com`.
+
+### שלב ג׳ — בונים מחדש ומתקינים
+
+1. **Actions → Build Android APK → Run workflow**
+2. מחכים ~3 דקות. באותו קישור הורדה כבר יושבת הגרסה החדשה.
+3. כל בני המשפחה מורידים ומתקינים מהקישור הזה.
+4. אחד יוצר משפחה ושולח את קוד ההזמנה, השאר בוחרים **"יש לי קוד הזמנה"**.
+
+**איך יודעים שזה עבד:** הכותרת הצהובה "מצב הדגמה" נעלמת, אין יותר נועה/איתי/סבתא רות
+על המפה, ובהגדרות → "על האפליקציה" כתוב **מצב סנכרון: ענן (זמן אמת)**.
+
+אם היה לכם קודם משפחת הדגמה על המכשיר, האפליקציה תזהה את המעבר, תמחק אותה ותציג
+הודעה שמבקשת ליצור משפחה חדשה — זה תקין ומכוון.
+
+לפיתוח מקומי במקום סודות בגיטהאב: יוצרים `app/.env` לפי `app/.env.example`.
 
 ### כללי אבטחה ל-Realtime Database
 
@@ -135,14 +173,14 @@ cd android
 `assembleDebug` מספיק להתקנה ידנית. לחנות Google Play צריך APK/AAB חתום:
 
 ```bash
-keytool -genkey -v -keystore dayspace.keystore -alias dayspace \
+keytool -genkey -v -keystore familymap.keystore -alias familymap \
         -keyalg RSA -keysize 2048 -validity 10000
 
 cd app/android
 ./gradlew assembleRelease \
-  -PDAYSPACE_STORE_FILE=/path/to/dayspace.keystore \
+  -PDAYSPACE_STORE_FILE=/path/to/familymap.keystore \
   -PDAYSPACE_STORE_PASSWORD=... \
-  -PDAYSPACE_KEY_ALIAS=dayspace \
+  -PDAYSPACE_KEY_ALIAS=familymap \
   -PDAYSPACE_KEY_PASSWORD=...
 ```
 

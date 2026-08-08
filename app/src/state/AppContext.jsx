@@ -42,6 +42,7 @@ export function AppProvider({ children }) {
   const [permission, setPermission] = useState('prompt')
   const [locating, setLocating] = useState(false)
   const [syncError, setSyncError] = useState(null)
+  const [backendSwitched, setBackendSwitched] = useState(false)
   const [toasts, setToasts] = useState([])
 
   const battery = useRef({ level: null, charging: null })
@@ -67,10 +68,21 @@ export function AppProvider({ children }) {
       )
       if (!alive) return
       if (savedProfile) setProfile(savedProfile)
-      if (savedCircle) setCircle(savedCircle)
+
+      // A family created in demo mode does not exist in the cloud (and vice versa).
+      // After a rebuild that flips the backend, drop it instead of showing an
+      // empty map that never syncs.
+      const staleBackend = savedCircle?.syncMode && savedCircle.syncMode !== provider.mode
+      if (savedCircle && !staleBackend) {
+        setCircle(savedCircle)
+        setLocalEvents(savedEvents || [])
+        setTrails(savedTrails || {})
+      } else if (staleBackend) {
+        await Promise.all([removeKey(KEYS.circle), removeKey(KEYS.events), removeKey(KEYS.trails)])
+        setBackendSwitched(true)
+      }
+
       if (savedSettings) setSettings({ ...DEFAULT_SETTINGS, ...savedSettings })
-      setLocalEvents(savedEvents || [])
-      setTrails(savedTrails || {})
       setReady(true)
     })()
     return () => {
@@ -377,7 +389,7 @@ export function AppProvider({ children }) {
       }
       setProfile(nextProfile)
       await saveJSON(KEYS.profile, nextProfile)
-      const created = await provider.createCircle({ name, profile: nextProfile })
+      const created = { ...(await provider.createCircle({ name, profile: nextProfile })), syncMode: provider.mode }
       await registerMembership(provider, created.id, nextProfile)
       setCircle(created)
       await saveJSON(KEYS.circle, created)
@@ -403,7 +415,7 @@ export function AppProvider({ children }) {
       }
       setProfile(nextProfile)
       await saveJSON(KEYS.profile, nextProfile)
-      const joined = await provider.joinCircle(code, nextProfile)
+      const joined = { ...(await provider.joinCircle(code, nextProfile)), syncMode: provider.mode }
       // Claim membership before anything else — the database rules read it.
       await registerMembership(provider, joined.id, nextProfile)
       setCircle(joined)
@@ -544,6 +556,7 @@ export function AppProvider({ children }) {
     permission,
     locating,
     syncError,
+    backendSwitched,
     toasts,
     // actions
     saveProfile,

@@ -30,7 +30,7 @@ export async function notify(title, body) {
           id: Math.floor(Math.random() * 2_000_000_000),
           title,
           body,
-          smallIcon: 'ic_stat_dayspace',
+          smallIcon: 'ic_stat_familymap',
           iconColor: '#6D5EF6',
         },
       ],

@@ -1,10 +1,10 @@
 apply plugin: 'com.android.application'
 
 android {
-    namespace "site.dayspace.family"
+    namespace "site.dayspace.familymap"
     compileSdk rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "site.dayspace.family"
+        applicationId "site.dayspace.familymap"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

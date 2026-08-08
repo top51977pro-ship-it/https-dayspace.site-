@@ -8,7 +8,7 @@ import { IconCheck } from './Icons'
 const STEPS = { welcome: 0, profile: 1, mode: 2, join: 3 }
 
 export default function Onboarding() {
-  const { createFamily, joinFamily, mode, pushToast } = useApp()
+  const { createFamily, joinFamily, mode, backendSwitched, pushToast } = useApp()
   const [step, setStep] = useState(STEPS.welcome)
   const [name, setName] = useState('')
   const [emoji, setEmoji] = useState(EMOJIS[0])
@@ -66,6 +66,16 @@ export default function Onboarding() {
       <Backdrop />
 
       <div className="scroll-area pad-top relative z-10 flex flex-1 flex-col px-6 pb-8">
+        {backendSwitched && step === STEPS.welcome && (
+          <div className="mt-2 rounded-2xl border border-mint-400/30 bg-mint-400/10 p-4 text-[13px] leading-relaxed text-mint-400">
+            <p className="font-bold">☁️ עברתם למצב ענן — שיתוף מיקום אמיתי</p>
+            <p className="mt-1 text-white/60">
+              המשפחה הקודמת הייתה משפחת הדגמה ולכן נמחקה. צרו משפחה חדשה ושלחו את קוד
+              ההזמנה לבני הבית — מעכשיו רואים אותם באמת.
+            </p>
+          </div>
+        )}
+
         {step === STEPS.welcome && (
           <Welcome onNext={() => setStep(STEPS.profile)} demo={mode === 'demo'} />
         )}

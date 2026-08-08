@@ -1,4 +1,4 @@
-package site.dayspace.family;
+package site.dayspace.familymap;
 
 import com.getcapacitor.BridgeActivity;
 

@@ -13,7 +13,7 @@ export default function InviteSheet({ open, onClose, circle, profile, onToast })
 
   const code = circle?.code || '------'
   const link = `${INVITE_BASE}/${code}`
-  const message = `${profile?.name || 'מישהו'} מזמין/ה אתכם למשפחה "${circle?.name || 'שלנו'}" באפליקציית DaySpace משפחה 🧭\n\nקוד הצטרפות: ${code}\n${link}`
+  const message = `${profile?.name || 'מישהו'} מזמין/ה אתכם למשפחה "${circle?.name || 'שלנו'}" באפליקציית מפת משפחה 🧭\n\nקוד הצטרפות: ${code}\n${link}`
 
   useEffect(() => {
     if (!open || !canvasRef.current) return
@@ -47,7 +47,7 @@ export default function InviteSheet({ open, onClose, circle, profile, onToast })
     tap()
     try {
       await Share.share({
-        title: 'הזמנה למשפחה ב-DaySpace',
+        title: 'הזמנה למפת המשפחה',
         text: message,
         dialogTitle: 'שיתוף הזמנה',
       })

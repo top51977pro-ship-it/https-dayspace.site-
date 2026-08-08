@@ -115,7 +115,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: dayspace-family-apk
+          name: familymap-apk
           path: out/*.apk
           if-no-files-found: error
           retention-days: 30
@@ -129,12 +129,14 @@ jobs:
           TAG: apk-latest
         run: |
           APK=$(ls out/*.apk | head -1)
+          cp "$APK" out/familymap.apk
+          # The older filename stays published so links already shared keep working.
           cp "$APK" out/dayspace-family.apk
 
           NOTES=$(cat <<'MD'
-          ## 📱 DaySpace משפחה — התקנה
+          ## 📱 מפת משפחה (FamilyMap) — התקנה
 
-          1. פותחים את הקישור הזה **מהטלפון** ומורידים את `dayspace-family.apk`
+          1. פותחים את הקישור הזה **מהטלפון** ומורידים את `familymap.apk`
           2. פותחים את הקובץ שירד ומאשרים התקנה ממקור לא ידוע
           3. פותחים את האפליקציה, בוחרים שם ואייקון, ויוצרים משפחה
           4. שולחים את קוד ההזמנה לכל מי שרוצים לצרף
@@ -146,15 +148,16 @@ jobs:
           MD
           )
 
+          TITLE="מפת משפחה — APK (בנייה אחרונה)"
           if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" out/dayspace-family.apk --clobber
-            gh release edit "$TAG" --notes "$NOTES" --title "DaySpace משפחה — APK (בנייה אחרונה)"
+            gh release upload "$TAG" out/familymap.apk out/dayspace-family.apk --clobber
+            gh release edit "$TAG" --notes "$NOTES" --title "$TITLE"
           else
-            gh release create "$TAG" out/dayspace-family.apk \
-              --title "DaySpace משפחה — APK (בנייה אחרונה)" \
+            gh release create "$TAG" out/familymap.apk out/dayspace-family.apk \
+              --title "$TITLE" \
               --notes "$NOTES" \
               --target "$GITHUB_SHA"
           fi
 
           echo "### 📥 קישור הורדה ישיר" >> "$GITHUB_STEP_SUMMARY"
-          echo "https://github.com/$GITHUB_REPOSITORY/releases/download/$TAG/dayspace-family.apk" >> "$GITHUB_STEP_SUMMARY"
+          echo "https://github.com/$GITHUB_REPOSITORY/releases/download/$TAG/familymap.apk" >> "$GITHUB_STEP_SUMMARY"
