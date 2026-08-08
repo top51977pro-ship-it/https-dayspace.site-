@@ -5,11 +5,15 @@
   "description": "Golden XI — Ultimate Football. Self-contained HTML5 match engine, packaged as an Android APK via a native WebView project.",
   "scripts": {
     "dev": "node serve.mjs",
-    "sync-assets": "cp www/index.html www/style.css www/game.js www/ai.js www/rules.js www/scene3d.js www/three.min.js android/app/src/main/assets/www/",
+    "build:three": "esbuild build-src/three-entry.js --bundle --format=iife --legal-comments=none --outfile=www/three-bundle.js",
+    "build:play": "node build-play.mjs",
+    "sync-assets": "cp www/index.html www/style.css www/game.js www/ai.js www/rules.js www/scene3d.js www/three-bundle.js android/app/src/main/assets/www/ && cp -r www/models www/config android/app/src/main/assets/www/",
     "test": "node test-ai.mjs && node rules-test.mjs && node flow-test.mjs",
+    "test:3d": "node pilot-test.mjs && node glb-match-test.mjs && node fallback-test.mjs",
     "smoke": "node smoke.mjs"
   },
   "devDependencies": {
+    "esbuild": "^0.28.1",
     "playwright": "1.49.1"
   },
   "dependencies": {

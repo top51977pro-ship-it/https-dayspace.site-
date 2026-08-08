@@ -10,6 +10,24 @@ window.Scene3D = (function () {
   let ballShadow, shadowGeo, shadowMat;
   let confetti = [], confettiGeo, punch = 0, lastFrameT = 0;
 
+  // ---- GLB rigged-player integration (Nevo Football two-team pack) ----------
+  // Two GLB models (blue = user team 0, red = opponent team 1) are loaded once
+  // and cloned per player with SkeletonUtils. If loading or the addons are
+  // unavailable, buildTeams falls back to the original procedural players.
+  const GLB_MODELS = { 0: 'models/team_blue/blue_team_player.glb',
+                       1: 'models/team_red/red_team_player.glb' };
+  const glb = { 0: null, 1: null };
+  let glbReady = false, glbFailed = false, glbLoading = false, pendingPlayers = null;
+  let frameCount = 0;
+  const PLAYER_TARGET_H = 1.95;          // world units, matched to procedural players
+  const MODEL_BASE_YAW = Math.PI / 2;    // GLB faces +Z; procedural front is +x
+  const ANIM_FADE = 0.16;
+  // game speed (m/s) → locomotion clip + timeScale (animation_map.json)
+  const SPD_WALK_MAX = 3.6, SPD_RUN_MAX = 8.8;
+  const NEAR_ANIM_DIST = 46;             // players farther than this animate at half-rate
+  const FACE_DETAIL = ['EyeSclera_SkinnedMesh', 'EyeIris_SkinnedMesh', 'EyePupil_SkinnedMesh',
+                       'Eyebrows_SkinnedMesh', 'Eyelashes_SkinnedMesh'];
+
   function init(canvas, worldL, worldW) {
     L = worldL; W = worldW;
     renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
@@ -68,6 +86,7 @@ window.Scene3D = (function () {
     buildStands();
     buildGoals();
     ready = true;
+    loadModels();   // begin fetching the two rigged GLB models (cloned per player later)
   }
 
   function makeCrowdCanvas() {
@@ -279,12 +298,130 @@ window.Scene3D = (function () {
     }
   }
 
+  // ---- GLB players ---------------------------------------------------------
+  function loadModels() {
+    if (glbLoading || glbReady || glbFailed) return;
+    if (!window.GLTFLoader || !window.SkeletonUtilsClone) { glbFailed = true; return; }
+    glbLoading = true;
+    const loader = new window.GLTFLoader();
+    Promise.all([loader.loadAsync(GLB_MODELS[0]), loader.loadAsync(GLB_MODELS[1])])
+      .then(function (res) {
+        glb[0] = res[0]; glb[1] = res[1]; glbReady = true; glbLoading = false;
+        // a match already kicked off with procedural fallbacks → upgrade in place
+        if (pendingPlayers) { const ps = pendingPlayers; pendingPlayers = null; buildTeams(ps); }
+      })
+      .catch(function (e) {
+        console.warn('GLB models failed to load, using procedural players:', e && e.message);
+        glbFailed = true; glbLoading = false;
+      });
+  }
+
+  function numberTexture(num, teamId) {
+    const c = document.createElement('canvas'); c.width = c.height = 256;
+    const g = c.getContext('2d');
+    g.clearRect(0, 0, 256, 256);
+    g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.font = '900 168px Arial, sans-serif';
+    g.lineWidth = 16; g.strokeStyle = teamId === 0 ? '#06162C' : '#3B0710';
+    g.strokeText(String(num), 128, 140);
+    g.fillStyle = '#F7FCFF'; g.fillText(String(num), 128, 140);
+    const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.flipY = false;
+    return t;
+  }
+  function applyNumber(root, num, teamId) {
+    const mesh = root.getObjectByName('JerseyNumber_SkinnedMesh');
+    if (!mesh || !mesh.material) return;
+    mesh.material = mesh.material.clone();     // unique material for this instance only
+    const tex = numberTexture(num, teamId);
+    if (mesh.material.map) tex.flipY = mesh.material.map.flipY;   // match source UV convention
+    mesh.material.map = tex; mesh.material.needsUpdate = true;
+  }
+
+  function buildPlayerGLB(p) {
+    const src = glb[p.team === 0 ? 0 : 1];
+    const root = window.SkeletonUtilsClone(src.scene);   // rig-safe skinned clone
+    const box = new THREE.Box3().setFromObject(root);
+    const h = box.max.y - box.min.y || 1.83;
+    const s = (PLAYER_TARGET_H / h) * (p.h3d || 1);
+    root.scale.setScalar(s);
+    root.rotation.y = MODEL_BASE_YAW;
+    root.position.y = -box.min.y * s;                    // feet on the ground
+    root.traverse(function (o) {
+      if (o.isMesh || o.isSkinnedMesh) {
+        o.frustumCulled = true;
+        // Perf: the five facial-detail meshes are sub-pixel at match-camera
+        // distance. Hiding them drops draw calls from 12→7 per player
+        // (264→154 for 22) and skips their skinning — no visible change.
+        if (FACE_DETAIL.indexOf(o.name) !== -1) o.visible = false;
+      }
+    });
+    applyNumber(root, p.num, p.team);
+
+    const g = new THREE.Group();
+    g.add(root);
+    const shadow = new THREE.Mesh(shadowGeo, shadowMat);
+    shadow.rotation.x = -Math.PI / 2; shadow.position.y = 0.02; shadow.scale.set(1.15, 1.15, 1.15);
+    g.add(shadow);
+
+    const mixer = new THREE.AnimationMixer(root);
+    const actions = new Map();
+    for (const clip of src.animations) actions.set(clip.name, mixer.clipAction(clip));
+
+    g.userData = {
+      glb: true, isGK: p.isGK, root: root, mixer: mixer, actions: actions,
+      current: null, curName: '', accum: 0,
+      play: function (clipName, once, timeScale) {
+        const next = this.actions.get(clipName); if (!next) return;
+        next.timeScale = timeScale || 1;
+        if (next === this.current) return;               // same loop → keep phase, timeScale already set
+        next.reset(); next.enabled = true;
+        next.setLoop(once ? THREE.LoopOnce : THREE.LoopRepeat, once ? 1 : Infinity);
+        next.clampWhenFinished = !!once;
+        if (this.current) this.current.fadeOut(ANIM_FADE);
+        next.fadeIn(ANIM_FADE).play();
+        this.current = next; this.curName = clipName;
+      }
+    };
+    g.userData.play('Idle', false, 1);
+    return g;
+  }
+
+  // translate the game player's live state into a GLB clip + loop + timeScale
+  function driveGLB(u, p, dt, updateMixer) {
+    const spd = Math.hypot(p.vx || 0, p.vy || 0);
+    let clip = 'Idle', once = false, ts = 1;
+    if (u.isGK && (p.gkDiveT || 0) > 0) { clip = 'GK_Save_Left'; once = true; }
+    else if ((p.celebrateT || 0) > 0) { clip = 'Celebrate'; once = true; }
+    else if ((p.slide || 0) > 0) { clip = 'TackleSlide'; once = true; }
+    else if (p.act === 'shot' || p.act === 'cross') { clip = 'KickRight'; once = true; ts = p.act === 'cross' ? 0.88 : 1; }
+    else if (p.act === 'pass') { clip = 'PassRight'; once = true; }
+    else if (spd < 0.3) { clip = 'Idle'; }
+    else if (spd < SPD_WALK_MAX) { clip = 'Run'; ts = 0.62; }
+    else if (spd < SPD_RUN_MAX) { clip = 'Run'; ts = 1.0; }
+    else { clip = 'Run'; ts = 1.28; }
+    u.play(clip, once, ts);
+    u.accum += dt;
+    if (updateMixer) { u.mixer.update(u.accum); u.accum = 0; }
+  }
+
   function buildTeams(players) {
     for (const g of groups) { scene.remove(g); disposeGroup(g); }
     groups = [];
-    for (const p of players) { const g = buildPlayer(p); groups.push(g); scene.add(g); }
+    const useGLB = glbReady && !glbFailed;
+    if (!useGLB && !glbFailed) { pendingPlayers = players; loadModels(); }   // rebuild when models arrive
+    for (const p of players) {
+      const g = useGLB ? buildPlayerGLB(p) : buildPlayer(p);
+      groups.push(g); scene.add(g);
+    }
   }
   function disposeGroup(g) {
+    if (g.userData && g.userData.glb) {
+      g.userData.mixer.stopAllAction();
+      // dispose only per-instance resources: the cloned jersey-number material + its texture.
+      const num = g.userData.root && g.userData.root.getObjectByName('JerseyNumber_SkinnedMesh');
+      if (num && num.material) { if (num.material.map) num.material.map.dispose(); num.material.dispose(); }
+      return;   // geometry + shared textures belong to the source GLTF; never dispose here
+    }
     g.traverse(function (o) { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); });
   }
 
@@ -292,9 +429,20 @@ window.Scene3D = (function () {
     const now = performance.now() / 1000;
     const dt = Math.min(0.05, now - (lastFrameT || now)); lastFrameT = now;
 
+    frameCount++;
     for (let i = 0; i < groups.length && i < players.length; i++) {
       const p = players[i], g = groups[i], u = g.userData;
       g.position.set(p.x, 0, p.y);
+      if (u && u.glb) {
+        // GLB rigged player: rotation on the outer group, animation via mixer.
+        g.rotation.y = -p.dir;
+        // distance LOD: far players update the mixer every other frame (with
+        // accumulated dt so the animation stays time-correct), halving cost.
+        const far = Math.hypot(p.x - camX, p.y - camY) > NEAR_ANIM_DIST;
+        const update = !far || ((frameCount + i) & 1) === 0;
+        driveGLB(u, p, dt, update);
+        continue;
+      }
       const spd = Math.hypot(p.vx || 0, p.vy || 0);
       if (u && u.isGK) { poseGK(p, u, g); }
       else { g.rotation.y = -p.dir;
@@ -334,12 +482,26 @@ window.Scene3D = (function () {
 
   function resize(cssW, cssH, dpr) {
     if (!ready) return;
-    renderer.setPixelRatio(dpr || 1);
+    // clamp device pixel ratio: 22 rigged players are fill-rate heavy on mobile
+    renderer.setPixelRatio(Math.min(dpr || 1, 2));
     renderer.setSize(cssW, cssH, false);
     camera.aspect = cssW / cssH;
     camera.updateProjectionMatrix();
   }
 
+  function debugState() {
+    const glbGroups = groups.filter(function (g) { return g.userData && g.userData.glb; });
+    const clips = {};
+    for (const g of glbGroups) { const n = g.userData.curName || '?'; clips[n] = (clips[n] || 0) + 1; }
+    return {
+      glbReady: glbReady, glbFailed: glbFailed, groups: groups.length,
+      glbPlayers: glbGroups.length, liveClips: clips, frames: frameCount,
+      drawCalls: renderer ? renderer.info.render.calls : 0,
+      triangles: renderer ? renderer.info.render.triangles : 0,
+      teams: glbGroups.reduce(function (a, g) { a[g.userData.isGK ? 'gk' : 'field'] = (a[g.userData.isGK ? 'gk' : 'field'] || 0) + 1; return a; }, {})
+    };
+  }
+
   return { init: init, buildTeams: buildTeams, frame: frame, resize: resize,
-    celebrate: celebrate, ready: function () { return ready; } };
+    celebrate: celebrate, ready: function () { return ready; }, debugState: debugState };
 })();

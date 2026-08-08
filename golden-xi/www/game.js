@@ -303,6 +303,7 @@ function step(dt){
   for (const p of players){
     p.tackleCd = Math.max(0, p.tackleCd - dt);
     if (p.slide) p.slide = Math.max(0, p.slide - dt);
+    if (p.actT) { p.actT = Math.max(0, p.actT - dt); if (p.actT === 0) p.act = null; }   // 3D kick/pass anim window
     if (p.gkDiveT) p.gkDiveT = Math.max(0, p.gkDiveT - dt);
     if (p.celebrateT) p.celebrateT = Math.max(0, p.celebrateT - dt);
     let tgt, sprint = false;
@@ -450,7 +451,7 @@ function cpuPass(owner, to, kind, prof){
   dir = { x:Math.cos(ang), y:Math.sin(ang) };
   const dd = Math.hypot(tx-owner.x, ty-owner.y);
   const speed = clamp((through?15:cross?24:12) + dd*0.55, 12, cross?30:through?34:30);
-  fireBall(owner, dir, speed); ball.kickCd = KICK_COOLDOWN; touchCount[owner.team]++; ball.lastAct = simTime;
+  fireBall(owner, dir, speed, cross ? 'cross' : 'pass'); ball.kickCd = KICK_COOLDOWN; touchCount[owner.team]++; ball.lastAct = simTime;
 }
 function cpuShoot(owner, prof){
   lastShooter = owner;
@@ -460,12 +461,12 @@ function cpuShoot(owner, prof){
   const aimY = gy + GXAI._randn()*sigmaM;                 // unclamped → poor finishers miss the target
   const dir = norm(gx - owner.x, aimY - owner.y);
   const power = 0.6 + Math.random()*0.35;
-  fireBall(owner, dir, clamp(24 + power*20, 24, 46)); ball.kickCd = KICK_COOLDOWN;
+  fireBall(owner, dir, clamp(24 + power*20, 24, 46), 'shot'); ball.kickCd = KICK_COOLDOWN;
   touchCount[owner.team]++; ball.lastAct = simTime;
 }
 function cpuClear(owner){
   const gx = goalX(owner.team);
-  fireBall(owner, norm(gx - owner.x, (Math.random()*2-1)*0.6), 30);
+  fireBall(owner, norm(gx - owner.x, (Math.random()*2-1)*0.6), 30, 'shot');
   ball.kickCd = KICK_COOLDOWN; ball.lastAct = simTime;
 }
 
@@ -808,7 +809,7 @@ function humanPass(through){
   // CROSS: a lofted ball into the box when you play THROUGH from the attacking third
   if (through && owner.x > L*0.64){
     const tx = L*0.9, ty = W/2 + (Math.random()*2-1)*7;
-    fireBall(owner, norm(tx-owner.x, ty-owner.y), 27);
+    fireBall(owner, norm(tx-owner.x, ty-owner.y), 27, 'cross');
     ball.kickCd = KICK_COOLDOWN; touchCount[0]++; showToast('CROSS','',500); return;
   }
   let target = null;
@@ -833,14 +834,15 @@ function doShoot(from, power, D){
   aimY += (errMul) * (1 - power) * (Math.random()*2 - 1);
   const dir = norm(gx - from.x, aimY - from.y);
   const speed = clamp(20 + power*24, 20, 46);
-  fireBall(from, dir, speed); ball.kickCd = KICK_COOLDOWN; touchCount[from.team]++;
+  fireBall(from, dir, speed, 'shot'); ball.kickCd = KICK_COOLDOWN; touchCount[from.team]++;
   navigator.vibrate && navigator.vibrate(20);
 }
-function fireBall(from, dir, speed){
+function fireBall(from, dir, speed, act){
   ball.owner = -1; ball.x = from.x + dir.x*1.1; ball.y = from.y + dir.y*1.1;
   ball.vx = dir.x*speed; ball.vy = dir.y*speed; from.tackleCd = 0.15;
   ball.lastAct = performance.now()/1000;
   setBallState(BS.IN_FLIGHT, -1); ball.noReHandle = -1;
+  from.act = act || 'pass'; from.actT = 0.30;   // one-shot 3D kick/pass animation (PassRight/KickRight)
   recordTouch(players.indexOf(from), 'foot', 'kick', false, true);   // deliberate foot play
 }
 function pressAction(act){

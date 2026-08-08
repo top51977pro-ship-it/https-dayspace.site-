@@ -3,7 +3,7 @@ import fs from 'node:fs';
 const R = (f) => fs.readFileSync('www/' + f, 'utf8');
 
 const css   = R('style.css');
-const three = R('three.min.js');
+const three = R('three-bundle.js');   // three r148 + GLTFLoader + SkeletonUtils (global IIFE)
 const ai    = R('ai.js');
 const rules = R('rules.js');
 const scene = R('scene3d.js');

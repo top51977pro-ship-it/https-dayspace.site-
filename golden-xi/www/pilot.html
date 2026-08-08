@@ -1,0 +1,115 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>GLB pilot</title>
+<style>html,body{margin:0;background:#0a1014;overflow:hidden}canvas{display:block}
+#hud{position:fixed;top:6px;left:8px;color:#9fe;font:13px monospace;white-space:pre}</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="hud">loading…</div>
+<script src="three-bundle.js"></script>
+<script>
+(async () => {
+  const D = window.__PILOT = { loaded:false, errors:[], clips:{}, checks:{}, fps:0, state:'' };
+  window.addEventListener('error', e => D.errors.push(String(e.message||e)));
+  const clipsWanted = ['Idle','Run','PassRight','KickRight','TackleSlide','Celebrate','GK_Save_Left'];
+  // cinematic order the pilot cycles through, mapped to real clips
+  const cycle = ['Idle','Run','Run','PassRight','KickRight','TackleSlide','Celebrate','GK_Save_Left'];
+
+  const THREE = window.THREE;
+  const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('c'), antialias:true });
+  renderer.setSize(innerWidth, innerHeight, false);
+  const scene = new THREE.Scene(); scene.background = new THREE.Color(0x0a1014);
+  const camera = new THREE.PerspectiveCamera(45, innerWidth/innerHeight, 0.1, 100);
+  camera.position.set(0, 2.4, 6.2); camera.lookAt(0, 1.0, 0);
+  scene.add(new THREE.HemisphereLight(0xbfd8ff, 0x24331d, 1.1));
+  const sun = new THREE.DirectionalLight(0xfff4e0, 1.1); sun.position.set(-4,9,-2); scene.add(sun);
+  const grid = new THREE.GridHelper(20, 20, 0x224, 0x113); scene.add(grid);
+
+  const loader = new window.GLTFLoader();
+  let blueGLTF, redGLTF;
+  try {
+    [blueGLTF, redGLTF] = await Promise.all([
+      loader.loadAsync('models/team_blue/blue_team_player.glb'),
+      loader.loadAsync('models/team_red/red_team_player.glb'),
+    ]);
+  } catch (e) { D.errors.push('load: ' + (e.message||e)); D.done = true; return; }
+
+  // record clip inventory found in each GLB
+  D.clips.blue = blueGLTF.animations.map(a => a.name);
+  D.clips.red  = redGLTF.animations.map(a => a.name);
+  D.checks.blueHasAllClips = clipsWanted.every(n => D.clips.blue.includes(n));
+  D.checks.redHasAllClips  = clipsWanted.every(n => D.clips.red.includes(n));
+
+  function makeActor(gltf, x, teamId) {
+    const root = window.SkeletonUtilsClone(gltf.scene);   // rig-safe clone
+    // normalise height to ~1.8 world units
+    const box = new THREE.Box3().setFromObject(root);
+    const h = box.max.y - box.min.y;
+    const s = 1.8 / (h || 1); root.scale.setScalar(s);
+    root.position.set(x, 0, 0);
+    scene.add(root);
+    const mixer = new THREE.AnimationMixer(root);        // one mixer per actor
+    const actions = new Map();
+    for (const clip of gltf.animations) actions.set(clip.name, mixer.clipAction(clip));
+    // count skinned meshes + verify skeleton independence later
+    let skinned = 0, skeleton = null;
+    root.traverse(o => { if (o.isSkinnedMesh) { skinned++; if (!skeleton) skeleton = o.skeleton; } });
+    return { root, mixer, actions, skinned, skeleton, teamId, current:null,
+      play(name){
+        const next = this.actions.get(name); if (!next) return;
+        if (next === this.current) return;
+        const once = (name!=='Idle' && name!=='Run');
+        next.reset(); next.enabled = true;
+        next.setLoop(once ? THREE.LoopOnce : THREE.LoopRepeat, once ? 1 : Infinity);
+        next.clampWhenFinished = once;
+        if (this.current) this.current.fadeOut(0.16);
+        next.fadeIn(0.16).play();
+        this.current = next;
+      } };
+  }
+
+  const blueA = makeActor(blueGLTF, -1.4, 'blue');
+  const redA  = makeActor(redGLTF,   1.4, 'red');
+  D.checks.blueSkinned = blueA.skinned;
+  D.checks.redSkinned  = redA.skinned;
+  // independent skeletons: a second blue clone must NOT share the same Skeleton instance
+  const blueA2 = makeActor(blueGLTF, -3.2, 'blue');
+  D.checks.independentSkeletons = (blueA.skeleton !== blueA2.skeleton);
+  D.checks.sharedGeometry = (() => {   // clones should SHARE geometry buffers (memory win)
+    let g1=null,g2=null;
+    blueA.root.traverse(o=>{ if(o.isSkinnedMesh&&!g1) g1=o.geometry; });
+    blueA2.root.traverse(o=>{ if(o.isSkinnedMesh&&!g2) g2=o.geometry; });
+    return g1 && g1===g2;
+  })();
+  scene.remove(blueA2.root);   // keep pilot scene to two actors
+
+  const actors = [blueA, redA];
+  const clock = new THREE.Clock();
+  let idx = 0, tState = 0, frames = 0, fpsT = 0;
+  blueA.play('Idle'); redA.play('Run');
+
+  function loop(){
+    const dt = Math.min(0.05, clock.getDelta());
+    tState += dt;
+    if (tState > 1.2) {         // advance the demo state machine
+      tState = 0; idx = (idx + 1) % cycle.length;
+      const name = cycle[idx];
+      D.state = name;
+      blueA.play(name);
+      redA.play(cycle[(idx+3) % cycle.length]);
+    }
+    for (const a of actors) { a.mixer.update(dt); a.root.rotation.y += dt*0.35; }
+    renderer.render(scene, camera);
+    frames++; fpsT += dt;
+    if (fpsT >= 0.5) { D.fps = Math.round(frames / fpsT); frames = 0; fpsT = 0; }
+    requestAnimationFrame(loop);
+  }
+  D.loaded = true; D.done = true;
+  document.getElementById('hud').textContent =
+    'blue clips: ' + D.clips.blue.join(',') + '\nred clips: ' + D.clips.red.join(',');
+  loop();
+})();
+</script>
+</body>
+</html>

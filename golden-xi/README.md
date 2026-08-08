@@ -105,7 +105,12 @@ golden-xi/
 ├── www/                         # the game (open index.html to play)
 │   ├── index.html               #   HUD markup: scoreboard, joystick, action cluster, radar
 │   ├── style.css                #   GDD palette + responsive landscape HUD
-│   └── game.js                  #   match engine: sim, AI, ball physics, rendering
+│   ├── game.js                  #   match engine: sim, AI, ball physics, rendering
+│   ├── ai.js  rules.js          #   CPU AI tiers · authoritative rules/flow engine
+│   ├── scene3d.js               #   3D renderer (procedural players + GLB rigged players)
+│   ├── three-bundle.js          #   three r148 + GLTFLoader + SkeletonUtils (built)
+│   ├── models/ · config/        #   blue/red rigged GLBs + team_setup / animation_map
+│   └── play.html                #   single-file self-contained build (procedural fallback)
 ├── android/                     # native WebView APK project
 │   ├── app/src/main/
 │   │   ├── assets/www/          #   ← copy of www/ bundled into the APK
@@ -122,6 +127,42 @@ golden-xi/
 If you edit anything in `www/`, re-bundle it into the APK assets with:
 ```bash
 npm run sync-assets
+```
+
+---
+
+## 3D rigged players (Nevo Football two-team pack)
+
+The 3D renderer (`www/scene3d.js`) can render the match with **two real rigged GLB
+character models** — a blue team (you) and a red team (AI) — cloned into a full **11-v-11**.
+
+- **Assets:** `www/models/team_blue/blue_team_player.glb`, `www/models/team_red/red_team_player.glb`,
+  plus `www/config/team_setup.json` (22 players, 4-3-3) and `www/config/animation_map.json`.
+- **Loading:** each GLB is fetched **once** (`GLTFLoader`) and cloned per player with
+  **`SkeletonUtils.clone`** (rig-safe — geometry & textures are shared, skeletons are independent).
+  Exactly **one `AnimationMixer` per player** (22 total); actions are cached, never recreated per frame.
+- **three + addons** are bundled into a single global script `www/three-bundle.js`
+  (three r148 + `GLTFLoader` + `SkeletonUtils`) built from `build-src/three-entry.js`:
+  ```bash
+  npm run build:three
+  ```
+- **State → clip** (from `animation_map.json`): idle/walk/run/sprint → `Idle`/`Run` (timeScale
+  0.62/1.0/1.28); `PassRight` (pass), `KickRight` (shot & cross), `TackleSlide` (slide),
+  `Celebrate` (goal), `GK_Save_Left` (keeper dive). Cross-fade 0.16 s, one-shots use
+  `LoopOnce` + `clampWhenFinished`. Each instance gets a **unique shirt number** via a
+  `CanvasTexture` on `JerseyNumber_SkinnedMesh` (only that material is cloned).
+- **Performance:** sub-pixel facial meshes are hidden at match distance (12→7 draw calls/player,
+  264→~120 total with frustum culling), distant players update their mixer at half-rate, blob
+  shadows (not shadow maps), pixel-ratio capped at 2. Do **not** create mixers/materials per frame.
+- **Fallback:** if the models or the loader are unavailable, the renderer silently keeps the
+  original procedural (box-figure) players, so the game stays fully playable. This is what the
+  **single-file `play.html`** does — a self-contained artifact can't host the ~9 MB GLB binaries,
+  so it runs the procedural players; the **APK and dev server** (which carry `www/models/`) show
+  the real GLB models.
+
+**Tests** (need Chromium; run headless on SwiftShader — correctness, not device FPS):
+```bash
+npm run test:3d     # pilot (load/clone/mixers) · in-game 11v11 · procedural fallback
 ```
 
 ---

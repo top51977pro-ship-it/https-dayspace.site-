@@ -4,6 +4,8 @@ package-lock.json
 
 # Playwright smoke-test screenshots
 shot_*.png
+pilot_shot.png
+glb_match_shot.png
 
 # Gradle / Android build outputs
 android/.gradle/
