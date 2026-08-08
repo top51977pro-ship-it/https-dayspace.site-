@@ -146,13 +146,15 @@ export function AppProvider({ children }) {
     [provider, circle?.id, profile],
   )
 
-  const handleLocation = useCallback(
-    (location) => {
-      setSelfLocation(location)
-      publish(location)
-    },
-    [publish],
-  )
+  // The position watcher is started once, so it must not capture a stale `publish`
+  // (which closes over the profile) — go through a ref instead.
+  const publishRef = useRef(publish)
+  publishRef.current = publish
+
+  const handleLocation = useCallback((location) => {
+    setSelfLocation(location)
+    publishRef.current(location)
+  }, [])
 
   const startTracking = useCallback(async () => {
     setLocating(true)
@@ -191,6 +193,14 @@ export function AppProvider({ children }) {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, profile?.id, circle?.id])
+
+  // A renamed / recoloured profile should reach the family right away.
+  useEffect(() => {
+    if (!circle?.id || !profile?.id || !selfLocation) return
+    if (!settingsRef.current.sharing || settingsRef.current.ghost) return
+    publish(selfLocation, { force: true })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile?.name, profile?.emoji, profile?.color])
 
   // Ghost mode / sharing off should take effect immediately, not on next tick.
   useEffect(() => {

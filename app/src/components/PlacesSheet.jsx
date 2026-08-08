@@ -40,6 +40,7 @@ export default function PlacesSheet({
   if (editing) {
     return (
       <PlaceEditor
+        key={`${editing.lat.toFixed(5)},${editing.lng.toFixed(5)}`}
         open={open}
         draft={editing}
         onCancel={() => {
