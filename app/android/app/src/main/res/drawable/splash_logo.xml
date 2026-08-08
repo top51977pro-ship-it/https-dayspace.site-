@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <corners android:radius="46dp" />
+            <gradient
+                android:angle="315"
+                android:startColor="#8B7DFF"
+                android:endColor="#5646E0"
+                android:type="linear" />
+        </shape>
+    </item>
+    <item
+        android:width="112dp"
+        android:height="112dp"
+        android:drawable="@drawable/ic_pin"
+        android:gravity="center" />
+</layer-list>

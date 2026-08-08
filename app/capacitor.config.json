@@ -1,0 +1,22 @@
+{
+  "appId": "site.dayspace.family",
+  "appName": "DaySpace משפחה",
+  "webDir": "dist",
+  "android": {
+    "allowMixedContent": false,
+    "backgroundColor": "#0B1020"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchAutoHide": false,
+      "backgroundColor": "#0B1020",
+      "androidSplashResourceName": "splash",
+      "androidScaleType": "CENTER_CROP",
+      "showSpinner": false
+    },
+    "LocalNotifications": {
+      "smallIcon": "ic_stat_dayspace",
+      "iconColor": "#6D5EF6"
+    }
+  }
+}

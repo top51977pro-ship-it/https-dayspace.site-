@@ -1,0 +1,395 @@
+@import 'tailwindcss';
+@import 'leaflet/dist/leaflet.css';
+
+@theme {
+  --font-sans: 'Heebo', 'Rubik', 'Segoe UI', system-ui, -apple-system, 'Noto Sans Hebrew', sans-serif;
+
+  --color-ink-950: #070a16;
+  --color-ink-900: #0b1020;
+  --color-ink-800: #121936;
+  --color-ink-700: #1b2450;
+  --color-ink-600: #2a3568;
+
+  --color-brand-400: #8b7dff;
+  --color-brand-500: #6d5ef6;
+  --color-brand-600: #5646e0;
+
+  --color-mint-400: #37e0a6;
+  --color-sun-400: #ffc247;
+  --color-rose-400: #ff5f7a;
+  --color-sky-400: #46b8ff;
+
+  --radius-xl2: 1.75rem;
+}
+
+/* ---------- base ---------- */
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  overflow: hidden;
+  background: var(--color-ink-950);
+  color: #eef1ff;
+  font-family: var(--font-sans);
+  overscroll-behavior: none;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+input,
+textarea {
+  font: inherit;
+}
+
+/* Safe-area helpers for edge-to-edge Android */
+.pad-top {
+  padding-top: max(env(safe-area-inset-top), 0.75rem);
+}
+.pad-bottom {
+  padding-bottom: max(env(safe-area-inset-bottom), 0.75rem);
+}
+
+/* ---------- glass surfaces ---------- */
+
+.glass {
+  background: color-mix(in oklab, var(--color-ink-800) 78%, transparent);
+  backdrop-filter: blur(22px) saturate(150%);
+  -webkit-backdrop-filter: blur(22px) saturate(150%);
+  border: 1px solid rgb(255 255 255 / 0.09);
+}
+
+.glass-strong {
+  background: color-mix(in oklab, var(--color-ink-900) 97%, transparent);
+  backdrop-filter: blur(28px) saturate(160%);
+  -webkit-backdrop-filter: blur(28px) saturate(160%);
+  border: 1px solid rgb(255 255 255 / 0.1);
+}
+
+.shadow-float {
+  box-shadow:
+    0 18px 40px -12px rgb(0 0 0 / 0.65),
+    0 2px 8px -2px rgb(0 0 0 / 0.45);
+}
+
+/* ---------- scrollbars ---------- */
+
+.scroll-area {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: rgb(255 255 255 / 0.18) transparent;
+}
+.scroll-area::-webkit-scrollbar {
+  width: 4px;
+}
+.scroll-area::-webkit-scrollbar-thumb {
+  background: rgb(255 255 255 / 0.18);
+  border-radius: 999px;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  scrollbar-width: none;
+}
+
+/* ---------- leaflet chrome ---------- */
+
+.leaflet-container {
+  background: #0a0f1f;
+  font-family: var(--font-sans);
+  outline: none;
+}
+
+/* Keep the attribution and scale bar clear of the bottom dock. */
+.leaflet-control-container .leaflet-bottom {
+  bottom: var(--dock-height, 200px);
+}
+
+.leaflet-control-container .leaflet-control-attribution {
+  background: rgb(7 10 22 / 0.55);
+  color: rgb(238 241 255 / 0.55);
+  font-size: 9px;
+  padding: 1px 6px;
+  border-radius: 8px 0 0 0;
+  backdrop-filter: blur(6px);
+}
+.leaflet-control-container .leaflet-control-attribution a {
+  color: rgb(238 241 255 / 0.75);
+}
+
+.leaflet-control-scale-line {
+  background: rgb(7 10 22 / 0.5);
+  border-color: rgb(255 255 255 / 0.35);
+  color: rgb(238 241 255 / 0.8);
+  font-size: 10px;
+  backdrop-filter: blur(6px);
+}
+
+.leaflet-pane img.leaflet-tile {
+  /* Slightly calmer basemap so the UI pops */
+  filter: saturate(0.92);
+}
+
+.map-theme-dark .leaflet-pane img.leaflet-tile {
+  filter: none;
+}
+
+/* ---------- member markers ---------- */
+
+.member-pin {
+  position: relative;
+  width: 54px;
+  height: 66px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.member-pin__bubble {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  font-size: 22px;
+  line-height: 1;
+  border: 3px solid #fff;
+  box-shadow:
+    0 8px 18px -6px rgb(0 0 0 / 0.75),
+    0 0 0 1px rgb(0 0 0 / 0.15);
+  background: var(--pin-color, #6d5ef6);
+  overflow: hidden;
+}
+
+.member-pin__tail {
+  position: absolute;
+  bottom: 8px;
+  width: 12px;
+  height: 12px;
+  background: #fff;
+  transform: rotate(45deg);
+  border-radius: 2px;
+  box-shadow: 0 6px 10px -4px rgb(0 0 0 / 0.6);
+}
+
+.member-pin__badge {
+  position: absolute;
+  inset-inline-end: -2px;
+  top: -2px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: #0b1020;
+  border: 2px solid #fff;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+}
+
+.member-pin--stale .member-pin__bubble {
+  filter: grayscale(0.7);
+  opacity: 0.72;
+}
+
+.member-pin--selected {
+  transform: scale(1.12);
+  z-index: 1000;
+}
+
+.member-pin__label {
+  position: absolute;
+  bottom: -6px;
+  white-space: nowrap;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgb(7 10 22 / 0.82);
+  color: #fff;
+  border: 1px solid rgb(255 255 255 / 0.14);
+  backdrop-filter: blur(6px);
+}
+
+/* self marker */
+.self-dot {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: #46b8ff;
+  border: 3px solid #fff;
+  box-shadow:
+    0 0 0 2px rgb(70 184 255 / 0.35),
+    0 6px 14px -4px rgb(0 0 0 / 0.7);
+}
+
+.self-dot::after {
+  content: '';
+  position: absolute;
+  inset: -10px;
+  border-radius: 999px;
+  background: rgb(70 184 255 / 0.28);
+  animation: pulse-ring 2.4s ease-out infinite;
+}
+
+.self-cone {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-inline-start: 16px solid transparent;
+  border-inline-end: 16px solid transparent;
+  border-bottom: 30px solid rgb(70 184 255 / 0.35);
+  transform-origin: 50% 100%;
+  translate: -50% -100%;
+}
+
+@keyframes pulse-ring {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.75;
+  }
+  100% {
+    transform: scale(1.9);
+    opacity: 0;
+  }
+}
+
+/* place markers */
+.place-pin {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 14px;
+  font-size: 18px;
+  background: rgb(11 16 32 / 0.9);
+  border: 1.5px solid rgb(255 255 255 / 0.22);
+  box-shadow: 0 8px 16px -8px rgb(0 0 0 / 0.8);
+  backdrop-filter: blur(8px);
+}
+
+.search-pin {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  background: #ff5f7a;
+  border: 3px solid #fff;
+  box-shadow: 0 8px 16px -6px rgb(0 0 0 / 0.75);
+  font-size: 15px;
+}
+
+/* ---------- animations ---------- */
+
+@keyframes sheet-in {
+  from {
+    transform: translateY(16px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-sheet-in {
+  animation: sheet-in 320ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 220ms ease-out;
+}
+
+@keyframes pop-in {
+  0% {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.02);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-pop-in {
+  animation: pop-in 260ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes sos-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgb(255 95 122 / 0.55);
+  }
+  50% {
+    box-shadow: 0 0 0 14px rgb(255 95 122 / 0);
+  }
+}
+
+.animate-sos {
+  animation: sos-glow 1.8s ease-out infinite;
+}
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(-200%);
+  }
+}
+
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: rgb(255 255 255 / 0.06);
+}
+.skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(200%);
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.09), transparent);
+  animation: shimmer 1.6s infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

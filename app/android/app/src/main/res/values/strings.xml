@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">DaySpace משפחה</string>
+    <string name="title_activity_main">DaySpace משפחה</string>
+    <string name="package_name">site.dayspace.family</string>
+    <string name="custom_url_scheme">site.dayspace.family</string>
+</resources>
