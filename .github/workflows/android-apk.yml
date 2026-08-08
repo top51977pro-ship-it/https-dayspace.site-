@@ -15,7 +15,7 @@ on:
         default: debug
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   apk:
@@ -119,3 +119,42 @@ jobs:
           path: out/*.apk
           if-no-files-found: error
           retention-days: 30
+
+      # Artifacts need a GitHub login to download, which is useless on a phone.
+      # A release asset is a plain public URL, so the same link works everywhere.
+      - name: Publish the APK as a downloadable release
+        working-directory: .
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: apk-latest
+        run: |
+          APK=$(ls out/*.apk | head -1)
+          cp "$APK" out/dayspace-family.apk
+
+          NOTES=$(cat <<'MD'
+          ## 📱 DaySpace משפחה — התקנה
+
+          1. פותחים את הקישור הזה **מהטלפון** ומורידים את `dayspace-family.apk`
+          2. פותחים את הקובץ שירד ומאשרים התקנה ממקור לא ידוע
+          3. פותחים את האפליקציה, בוחרים שם ואייקון, ויוצרים משפחה
+          4. שולחים את קוד ההזמנה לכל מי שרוצים לצרף
+
+          הקישור הקבוע להורדה תמיד מצביע על הבנייה האחרונה.
+
+          > ברירת המחדל היא מצב הדגמה (הנתונים במכשיר, בני המשפחה מדומים).
+          > לשיתוף מיקום אמיתי בין טלפונים — ראו את ההוראות ב-`app/README.md`.
+          MD
+          )
+
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" out/dayspace-family.apk --clobber
+            gh release edit "$TAG" --notes "$NOTES" --title "DaySpace משפחה — APK (בנייה אחרונה)"
+          else
+            gh release create "$TAG" out/dayspace-family.apk \
+              --title "DaySpace משפחה — APK (בנייה אחרונה)" \
+              --notes "$NOTES" \
+              --target "$GITHUB_SHA"
+          fi
+
+          echo "### 📥 קישור הורדה ישיר" >> "$GITHUB_STEP_SUMMARY"
+          echo "https://github.com/$GITHUB_REPOSITORY/releases/download/$TAG/dayspace-family.apk" >> "$GITHUB_STEP_SUMMARY"
