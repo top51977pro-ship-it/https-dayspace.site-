@@ -11,6 +11,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     defaults:
       run:
         working-directory: NevoGPT-Mobile
@@ -58,3 +60,23 @@ jobs:
           name: app-release-apk
           path: NevoGPT-Mobile/app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
+
+      # Action artifacts are zipped and need a logged-in GitHub account. A release
+      # asset is a plain, public, direct-download URL that works from a phone browser:
+      #   .../releases/download/android-latest/app-release.apk
+      - name: Publish APKs to the android-latest release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          cp app/build/outputs/apk/debug/app-debug.apk .
+          cp app/build/outputs/apk/release/app-release.apk .
+          if gh release view android-latest >/dev/null 2>&1; then
+            gh release upload android-latest app-debug.apk app-release.apk --clobber
+          else
+            gh release create android-latest app-debug.apk app-release.apk \
+              --title "NevoGPT — latest Android build" \
+              --notes "Automatic build of NevoGPT Mobile. Install \`app-release.apk\` on Android 10+ (allow installs from unknown sources). Signed with the Android debug key. The chat UI works; the AI engine is still a placeholder — see NevoGPT-Mobile/BUILD_REPORT.md." \
+              --prerelease \
+              --target "$GITHUB_SHA"
+          fi
