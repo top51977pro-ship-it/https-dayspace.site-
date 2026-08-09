@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Avatar, Button, Field, Sheet, TextInput, Toggle } from './ui'
 import { IconBell, IconGhost, IconHistory, IconLocate } from './Icons'
 import { EMOJIS, PALETTE } from '../lib/id'
 import { MAP_LAYERS } from './MapView'
+import { getProvider } from '../sync'
 import { IconCheck } from './Icons'
 
 export default function SettingsSheet({
@@ -12,6 +13,7 @@ export default function SettingsSheet({
   circle,
   settings,
   mode,
+  connection,
   onSaveProfile,
   onSetSetting,
   onLeave,
@@ -20,6 +22,15 @@ export default function SettingsSheet({
   const [emoji, setEmoji] = useState(profile?.emoji || EMOJIS[0])
   const [color, setColor] = useState(profile?.color || PALETTE[0])
   const [confirmLeave, setConfirmLeave] = useState(false)
+  const [broker, setBroker] = useState(null)
+
+  useEffect(() => {
+    if (!open || !circle?.id) return
+    getProvider()
+      .diagnostics?.(circle.id)
+      .then((info) => setBroker(info?.broker || null))
+      .catch(() => {})
+  }, [open, circle?.id, connection])
 
   const dirty =
     name.trim() !== profile?.name || emoji !== profile?.emoji || color !== profile?.color
@@ -166,11 +177,41 @@ export default function SettingsSheet({
           <div className="space-y-2 rounded-3xl bg-white/5 p-4 text-[13px] leading-relaxed text-white/50">
             <Row label="גרסה" value="1.0.0" />
             <Row label="קוד המשפחה" value={circle?.code || '—'} mono />
-            <Row label="מצב סנכרון" value={mode === 'firebase' ? 'ענן (זמן אמת)' : 'הדגמה מקומית'} />
+            <Row
+              label="מצב סנכרון"
+              value={
+                mode === 'firebase'
+                  ? 'ענן פרטי (Firebase)'
+                  : mode === 'mqtt'
+                    ? 'ערוץ מוצפן משותף'
+                    : 'הדגמה מקומית'
+              }
+            />
+            {mode === 'mqtt' && (
+              <>
+                <Row
+                  label="חיבור"
+                  value={
+                    connection === 'online'
+                      ? '🟢 מחובר'
+                      : connection === 'connecting'
+                        ? '🟡 מתחבר…'
+                        : '🔴 מנותק'
+                  }
+                />
+                {broker && (
+                  <div className="flex items-start justify-between gap-3">
+                    <span className="shrink-0">שרת</span>
+                    <span className="min-w-0 truncate text-end font-mono text-[11px] text-white/60" dir="ltr">
+                      {broker}
+                    </span>
+                  </div>
+                )}
+              </>
+            )}
             {mode === 'demo' && (
               <p className="pt-1 text-[12px] text-white/40">
                 במצב הדגמה הנתונים נשמרים במכשיר בלבד, ובני המשפחה על המפה הם דמויות לדוגמה.
-                כדי לשתף מיקום אמיתי בין מכשירים, בנו את האפליקציה עם פרטי Firebase.
               </p>
             )}
           </div>

@@ -409,7 +409,9 @@ export function AppProvider({ children }) {
       setProfile(nextProfile)
       await saveJSON(KEYS.profile, nextProfile)
       const created = { ...(await provider.createCircle({ name, profile: nextProfile })), syncMode: provider.mode }
-      await registerMembership(provider, created.id, nextProfile)
+      // Not awaited: the family is usable immediately, and the member record
+      // reaches the backend as soon as there is a connection.
+      registerMembership(provider, created.id, nextProfile)
       setCircle(created)
       await saveJSON(KEYS.circle, created)
       return created
@@ -435,8 +437,10 @@ export function AppProvider({ children }) {
       setProfile(nextProfile)
       await saveJSON(KEYS.profile, nextProfile)
       const joined = { ...(await provider.joinCircle(code, nextProfile)), syncMode: provider.mode }
-      // Claim membership before anything else — the database rules read it.
-      await registerMembership(provider, joined.id, nextProfile)
+      // Firebase rules read the membership record, so it goes first there; on the
+      // broker backend nothing blocks on it.
+      const claimed = registerMembership(provider, joined.id, nextProfile)
+      if (provider.mode === 'firebase') await claimed
       setCircle(joined)
       await saveJSON(KEYS.circle, joined)
       await provider.pushEvent(joined.id, {
@@ -606,15 +610,15 @@ export function useApp() {
  * Write the member record straight after creating or joining, so the circle has a
  * membership entry even before the first GPS fix lands.
  */
-async function registerMembership(provider, circleId, profile) {
-  await provider.publishMember(circleId, {
+function registerMembership(provider, circleId, profile) {
+  return provider.publishMember(circleId, {
     id: profile.id,
     name: profile.name,
     emoji: profile.emoji,
     color: profile.color,
     joinedAt: Date.now(),
     updatedAt: Date.now(),
-  })
+  }).catch(() => {})
 }
 
 /** Keep the cached battery reading fresh for outgoing location updates. */

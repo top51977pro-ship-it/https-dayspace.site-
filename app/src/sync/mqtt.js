@@ -8,9 +8,12 @@
 //   * every payload is AES-GCM encrypted with a key derived from the invite
 //     code, so the broker (and anyone else connected to it) only sees noise
 //
-// Trade-off, stated plainly: this depends on a free public broker staying up.
-// A family that wants a private, guaranteed backend should configure Firebase
-// instead — see README. The provider interface is identical either way.
+// Two rules this file must never break:
+//   1. Creating or joining a family is a LOCAL operation. It derives keys and
+//      starts connecting, but never waits for the network — otherwise a slow
+//      or unreachable broker leaves the user staring at a spinner.
+//   2. No publish may hang forever. Everything is time-boxed; mqtt.js keeps the
+//      message queued and delivers it once a broker answers.
 
 import mqtt from 'mqtt'
 import { deriveSecrets, encryptJSON, decryptJSON } from '../lib/crypto'
@@ -19,42 +22,46 @@ import { inviteCode, uid } from '../lib/id'
 
 const ROOT = 'fmap1'
 
-// mqtt.js rotates through these on every reconnect, so one broker going down
-// is a hiccup rather than an outage.
+// Tried in order, then round-robin forever. Each has its own path, which is why
+// we drive the failover ourselves instead of using mqtt.js's `servers` option.
 const BROKERS = [
-  { host: 'broker.emqx.io', port: 8084, protocol: 'wss' },
-  { host: 'broker.hivemq.com', port: 8884, protocol: 'wss' },
+  'wss://broker.emqx.io:8084/mqtt',
+  'wss://broker.hivemq.com:8884/mqtt',
+  'wss://test.mosquitto.org:8081/',
 ]
 
-const CONNECT_OPTIONS = {
-  path: '/mqtt',
-  protocolVersion: 4,
-  clean: true,
-  keepalive: 30,
-  reconnectPeriod: 4000,
-  connectTimeout: 12_000,
-  resubscribe: true,
-}
+const CONNECT_TIMEOUT_MS = 9000
+const PUBLISH_TIMEOUT_MS = 8000
+const RETRY_DELAY_MS = 1500
 
 /** Live sessions, keyed by the derived topic (which is also our circle id). */
 const sessions = new Map()
 
+/* ------------------------------------------------------------------ session */
+
 function openSession(code) {
-  const existing = [...sessions.values()].find((s) => s.code === code)
-  if (existing) return existing.ready
+  for (const session of sessions.values()) {
+    if (session.code === code) return session.ready
+  }
 
   const session = {
     code,
     topic: null,
     key: null,
     client: null,
+    brokerIndex: 0,
+    brokerUrl: null,
     members: new Map(),
     places: new Map(),
     events: new Map(),
     meta: null,
+    // Everything this device owns, replayed whenever a broker accepts us, so a
+    // broker restart (or a failover to a different one) does not lose our state.
+    mine: new Map(),
     listeners: new Set(),
     statusListeners: new Set(),
     status: 'connecting',
+    closed: false,
   }
 
   session.ready = (async () => {
@@ -62,52 +69,89 @@ function openSession(code) {
     session.topic = topic
     session.key = key
     sessions.set(topic, session)
-
-    const url = import.meta.env.VITE_MQTT_URL
-    session.client = url
-      ? mqtt.connect(url, { ...CONNECT_OPTIONS, clientId: `fm_${uid()}` })
-      : mqtt.connect({ ...CONNECT_OPTIONS, servers: BROKERS, clientId: `fm_${uid()}` })
-
-    const client = session.client
-
-    client.on('connect', () => {
-      setStatus(session, 'online')
-      client.subscribe(`${ROOT}/${topic}/#`, { qos: 1 })
-    })
-    client.on('reconnect', () => setStatus(session, 'connecting'))
-    client.on('offline', () => setStatus(session, 'offline'))
-    client.on('close', () => setStatus(session, 'offline'))
-    client.on('error', () => setStatus(session, 'offline'))
-
-    client.on('message', async (fullTopic, payload) => {
-      const rest = fullTopic.slice(`${ROOT}/${topic}/`.length)
-      const [kind, id] = rest.split('/')
-      const bucket =
-        kind === 'm' ? session.members : kind === 'p' ? session.places : kind === 'e' ? session.events : null
-
-      // An empty retained payload is how MQTT expresses "this is gone".
-      if (!payload || payload.length === 0) {
-        if (bucket && id) {
-          bucket.delete(id)
-          emit(session)
-        }
-        return
-      }
-
-      const value = await decryptJSON(key, payload.toString())
-      if (!value) return // not ours, or a stale key — ignore quietly
-
-      if (kind === 'meta') session.meta = value
-      else if (bucket && id) bucket.set(id, value)
-      else return
-
-      emit(session)
-    })
-
+    connect(session)
     return session
   })()
 
   return session.ready
+}
+
+function connect(session) {
+  if (session.closed) return
+
+  const override = import.meta.env.VITE_MQTT_URL
+  const url = override || BROKERS[session.brokerIndex % BROKERS.length]
+  session.brokerUrl = url
+  setStatus(session, session.status === 'online' ? 'connecting' : session.status)
+
+  const client = mqtt.connect(url, {
+    clientId: `fm_${uid()}`,
+    protocolVersion: 4,
+    clean: true,
+    keepalive: 30,
+    connectTimeout: CONNECT_TIMEOUT_MS,
+    reconnectPeriod: 0, // we handle retries so we can rotate brokers
+  })
+  session.client = client
+
+  let settled = false
+
+  const nextBroker = () => {
+    if (settled || session.closed) return
+    settled = true
+    try {
+      client.end(true)
+    } catch {
+      /* already gone */
+    }
+    setStatus(session, 'offline')
+    session.brokerIndex += 1
+    setTimeout(() => connect(session), RETRY_DELAY_MS)
+  }
+
+  client.on('connect', () => {
+    settled = true
+    setStatus(session, 'online')
+    client.subscribe(`${ROOT}/${session.topic}/#`, { qos: 1 })
+    replayOwnState(session)
+  })
+
+  client.on('message', (fullTopic, payload) => handleMessage(session, fullTopic, payload))
+  client.on('error', nextBroker)
+  client.on('close', nextBroker)
+  client.on('offline', nextBroker)
+}
+
+async function handleMessage(session, fullTopic, payload) {
+  const prefix = `${ROOT}/${session.topic}/`
+  if (!fullTopic.startsWith(prefix)) return
+  const [kind, id] = fullTopic.slice(prefix.length).split('/')
+
+  const bucket =
+    kind === 'm' ? session.members : kind === 'p' ? session.places : kind === 'e' ? session.events : null
+
+  // An empty retained payload is how MQTT says "this is gone".
+  if (!payload || payload.length === 0) {
+    if (bucket && id && bucket.delete(id)) emit(session)
+    return
+  }
+
+  const value = await decryptJSON(session.key, payload.toString())
+  if (!value) return // a different family on the same broker, or a stale key
+
+  if (kind === 'meta') session.meta = value
+  else if (bucket && id) bucket.set(id, value)
+  else return
+
+  emit(session)
+}
+
+/** Re-send everything this device owns after (re)connecting. */
+function replayOwnState(session) {
+  for (const [path, value] of session.mine) {
+    const [kind, id] = path.split('/')
+    rawPublish(session, kind, id || null, value).catch(() => {})
+  }
 }
 
 function setStatus(session, status) {
@@ -138,15 +182,50 @@ async function sessionFor(circleId) {
   throw new Error('missing-invite-code')
 }
 
-async function publish(session, kind, id, value, { retain = true } = {}) {
+/* ------------------------------------------------------------------ publish */
+
+function rawPublish(session, kind, id, value, { retain = true } = {}) {
   const topic = `${ROOT}/${session.topic}/${kind}${id ? `/${id}` : ''}`
-  const body = value === null ? '' : await encryptJSON(session.key, value)
-  return new Promise((resolve, reject) => {
-    session.client.publish(topic, body, { qos: 1, retain }, (err) =>
-      err ? reject(err) : resolve(),
-    )
-  })
+  return encryptJSON(session.key, value).then(
+    (body) =>
+      new Promise((resolve, reject) => {
+        if (!session.client) {
+          reject(new Error('not-connected'))
+          return
+        }
+        session.client.publish(topic, body, { qos: 1, retain }, (err) =>
+          err ? reject(err) : resolve(),
+        )
+      }),
+  )
 }
+
+/**
+ * Publish without ever blocking the UI. The message is remembered for replay and
+ * the promise settles on a timeout even if the broker never acknowledges it.
+ */
+async function publish(session, kind, id, value, { retain = true, own = true } = {}) {
+  const path = `${kind}${id ? `/${id}` : ''}`
+
+  if (own) {
+    if (value === null) session.mine.delete(path)
+    else if (retain) session.mine.set(path, value)
+  }
+
+  if (value === null) {
+    // Clearing a retained topic: an empty payload, not encrypted.
+    const topic = `${ROOT}/${session.topic}/${path}`
+    session.client?.publish(topic, '', { qos: 1, retain: true })
+    return
+  }
+
+  await Promise.race([
+    rawPublish(session, kind, id, value, { retain }).catch(() => {}),
+    new Promise((resolve) => setTimeout(resolve, PUBLISH_TIMEOUT_MS)),
+  ])
+}
+
+/* ----------------------------------------------------------------- provider */
 
 export function createMqttProvider() {
   return {
@@ -155,7 +234,7 @@ export function createMqttProvider() {
 
     async createCircle({ name, profile }) {
       const code = inviteCode()
-      const session = await openSession(code)
+      const session = await openSession(code) // local: derives keys, starts connecting
       const circle = {
         id: session.topic,
         code,
@@ -163,14 +242,16 @@ export function createMqttProvider() {
         ownerId: profile.id,
         createdAt: Date.now(),
       }
-      await publish(session, 'meta', null, circle)
+      // Deliberately not awaited: the family exists on this phone right away, and
+      // the broker learns about it as soon as a connection is up.
+      publish(session, 'meta', null, circle).catch(() => {})
       return circle
     },
 
     async joinCircle(code) {
       const session = await openSession(code)
-      // The family name arrives with the retained meta message a moment later;
-      // until then we show a placeholder rather than block the join.
+      // The family's real name arrives with the owner's retained meta message a
+      // moment later; showing a placeholder beats blocking the join.
       return {
         id: session.topic,
         code,
@@ -208,31 +289,50 @@ export function createMqttProvider() {
     async publishMember(circleId, member) {
       const session = await sessionFor(circleId)
       // Retained messages replace rather than merge, so send the whole record.
-      const previous = session.members.get(member.id) || {}
-      await publish(session, 'm', member.id, { ...previous, ...member })
+      const previous = session.mine.get(`m/${member.id}`) || session.members.get(member.id) || {}
+      const merged = { ...previous, ...member }
+      session.members.set(member.id, merged)
+      emit(session)
+      await publish(session, 'm', member.id, merged)
     },
 
     async savePlace(circleId, place) {
       const session = await sessionFor(circleId)
+      session.places.set(place.id, place)
+      emit(session)
       await publish(session, 'p', place.id, place)
     },
 
     async deletePlace(circleId, placeId) {
       const session = await sessionFor(circleId)
+      session.places.delete(placeId)
+      emit(session)
       await publish(session, 'p', placeId, null)
     },
 
     async pushEvent(circleId, event) {
       const session = await sessionFor(circleId)
       // Alerts are live news, not state — no point retaining them forever.
-      await publish(session, 'e', event.id, event, { retain: false })
+      await publish(session, 'e', event.id, event, { retain: false, own: false })
     },
 
     async leave(circleId, memberId) {
       const session = await sessionFor(circleId)
       await publish(session, 'm', memberId, null)
-      session.client?.end(true)
+      session.closed = true
+      try {
+        session.client?.end(true)
+      } catch {
+        /* already gone */
+      }
       sessions.delete(circleId)
+    },
+
+    /** Shown in Settings so a connection problem is diagnosable from the phone. */
+    async diagnostics(circleId) {
+      const session = sessions.get(circleId)
+      if (!session) return null
+      return { status: session.status, broker: session.brokerUrl }
     },
   }
 }

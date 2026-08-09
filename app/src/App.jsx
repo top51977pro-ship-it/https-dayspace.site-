@@ -501,6 +501,7 @@ function MapScreen() {
         circle={circle}
         settings={settings}
         mode={mode}
+        connection={connection}
         onSaveProfile={saveProfile}
         onSetSetting={setSetting}
         onLeave={leaveFamily}
