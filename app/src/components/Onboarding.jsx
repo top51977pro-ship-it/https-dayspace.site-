@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Avatar, Button, Field, TextInput } from './ui'
-import { EMOJIS, PALETTE, normalizeCode } from '../lib/id'
+import { CODE_LENGTH, EMOJIS, PALETTE, formatCode, normalizeCode } from '../lib/id'
 import { useApp } from '../state/AppContext'
 import { onInviteCode } from '../lib/deeplink'
 import { IconCheck } from './Icons'
@@ -11,8 +11,9 @@ export default function Onboarding() {
   const { createFamily, joinFamily, mode, backendSwitched, pushToast } = useApp()
   const [step, setStep] = useState(STEPS.welcome)
   const [name, setName] = useState('')
-  const [emoji, setEmoji] = useState(EMOJIS[0])
-  const [color, setColor] = useState(PALETTE[0])
+  // Random defaults so two people who never touch these still look different.
+  const [emoji, setEmoji] = useState(() => EMOJIS[Math.floor(Math.random() * EMOJIS.length)])
+  const [color, setColor] = useState(() => PALETTE[Math.floor(Math.random() * PALETTE.length)])
   const [familyName, setFamilyName] = useState('')
   const [code, setCode] = useState('')
   const [busy, setBusy] = useState(false)
@@ -187,7 +188,7 @@ export default function Onboarding() {
               <div className="glass rounded-3xl p-5">
                 <h2 className="text-[17px] font-bold text-white">🔑 יש לי קוד הזמנה</h2>
                 <p className="mt-1 text-[13px] leading-relaxed text-white/50">
-                  מישהו כבר שלח לכם קוד בן 6 תווים.
+                  מישהו כבר שלח לכם קוד הזמנה, קישור או קוד QR.
                 </p>
                 <Button
                   variant="ghost"
@@ -215,23 +216,23 @@ export default function Onboarding() {
           <div className="animate-fade-in flex flex-1 flex-col justify-center gap-6 py-8">
             <header className="text-center">
               <h1 className="text-[28px] font-black text-white">קוד הזמנה</h1>
-              <p className="mt-2 text-[14.5px] text-white/50">הקלידו את הקוד שקיבלתם</p>
+              <p className="mt-2 text-[14.5px] text-white/50">הקלידו את הקוד שקיבלתם (10 תווים)</p>
             </header>
 
             <input
-              value={code}
+              value={formatCode(code)}
               onChange={(e) => setCode(normalizeCode(e.target.value))}
-              placeholder="A1B2C3"
+              placeholder="ABCD EFGH JK"
               inputMode="text"
               autoCapitalize="characters"
               autoFocus
               dir="ltr"
-              className="w-full rounded-3xl border border-white/12 bg-white/6 px-4 py-5 text-center font-mono text-[34px] font-black tracking-[0.3em] text-white outline-none transition placeholder:text-white/15 focus:border-brand-400/70"
+              className="w-full rounded-3xl border border-white/12 bg-white/6 px-3 py-5 text-center font-mono text-[24px] font-black tracking-[0.16em] text-white outline-none transition placeholder:text-white/15 focus:border-brand-400/70"
             />
 
             {error && <p className="text-center text-[13px] font-semibold text-rose-400">{error}</p>}
 
-            <Button onClick={handleJoin} disabled={busy || code.length < 4}>
+            <Button onClick={handleJoin} disabled={busy || code.length < CODE_LENGTH}>
               {busy ? 'מצטרפים…' : 'הצטרפות'}
             </Button>
 

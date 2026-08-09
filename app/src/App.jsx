@@ -57,6 +57,7 @@ function MapScreen() {
     permission,
     locating,
     syncError,
+    connection,
     toasts,
     mode,
     saveProfile,
@@ -316,12 +317,22 @@ function MapScreen() {
           </MapChip>
         </div>
 
-        {mode === 'demo' && (
+        {mode === 'demo' ? (
           <div className="pointer-events-auto mt-2 flex items-center gap-2 rounded-2xl bg-sun-400/15 px-3 py-2 text-[11.5px] font-semibold text-sun-400 backdrop-blur">
             <span>🧪</span>
             <span>מצב הדגמה — בני המשפחה על המפה הם לדוגמה</span>
           </div>
-        )}
+        ) : connection === 'offline' ? (
+          <div className="pointer-events-auto mt-2 flex items-center gap-2 rounded-2xl bg-rose-400/15 px-3 py-2 text-[11.5px] font-semibold text-rose-400 backdrop-blur">
+            <span>📡</span>
+            <span>אין חיבור — המיקומים לא מתעדכנים כרגע</span>
+          </div>
+        ) : connection === 'connecting' ? (
+          <div className="pointer-events-auto mt-2 flex items-center gap-2 rounded-2xl bg-white/8 px-3 py-2 text-[11.5px] font-semibold text-white/60 backdrop-blur">
+            <span className="h-2 w-2 animate-pulse rounded-full bg-sun-400" />
+            <span>מתחבר למשפחה…</span>
+          </div>
+        ) : null}
 
         {permission === 'denied' && (
           <button

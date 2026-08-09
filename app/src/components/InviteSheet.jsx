@@ -4,6 +4,7 @@ import { Share } from '@capacitor/share'
 import { Button, Sheet } from './ui'
 import { IconCheck, IconCopy, IconShare } from './Icons'
 import { tap } from '../lib/device'
+import { formatCode } from '../lib/id'
 
 const INVITE_BASE = 'https://dayspace.site/join'
 
@@ -11,7 +12,7 @@ export default function InviteSheet({ open, onClose, circle, profile, onToast })
   const canvasRef = useRef(null)
   const [copied, setCopied] = useState(null)
 
-  const code = circle?.code || '------'
+  const code = circle?.code || '----------'
   const link = `${INVITE_BASE}/${code}`
   const message = `${profile?.name || 'מישהו'} מזמין/ה אתכם למשפחה "${circle?.name || 'שלנו'}" באפליקציית מפת משפחה 🧭\n\nקוד הצטרפות: ${code}\n${link}`
 
@@ -87,8 +88,8 @@ export default function InviteSheet({ open, onClose, circle, profile, onToast })
           onClick={() => copy(code, 'code')}
           className="flex w-full items-center justify-between gap-3 rounded-3xl border border-white/10 bg-white/6 px-5 py-4 transition active:scale-[.99]"
         >
-          <span className="font-mono text-[30px] font-black tracking-[0.22em] text-white" dir="ltr">
-            {code}
+          <span className="font-mono text-[22px] font-black tracking-[0.14em] text-white" dir="ltr">
+            {formatCode(code)}
           </span>
           <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white/8 text-white/70">
             {copied === 'code' ? <IconCheck size={19} /> : <IconCopy size={19} />}

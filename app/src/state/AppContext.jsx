@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { KEYS, loadJSON, removeKey, saveJSON } from '../lib/storage'
-import { uid, pickColor, EMOJIS, normalizeCode } from '../lib/id'
+import { uid, pickColor, CODE_LENGTH, EMOJIS, normalizeCode } from '../lib/id'
 import { distance, isStale } from '../lib/geo'
 import { readBattery, tap } from '../lib/device'
 import { getCurrentLocation, requestLocationPermission, watchLocation } from '../lib/location'
@@ -43,6 +43,7 @@ export function AppProvider({ children }) {
   const [locating, setLocating] = useState(false)
   const [syncError, setSyncError] = useState(null)
   const [backendSwitched, setBackendSwitched] = useState(false)
+  const [connection, setConnection] = useState('connecting')
   const [toasts, setToasts] = useState([])
 
   const battery = useRef({ level: null, charging: null })
@@ -120,11 +121,29 @@ export function AppProvider({ children }) {
         setPlaces(snapshot.places || [])
         setRemoteEvents(snapshot.events || [])
         setSyncError(null)
+        // Someone who joined by code only learns the family's real name once the
+        // owner's retained "meta" message arrives.
+        const name = snapshot.meta?.name
+        if (name) {
+          setCircle((current) =>
+            current && current.name !== name ? { ...current, name } : current,
+          )
+        }
       },
       (err) => setSyncError(err?.message || 'שגיאת סנכרון'),
+      (status) => setConnection(status),
     )
     return unsubscribe
   }, [provider, circle?.id])
+
+  // Providers without a live socket (demo, firebase) are simply always "online".
+  useEffect(() => {
+    if (provider.mode !== 'mqtt') setConnection('online')
+  }, [provider.mode])
+
+  useEffect(() => {
+    if (ready && circle) saveJSON(KEYS.circle, circle)
+  }, [ready, circle])
 
   /* --------------------------------------------------------- location engine */
 
@@ -401,7 +420,7 @@ export function AppProvider({ children }) {
   const joinFamily = useCallback(
     async (rawCode, profilePatch) => {
       const code = normalizeCode(rawCode)
-      if (code.length < 4) {
+      if (code.length < CODE_LENGTH) {
         const err = new Error('code-too-short')
         err.code = 'code-too-short'
         throw err
@@ -556,6 +575,7 @@ export function AppProvider({ children }) {
     permission,
     locating,
     syncError,
+    connection,
     backendSwitched,
     toasts,
     // actions

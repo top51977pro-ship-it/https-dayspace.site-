@@ -15,9 +15,14 @@ export function uid(prefix = '') {
   return prefix ? `${prefix}_${out}` : out
 }
 
-/** 6-character invite code, e.g. "K7QM3X". */
+// The code is the only shared secret on the public-broker backend: it decides
+// the topic and the encryption key. Ten characters of this alphabet is 50 bits,
+// which is far past guessable while still being readable over the phone.
+export const CODE_LENGTH = 10
+
+/** Invite code, e.g. "K7QM3XB9TD". */
 export function inviteCode() {
-  const bytes = randomBytes(6)
+  const bytes = randomBytes(CODE_LENGTH)
   let out = ''
   for (const b of bytes) out += CODE_ALPHABET[b % CODE_ALPHABET.length]
   return out
@@ -27,7 +32,14 @@ export function normalizeCode(raw) {
   return String(raw || '')
     .toUpperCase()
     .replace(/[^A-Z0-9]/g, '')
-    .slice(0, 6)
+    .slice(0, CODE_LENGTH)
+}
+
+/** "K7QM3XB9TD" → "K7QM 3XB9 TD", which is much easier to read out loud. */
+export function formatCode(code) {
+  return String(code || '')
+    .replace(/(.{4})/g, '$1 ')
+    .trim()
 }
 
 export const PALETTE = [
