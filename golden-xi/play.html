@@ -32500,7 +32500,7 @@ window.Scene3D = (function () {
   const glb = { 0: null, 1: null };
   let glbReady = false, glbFailed = false, glbLoading = false, pendingPlayers = null;
   let frameCount = 0;
-  const PLAYER_TARGET_H = 1.95;          // world units, matched to procedural players
+  const PLAYER_TARGET_H = 2.2;           // world units (slightly larger than the procedural players for presence)
   const MODEL_BASE_YAW = Math.PI / 2;    // GLB faces +Z; procedural front is +x
   const ANIM_FADE = 0.16;
   // game speed (m/s) → locomotion clip + timeScale (animation_map.json)
