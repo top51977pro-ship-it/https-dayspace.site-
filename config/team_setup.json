@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "formation": "4-3-3",
+  "units": "meters",
+  "pitch": { "width": 68, "length": 105, "upAxis": "+Y" },
+  "initialControlledPlayerId": "blue_st_09",
+  "teams": [
+    {
+      "id": "blue",
+      "name": "Blue Team",
+      "model": "models/team_blue/blue_team_player.glb",
+      "control": "user_with_support_ai",
+      "attacksToward": "+Z",
+      "facingYawRadians": 0,
+      "players": [
+        { "id": "blue_gk_01", "number": 1, "role": "GK", "position": [0, 0, -49], "heightScale": 1.04 },
+        { "id": "blue_rb_02", "number": 2, "role": "RB", "position": [24, 0, -32], "heightScale": 0.99 },
+        { "id": "blue_lb_03", "number": 3, "role": "LB", "position": [-24, 0, -32], "heightScale": 0.98 },
+        { "id": "blue_rcb_04", "number": 4, "role": "RCB", "position": [9, 0, -36], "heightScale": 1.03 },
+        { "id": "blue_lcb_05", "number": 5, "role": "LCB", "position": [-9, 0, -36], "heightScale": 1.02 },
+        { "id": "blue_cdm_06", "number": 6, "role": "CDM", "position": [0, 0, -20], "heightScale": 1.01 },
+        { "id": "blue_rw_07", "number": 7, "role": "RW", "position": [22, 0, 9], "heightScale": 0.97 },
+        { "id": "blue_rcm_08", "number": 8, "role": "RCM", "position": [13, 0, -11], "heightScale": 0.99 },
+        { "id": "blue_st_09", "number": 9, "role": "ST", "position": [0, 0, 16], "heightScale": 1.01 },
+        { "id": "blue_lcm_10", "number": 10, "role": "LCM", "position": [-13, 0, -11], "heightScale": 0.98 },
+        { "id": "blue_lw_11", "number": 11, "role": "LW", "position": [-22, 0, 9], "heightScale": 0.97 }
+      ]
+    },
+    {
+      "id": "red",
+      "name": "Red Team",
+      "model": "models/team_red/red_team_player.glb",
+      "control": "opponent_ai",
+      "attacksToward": "-Z",
+      "facingYawRadians": 3.1415926536,
+      "players": [
+        { "id": "red_gk_01", "number": 1, "role": "GK", "position": [0, 0, 49], "heightScale": 1.04 },
+        { "id": "red_rb_02", "number": 2, "role": "RB", "position": [-24, 0, 32], "heightScale": 0.99 },
+        { "id": "red_lb_03", "number": 3, "role": "LB", "position": [24, 0, 32], "heightScale": 0.98 },
+        { "id": "red_rcb_04", "number": 4, "role": "RCB", "position": [-9, 0, 36], "heightScale": 1.03 },
+        { "id": "red_lcb_05", "number": 5, "role": "LCB", "position": [9, 0, 36], "heightScale": 1.02 },
+        { "id": "red_cdm_06", "number": 6, "role": "CDM", "position": [0, 0, 20], "heightScale": 1.01 },
+        { "id": "red_rw_07", "number": 7, "role": "RW", "position": [-22, 0, -9], "heightScale": 0.97 },
+        { "id": "red_rcm_08", "number": 8, "role": "RCM", "position": [-13, 0, 11], "heightScale": 0.99 },
+        { "id": "red_st_09", "number": 9, "role": "ST", "position": [0, 0, -16], "heightScale": 1.01 },
+        { "id": "red_lcm_10", "number": 10, "role": "LCM", "position": [13, 0, 11], "heightScale": 0.98 },
+        { "id": "red_lw_11", "number": 11, "role": "LW", "position": [22, 0, -9], "heightScale": 0.97 }
+      ]
+    }
+  ]
+}

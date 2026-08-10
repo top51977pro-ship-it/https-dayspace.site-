@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "availableClips": [
+    "Idle",
+    "Run",
+    "PassRight",
+    "KickRight",
+    "TackleSlide",
+    "Celebrate",
+    "GK_Save_Left"
+  ],
+  "crossFadeSeconds": 0.16,
+  "actions": {
+    "idle": { "clip": "Idle", "loop": "repeat", "timeScale": 1.0 },
+    "walk": { "clip": "Run", "loop": "repeat", "timeScale": 0.62 },
+    "run": { "clip": "Run", "loop": "repeat", "timeScale": 1.0 },
+    "sprint": { "clip": "Run", "loop": "repeat", "timeScale": 1.28 },
+    "dribble": { "clip": "Run", "loop": "repeat", "timeScale": 0.86 },
+    "short_pass": { "clip": "PassRight", "loop": "once", "timeScale": 1.0, "contactNormalized": 0.50, "recoverySeconds": 0.18 },
+    "through_pass": { "clip": "PassRight", "loop": "once", "timeScale": 0.92, "contactNormalized": 0.52, "recoverySeconds": 0.22 },
+    "shot": { "clip": "KickRight", "loop": "once", "timeScale": 1.0, "contactNormalized": 0.50, "recoverySeconds": 0.28 },
+    "power_shot": { "clip": "KickRight", "loop": "once", "timeScale": 0.82, "contactNormalized": 0.50, "recoverySeconds": 0.34 },
+    "cross": { "clip": "KickRight", "loop": "once", "timeScale": 0.88, "contactNormalized": 0.48, "recoverySeconds": 0.28, "usesLoftedBallPhysics": true },
+    "slide_tackle": { "clip": "TackleSlide", "loop": "once", "timeScale": 1.0, "recoverySeconds": 0.55 },
+    "celebrate": { "clip": "Celebrate", "loop": "once", "timeScale": 1.0, "recoverySeconds": 0.0 },
+    "gk_save_left": { "clip": "GK_Save_Left", "loop": "once", "timeScale": 1.0, "recoverySeconds": 0.35 }
+  },
+  "limitations": {
+    "cross": "No dedicated CrossRight clip is embedded; KickRight is used with lofted ball physics.",
+    "gk_save_right": "A dedicated right-save clip is not embedded. Mirror or retarget only if the engine supports it safely.",
+    "header": "No heading animation is embedded."
+  }
+}

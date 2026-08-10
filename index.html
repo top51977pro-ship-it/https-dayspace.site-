@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#141A1E" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <title>Golden XI — Ultimate Football</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='4' fill='%23F5C518'/%3E%3Ccircle cx='8' cy='8' r='4' fill='%23fff'/%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- Rotate-to-landscape guard -->
+  <div id="rotate" class="rotate hidden">
+    <div class="rotate-inner">
+      <div class="phone-icon">📱</div>
+      <p>Rotate your device to <strong>landscape</strong> to play Golden&nbsp;XI.</p>
+    </div>
+  </div>
+
+  <!-- Title / menu screen -->
+  <div id="menu" class="screen menu">
+    <div class="crest-badge">XI</div>
+    <h1 class="title">GOLDEN&nbsp;XI</h1>
+    <p class="subtitle">Ultimate Football</p>
+    <div class="level-card">
+      <div class="level-row">
+        <button id="lvlDown" class="lvl-btn" aria-label="Lower level">−</button>
+        <div class="level-mid">
+          <div class="level-top"><span class="level-tag">LEVEL</span><span id="lvlValue">3</span></div>
+          <div id="lvlName" class="level-name">Semi-Pro</div>
+        </div>
+        <button id="lvlUp" class="lvl-btn" aria-label="Higher level">+</button>
+      </div>
+      <div class="level-track"><div id="lvlFill" class="level-fill"></div></div>
+      <div id="lvlDesc" class="level-desc">Light pressure.</div>
+      <div id="bestLabel" class="best-label">No level cleared yet</div>
+    </div>
+    <details class="settings-card">
+      <summary>⚙ CPU AI &amp; difficulty settings</summary>
+      <label class="set-row"><span>Player-Based Difficulty</span><input type="checkbox" id="optPlayerBased"></label>
+      <label class="set-row"><span>Competitor Mode <em>(Legendary / Ultimate)</em></span><input type="checkbox" id="optCompetitor"></label>
+      <label class="set-row"><span>Instant Replays <em>(slow-mo + player view)</em></span><input type="checkbox" id="optReplays" checked></label>
+      <label class="set-row"><span>Debug overlay</span><input type="checkbox" id="optDebug"></label>
+      <label class="set-row"><span>CPU behaviour preset</span>
+        <select id="optPreset"><option>Custom</option><option>Tactical</option><option>Dynamic</option></select></label>
+      <div id="sliderPanel" class="slider-panel">
+        <div class="sl"><label>Tackle Aggression</label><input class="cpu-slider" type="range" min="0" max="100" data-key="tackleAggression"><i id="val_tackleAggression">50</i></div>
+        <div class="sl"><label>Buildup Speed</label><input class="cpu-slider" type="range" min="0" max="100" data-key="buildupSpeed"><i id="val_buildupSpeed">50</i></div>
+        <div class="sl"><label>Shot Frequency</label><input class="cpu-slider" type="range" min="0" max="100" data-key="shotFrequency"><i id="val_shotFrequency">50</i></div>
+        <div class="sl"><label>First-Touch Pass</label><input class="cpu-slider" type="range" min="0" max="100" data-key="firstTouchPass"><i id="val_firstTouchPass">50</i></div>
+        <div class="sl"><label>Crossing Frequency</label><input class="cpu-slider" type="range" min="0" max="100" data-key="crossing"><i id="val_crossing">50</i></div>
+        <div class="sl"><label>Dribble Frequency</label><input class="cpu-slider" type="range" min="0" max="100" data-key="dribble"><i id="val_dribble">50</i></div>
+        <div class="sl"><label>Skill-Move Frequency</label><input class="cpu-slider" type="range" min="0" max="100" data-key="skillMove"><i id="val_skillMove">50</i></div>
+      </div>
+    </details>
+    <div class="menu-buttons">
+      <button id="btnPlay" class="btn btn-primary">▶ PLAY MATCH</button>
+      <button id="btnHowto" class="btn btn-ghost">HOW TO PLAY</button>
+    </div>
+    <p class="ip-note">All teams, players &amp; crests are original and fictional.</p>
+  </div>
+
+  <!-- How-to overlay -->
+  <div id="howto" class="screen overlay hidden">
+    <div class="panel">
+      <h2>How to play</h2>
+      <ul class="howto-list">
+        <li><span class="k joy">◉</span> <b>Left stick</b> — move your active player (nearest to the ball auto-switches to you).</li>
+        <li><span class="k pass">PASS</span> — ground pass toward your run. Hold for more power. On defense: <b>Switch</b> player.</li>
+        <li><span class="k through">THROUGH</span> — threaded ball into space ahead. On defense: <b>Tackle</b>.</li>
+        <li><span class="k shoot">SHOOT</span> — hold to charge power, release inside the green window for a <b>timed finish</b> bonus. On defense: <b>Slide</b>.</li>
+        <li><span class="k sprint">SPRINT</span> — hold to sprint (uses stamina). On defense: <b>Contain</b>.</li>
+      </ul>
+      <p class="tip">Desktop: <b>WASD/Arrows</b> move · <b>J</b> pass · <b>K</b> through · <b>L</b> shoot (hold) · <b>Shift</b> sprint.</p>
+      <button id="btnHowtoClose" class="btn btn-primary">GOT IT</button>
+    </div>
+  </div>
+
+  <!-- Game -->
+  <div id="game" class="screen game hidden">
+    <canvas id="pitch"></canvas>
+    <div id="flash" class="flash"></div>
+
+    <!-- Top scoreboard -->
+    <div class="scoreboard">
+      <div class="team home">
+        <span class="crest" id="crestHome">GX</span>
+        <span class="abbr" id="abbrHome">GXI</span>
+      </div>
+      <div class="score"><span id="scoreHome">0</span><i>:</i><span id="scoreAway">0</span></div>
+      <div class="team away">
+        <span class="abbr" id="abbrAway">KES</span>
+        <span class="crest" id="crestAway">KS</span>
+      </div>
+      <div class="clock" id="clock">03:00</div>
+    </div>
+
+    <!-- Level badge -->
+    <div class="lvl-badge" id="lvlBadge">Professional</div>
+
+    <!-- AI debug overlay -->
+    <div class="dbg hidden" id="dbgPanel"></div>
+
+    <!-- Radar / minimap -->
+    <canvas id="radar" class="radar"></canvas>
+
+    <!-- Left joystick -->
+    <div class="joystick" id="joystick">
+      <div class="joy-base"></div>
+      <div class="joy-arc" id="joyArc"></div>
+      <div class="joy-knob" id="joyKnob"></div>
+    </div>
+
+    <!-- Right action cluster -->
+    <div class="cluster">
+      <button class="act act-shoot"   id="btnShoot"   data-act="shoot"><span class="lbl" id="lblShoot">SHOOT</span></button>
+      <button class="act act-through" id="btnThrough" data-act="through"><span class="lbl" id="lblThrough">THROUGH</span></button>
+      <button class="act act-pass"    id="btnPass"    data-act="pass"><span class="lbl" id="lblPass">PASS</span></button>
+      <button class="act act-sprint"  id="btnSprint"  data-act="sprint"><span class="lbl">SPRINT<br>&amp; SKILL</span></button>
+    </div>
+
+    <!-- Shot power bar -->
+    <div class="powerwrap" id="powerwrap">
+      <div class="powerbar"><div class="power-fill" id="powerFill"></div><div class="power-window"></div></div>
+    </div>
+
+    <!-- Instant replay badge -->
+    <div class="replay-badge hidden" id="replayBadge">
+      <span class="rec-dot"></span>
+      <span class="replay-txt">REPLAY</span>
+      <span class="replay-label" id="replayLabel">SLOW MOTION</span>
+    </div>
+
+    <!-- Kickoff / toast -->
+    <div class="toast" id="toast"></div>
+
+    <!-- Fulltime -->
+    <div id="fulltime" class="screen overlay hidden">
+      <div class="panel">
+        <h2 id="ftTitle">FULL TIME</h2>
+        <div class="ft-score" id="ftScore">0 – 0</div>
+        <div class="ft-motm" id="ftMotm"></div>
+        <button id="btnNext" class="btn btn-primary hidden">NEXT LEVEL →</button>
+        <button id="btnRematch" class="btn btn-ghost">REMATCH</button>
+        <button id="btnQuit" class="btn btn-ghost">MAIN MENU</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="ai.js"></script>
+  <script src="rules.js"></script>
+  <script src="three-bundle.js"></script>
+  <script src="scene3d.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>
