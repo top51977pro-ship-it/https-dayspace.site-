@@ -539,10 +539,14 @@ function gkTarget(gk, world, profile){
   const line = own===0 ? 2.2 : L-2.2;
   const depthUrge = clamp(1 - Math.abs(ball.x-own)/26, 0, 1);
   const posQ = ((gk.ratings&&gk.ratings.positioning)||60)/100;
-  const outX = own===0 ? clamp(line + depthUrge*(7*posQ), 2.2, 10)
-                       : clamp(line - depthUrge*(7*posQ), L-10, L-2.2);
-  // sit on the ball-goal angle for the near/central line, don't fully commit far post
-  const ty = clamp(W/2 + (ball.y - W/2)*0.55, W/2 - HALFG(world) - 2, W/2 + HALFG(world) + 2);
+  // Positioning quality scales with the difficulty tier so lower tiers leave gaps
+  // and never fully cover the goal — the shot placement can always beat them.
+  const skill = profile ? profile.reactionRating : 0.7;
+  const outX = own===0 ? clamp(line + depthUrge*(7*posQ)*(0.5+0.5*skill), 2.2, 10)
+                       : clamp(line - depthUrge*(7*posQ)*(0.5+0.5*skill), L-10, L-2.2);
+  // track the ball across the mouth, but capped (0.30..0.65) so the corners stay open
+  const track = 0.30 + 0.35*skill;
+  const ty = clamp(W/2 + (ball.y - W/2)*track, W/2 - HALFG(world) - 1.5, W/2 + HALFG(world) + 1.5);
   return { x:outX, y:ty };
 }
 function HALFG(world){ return (world.goalW||12)/2; }

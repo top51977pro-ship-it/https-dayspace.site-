@@ -388,10 +388,13 @@ function startReplay(focus, kind){
 function scheduleKickoff(){ beginGoalReset(); }   // kept for compatibility; routes through the flow
 function replayCam(mode){
   const bx=ball.x, bz=ball.y;
-  if (mode==='sideLow')    return { px:bx, py:6.5, pz:W+13, lx:bx, ly:1.2, lz:W/2 };
+  // Cameras must stay INSIDE the stadium bowl: end stands are at x≈-12 / L+12
+  // and the near touchline stand at z≈W+12, so keep positions in front of them
+  // (pitch-side) — otherwise the shot looks through the back of the stands.
+  if (mode==='sideLow')    return { px:bx, py:6.5, pz:W+7, lx:bx, ly:1.2, lz:W/2 };
   if (mode==='behindGoal'){ const right = bx > L/2;
-    return right ? { px:L+16, py:9, pz:W/2, lx:L-14, ly:1.2, lz:W/2 }
-                 : { px:-16,  py:9, pz:W/2, lx:14,   ly:1.2, lz:W/2 }; }
+    return right ? { px:L+7, py:8, pz:W/2, lx:L-16, ly:1.2, lz:W/2 }
+                 : { px:-7,  py:8, pz:W/2, lx:16,   ly:1.2, lz:W/2 }; }
   // pov — first person from the focus player's eyes, gaze toward the ball & pitch ahead
   const f = players[replay.focus] || players[0];
   let gx = bx - f.x, gz = bz - f.y;                 // look toward the ball he's chasing/carrying
@@ -520,6 +523,7 @@ function tackling(world){
       if (out.win){
         ball.owner = players.indexOf(p); lastTouch = p.team; ball.kickCd = KICK_COOLDOWN;
         p.tackleCd = 0.35; owner.tackleCd = 0.5;
+        p.slide = Math.max(p.slide || 0, 0.45);   // show a TackleSlide on every won challenge (incl. AI)
         const away = norm(p.x - owner.x, p.y - owner.y);
         owner.vx += away.x * -3; owner.vy += away.y * -3;
         if (p.team === 0 && p.idx !== active){ active = players.indexOf(p); lastActiveSwitch = performance.now()/1000; }
@@ -566,7 +570,10 @@ function updateBall(dt){
     const gi = players.indexOf(p);
     if (gi === ball.noReHandle) continue;                 // may not re-handle own release yet
     const gr = p.ratings || {};
-    const catchR = 1.4 + ((gr.diving||60)/100)*1.5 + ((gr.reflexes||60)/100)*0.6;
+    // Keeper reach scales with the difficulty tier: beatable at every level, but a
+    // real wall at the top tiers. reactionRating: Beginner 0.20 … Ultimate 1.00.
+    const gkSkill = (p.profile && p.profile.reactionRating != null) ? p.profile.reactionRating : 0.7;
+    const catchR = (1.0 + ((gr.diving||60)/100)*1.0 + ((gr.reflexes||60)/100)*0.5) * (0.5 + 0.55*gkSkill);
     const bsp = len(ball.vx, ball.vy);
     if (dist(p, ball) >= catchR) continue;
     const res = GXR ? GXR.keeperCatch({ dist:dist(p,ball), catchR, ballSpeed:bsp,
@@ -872,7 +879,7 @@ function releaseAction(act){
   }
 }
 function lungeTackle(p, slide){
-  p.slide = slide ? 0.4 : 0.18;
+  p.slide = slide ? 0.55 : 0.35;   // TackleSlide clip window (long enough to read in 3D)
   const d = norm(ball.x - p.x, ball.y - p.y);
   p.vx += d.x*(slide?10:6); p.vy += d.y*(slide?10:6);
 }
@@ -880,6 +887,7 @@ function trySkill(){
   const owner = ballOwner();
   if (owner && owner.idx === active && owner.team === 0 && move.mag > 0.4){
     skillFlash = 0.5; owner.vx += move.x*4; owner.vy += move.y*4;
+    owner.slide = 0.45;   // "glitch" skill burst → TackleSlide clip (per the pack's mapping)
     navigator.vibrate && navigator.vibrate(15);
   }
 }
@@ -1383,5 +1391,22 @@ window.GX = { get state(){return state;}, get score(){return score;}, players:()
   restartInfo(){ return restart ? { type:restart.type, team:restart.team, kicked:restart.kicked,
                    t:+restart.t.toFixed(2), takerIdx:restart.takerIdx } : null; },
   testFast(v){ testFastFlow = !!v; },
+  // fire a realistic shot from the box toward a target y at the goal (keeper-balance test).
+  // returns nothing; poll GX.score / GX.ballState over the next frames for the outcome.
+  setupShot(team, aimY, speed){
+    const shooter = players.find(p=>p.team===team && p.role==='ST') || players.find(p=>p.team===team && !p.isGK);
+    if (!shooter) return; const gx = goalX(team);
+    shooter.x = gx===0 ? 17 : L-17; shooter.y = W/2 + (Math.random()*2-1)*8;
+    shooter.vx = shooter.vy = 0;
+    const ty = aimY==null ? W/2 : aimY;
+    const dir = norm(gx - shooter.x, ty - shooter.y);
+    ball.x = shooter.x + dir.x*1.2; ball.y = shooter.y + dir.y*1.2;
+    ball.prevx = ball.x; ball.prevy = ball.y;
+    ball.vx = dir.x*(speed||34); ball.vy = dir.y*(speed||34);
+    ball.owner=-1; ball.gkHolder=-1; setBallState(BS.IN_FLIGHT,-1); ball.noReHandle=-1; ball.kickCd=0;
+    lastTouch=team; lastShooter=shooter;
+    ball.lastTouchEvent={ playerId:shooter.idx, teamId:team, bodyPart:'foot', touchType:'shot', deliberatePlay:true };
+    if (phase!=='IN_PLAY') phase='IN_PLAY';
+  },
   setReplays(v){ SETTINGS.replays = !!v; } };
 })();

@@ -10,7 +10,8 @@
     "sync-assets": "cp www/index.html www/style.css www/game.js www/ai.js www/rules.js www/scene3d.js www/three-bundle.js android/app/src/main/assets/www/ && cp -r www/models www/config android/app/src/main/assets/www/",
     "test": "node test-ai.mjs && node rules-test.mjs && node flow-test.mjs",
     "test:3d": "node pilot-test.mjs && node glb-match-test.mjs && node fallback-test.mjs",
-    "smoke": "node smoke.mjs"
+    "smoke": "node smoke.mjs",
+    "test:keeper": "node keeper-test.mjs"
   },
   "devDependencies": {
     "esbuild": "^0.28.1",
