@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      A bare, Compose-only theme. The window background is themed so the very first frame
+      already matches the app instead of flashing the platform default.
+    -->
+    <style name="Theme.PulseCountdown" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/pulse_window_bg</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
+    </style>
+</resources>

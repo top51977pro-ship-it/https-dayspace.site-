@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Hourglass mark. Adaptive-icon foregrounds are 108dp with a 72dp safe zone. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <path
+        android:pathData="M40,34h28a2,2 0 0,1 2,2v3c0,7 -6,10 -9,13c-2,2 -2,4 0,6c3,3 9,6 9,13v3a2,2 0 0,1 -2,2h-28a2,2 0 0,1 -2,-2v-3c0,-7 6,-10 9,-13c2,-2 2,-4 0,-6c-3,-3 -9,-6 -9,-13v-3a2,2 0 0,1 2,-2z"
+        android:strokeWidth="4"
+        android:strokeColor="#9C86FF"
+        android:fillColor="#00000000" />
+
+    <path
+        android:pathData="M46,64c0,-4 4,-6 8,-6s8,2 8,6z"
+        android:fillColor="#22D3EE" />
+
+    <path
+        android:pathData="M54,44m-3,0a3,3 0 1,0 6,0a3,3 0 1,0 -6,0"
+        android:fillColor="#7C5CFF" />
+</vector>

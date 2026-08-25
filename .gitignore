@@ -2,3 +2,13 @@ node_modules
 dist
 *.local
 .DS_Store
+
+# Android / Gradle
+.gradle/
+build/
+app/build/
+local.properties
+*.iml
+.idea/
+captures/
+.cxx/

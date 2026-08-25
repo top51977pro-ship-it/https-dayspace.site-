@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="tagline">מה הרגע הבא שלך?</string>
+
+    <string name="unit_days">ימים</string>
+    <string name="unit_hours">שעות</string>
+    <string name="unit_minutes">דקות</string>
+    <string name="unit_seconds">שניות</string>
+    <string name="countdown_spoken">נותרו %1$d ימים, %2$d שעות, %3$d דקות ו-%4$d שניות</string>
+    <string name="its_time">🎉 הגיע הזמן!</string>
+
+    <string name="new_countdown">ספירה חדשה</string>
+    <string name="edit_countdown">עריכת ספירה</string>
+    <string name="create_countdown">צור ספירה לאחור</string>
+    <string name="save_changes">שמור שינויים</string>
+    <string name="my_countdowns">הספירות שלי</string>
+
+    <string name="field_name">שם</string>
+    <string name="field_name_placeholder">למשל: יום הולדת</string>
+    <string name="field_icon">אייקון</string>
+    <string name="field_date">תאריך</string>
+    <string name="field_time">שעה</string>
+    <string name="pick_date">בחר תאריך</string>
+    <string name="pick_time">בחר שעה</string>
+    <string name="notify_me">הודע לי כשהספירה מגיעה לאפס</string>
+
+    <string name="action_edit">עריכה</string>
+    <string name="action_ok">אישור</string>
+    <string name="action_cancel">ביטול</string>
+    <string name="action_delete">מחק</string>
+
+    <string name="empty_title">אין עדיין ספירה</string>
+    <string name="empty_subtitle">צור את הרגע הראשון שלך.</string>
+    <string name="delete_title">למחוק את הספירה?</string>
+    <string name="delete_message">‏„%1$s” תימחק לצמיתות.</string>
+
+    <string name="settings">הגדרות</string>
+    <string name="appearance">מראה</string>
+    <string name="theme_system">לפי המערכת</string>
+    <string name="theme_light">בהיר</string>
+    <string name="theme_dark">כהה</string>
+    <string name="notifications">התראות</string>
+    <string name="notifications_enabled">הפעל התראות</string>
+    <string name="about">אודות</string>
+    <string name="about_body">אפליקציית ספירה לאחור מהירה ופרטית. כל הנתונים נשמרים במכשיר ופועלים גם ללא אינטרנט.</string>
+    <string name="version">גרסה</string>
+
+    <string name="nav_home">בית</string>
+    <string name="nav_countdowns">ספירות</string>
+    <string name="nav_settings">הגדרות</string>
+
+    <string name="channel_name">ספירה הסתיימה</string>
+    <string name="channel_description">מתריע ברגע שספירה מגיעה לאפס.</string>
+    <string name="notification_title">🎉 הגיע הזמן!</string>
+    <string name="notification_body">‏הספירה „%1$s” הגיעה לאפס.</string>
+
+    <string name="error_title_required">נא להזין שם</string>
+    <string name="error_date_required">נא לבחור תאריך</string>
+    <string name="error_time_required">נא לבחור שעה</string>
+    <string name="error_past">הזמן שנבחר כבר עבר</string>
+    <string name="error_storage">לא ניתן לשמור את הספירות</string>
+    <string name="error_notification_permission">ההתראות כבויות עבור האפליקציה</string>
+
+    <string name="msg_created">הספירה נוצרה</string>
+    <string name="msg_updated">הספירה עודכנה</string>
+    <string name="msg_deleted">הספירה נמחקה</string>
+
+    <string name="cd_set_favorite">‏הצג את „%1$s” במסך הבית</string>
+    <string name="cd_unset_favorite">‏„%1$s” מוצגת במסך הבית</string>
+    <string name="cd_edit">‏ערוך את „%1$s”</string>
+    <string name="cd_delete">‏מחק את „%1$s”</string>
+</resources>
