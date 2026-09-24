@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#78a7ff" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="PocketCraft" />
+    <title>PocketCraft</title>
+    <meta name="description" content="A pocket-sized voxel sandbox you can play in your browser — build, break and explore infinite block worlds on phone or desktop." />
+    <link rel="icon" href="/play/icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/play/icon.svg" />
+    <link rel="manifest" href="/play/manifest.webmanifest" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <div id="app">
+      <canvas id="game" aria-label="Game view"></canvas>
+      <div id="water-tint" hidden></div>
+
+      <div id="hud" hidden>
+        <div id="crosshair" aria-hidden="true"></div>
+        <pre id="debug" hidden></pre>
+        <div id="top-right">
+          <button id="btn-fly" class="hud-btn touch-only" aria-label="Toggle flying">FLY</button>
+          <button id="btn-pause" class="hud-btn" aria-label="Pause">II</button>
+        </div>
+        <div id="toast" aria-live="polite"></div>
+        <div id="hotbar-wrap">
+          <div id="hotbar"></div>
+          <button id="btn-inv" class="slot inv-btn" aria-label="Open inventory">•••</button>
+        </div>
+        <div id="dpad" class="touch-only" aria-label="Movement controls">
+          <div class="dp diag" data-k="fl">◤</div>
+          <div class="dp" data-k="f">▲</div>
+          <div class="dp diag" data-k="fr">◥</div>
+          <div class="dp" data-k="l">◀</div>
+          <div class="dp jump" data-k="j">◆</div>
+          <div class="dp" data-k="r">▶</div>
+          <div class="dp fly-down" data-k="dn">▼▼</div>
+          <div class="dp" data-k="b">▼</div>
+          <div class="dp empty"></div>
+        </div>
+        <div id="break-ring" hidden></div>
+      </div>
+
+      <section id="title" class="screen" hidden>
+        <div class="logo-wrap">
+          <h1 class="logo">POCKETCRAFT</h1>
+          <div id="splash" class="splash"></div>
+        </div>
+        <div class="menu">
+          <button id="btn-play" class="mc-btn wide">Play</button>
+          <button id="btn-new" class="mc-btn wide">New World</button>
+          <button id="btn-help" class="mc-btn wide">How to Play</button>
+        </div>
+        <p class="foot">PocketCraft · a fan-made block sandbox · not affiliated with Mojang</p>
+      </section>
+
+      <section id="new-world" class="screen dim" hidden>
+        <h2>Create New World</h2>
+        <label class="field">
+          <span>Seed (leave blank for random)</span>
+          <input id="seed-input" type="text" inputmode="text" autocomplete="off" maxlength="32" />
+        </label>
+        <p id="new-warning" class="warn">This replaces your current saved world.</p>
+        <div class="row">
+          <button id="btn-cancel-new" class="mc-btn">Cancel</button>
+          <button id="btn-create" class="mc-btn">Create</button>
+        </div>
+      </section>
+
+      <section id="help" class="screen dim" hidden>
+        <h2>How to Play</h2>
+        <div class="help-cols">
+          <div>
+            <h3>Touch</h3>
+            <ul>
+              <li><b>D-pad</b> — walk (slide between arrows)</li>
+              <li><b>◆</b> — jump · double-tap to fly</li>
+              <li><b>Drag</b> — look around</li>
+              <li><b>Tap</b> a block — place</li>
+              <li><b>Hold</b> a block — break</li>
+              <li><b>Double-tap ▲</b> — sprint</li>
+              <li><b>•••</b> — all blocks</li>
+            </ul>
+          </div>
+          <div>
+            <h3>Keyboard + mouse</h3>
+            <ul>
+              <li><b>WASD</b> — walk · <b>Ctrl</b> sprint</li>
+              <li><b>Space</b> — jump · double-tap to fly</li>
+              <li><b>Shift</b> — fly down</li>
+              <li><b>Left click</b> — break</li>
+              <li><b>Right click</b> — place</li>
+              <li><b>Middle click</b> — pick block</li>
+              <li><b>1-9 / wheel</b> — hotbar · <b>E</b> blocks</li>
+            </ul>
+          </div>
+        </div>
+        <p class="tip">Tip: tap TNT to light it. Stand back!</p>
+        <button id="btn-help-back" class="mc-btn wide">Back</button>
+      </section>
+
+      <section id="pause" class="screen dim" hidden>
+        <h2>Game Paused</h2>
+        <button id="btn-resume" class="mc-btn wide">Back to Game</button>
+        <div class="options">
+          <div class="opt-row">
+            <button id="opt-rd-minus" class="mc-btn sq" aria-label="Less render distance">−</button>
+            <span class="opt-label">View: <span id="opt-rd-val"></span></span>
+            <button id="opt-rd-plus" class="mc-btn sq" aria-label="More render distance">+</button>
+          </div>
+          <label class="opt-row slider">
+            <span class="opt-label">Sensitivity</span>
+            <input id="opt-sens" type="range" min="0.3" max="2.5" step="0.1" />
+          </label>
+          <div class="opt-grid">
+            <button id="opt-sound" class="mc-btn"></button>
+            <button id="opt-day" class="mc-btn"></button>
+            <button id="opt-jump" class="mc-btn"></button>
+            <button id="opt-debug" class="mc-btn"></button>
+          </div>
+        </div>
+        <button id="btn-quit" class="mc-btn wide">Save &amp; Quit to Title</button>
+      </section>
+
+      <section id="inventory" class="screen dim" hidden>
+        <div class="inv-panel">
+          <div class="inv-head">
+            <h2>Blocks</h2>
+            <button id="btn-inv-close" class="mc-btn sq" aria-label="Close">✕</button>
+          </div>
+          <div id="inv-grid"></div>
+        </div>
+      </section>
+
+      <section id="loading" class="screen dirt" hidden>
+        <h2>Generating world…</h2>
+        <div class="bar"><div></div></div>
+      </section>
+    </div>
+    <script type="module" src="/src/game/main.js"></script>
+  </body>
+</html>

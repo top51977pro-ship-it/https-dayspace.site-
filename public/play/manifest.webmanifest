@@ -1,0 +1,12 @@
+{
+  "name": "PocketCraft",
+  "short_name": "PocketCraft",
+  "description": "A pocket-sized voxel sandbox — build, break and explore infinite block worlds.",
+  "start_url": "/play/",
+  "scope": "/play/",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#000000",
+  "theme_color": "#78a7ff",
+  "icons": [{ "src": "/play/icon.svg", "type": "image/svg+xml", "sizes": "any", "purpose": "any" }]
+}
