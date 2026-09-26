@@ -6,6 +6,7 @@ const LINKS = [
   { href: '#how', label: 'איך זה עובד' },
   { href: '#features', label: 'יכולות' },
   { href: '#faq', label: 'שאלות' },
+  { href: '/call/', label: 'שיחות' },
 ]
 
 export default function Nav() {
