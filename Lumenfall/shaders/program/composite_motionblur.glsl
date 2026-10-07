@@ -71,7 +71,7 @@ void main() {
         sum += texture(colortex0, suv).rgb * w;
         wSum += w;
     }
-    outColor = vec4(sum / wSum, 1.0);
+    outColor = vec4(sanitize(sum / wSum), 1.0);
     #endif
 }
 

@@ -16,6 +16,7 @@ import iris_preprocess as ip  # noqa: E402
 glcontext.create_context()
 from OpenGL import GL  # noqa: E402
 
+VERSION_OVERRIDE = None
 ERR_RE = re.compile(r"(\d+):(\d+)\((\d+)\)")
 
 
@@ -43,6 +44,9 @@ def test_program(dim, name, options):
     base = os.path.join(ip.SHADERS, dim, name)
     vs_src, vs_map = ip.build(base + ".vsh", options)
     fs_src, fs_map = ip.build(base + ".fsh", options)
+    if VERSION_OVERRIDE:
+        vs_src = vs_src.replace("#version 330 compatibility", VERSION_OVERRIDE, 1)
+        fs_src = fs_src.replace("#version 330 compatibility", VERSION_OVERRIDE, 1)
     vs, vok, vlog = compile_stage(vs_src, GL.GL_VERTEX_SHADER, vs_map)
     fs, fok, flog = compile_stage(fs_src, GL.GL_FRAGMENT_SHADER, fs_map)
     errors = []
@@ -71,7 +75,10 @@ def main():
     ap.add_argument("--program")
     ap.add_argument("--dim")
     ap.add_argument("--warnings", action="store_true")
+    ap.add_argument("--version", default=None, help='e.g. "#version 460 compatibility" (stricter keyword set)')
     args = ap.parse_args()
+    global VERSION_OVERRIDE
+    VERSION_OVERRIDE = args.version
 
     profiles = ip.parse_profiles()
     if args.profile == "all":

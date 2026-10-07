@@ -108,7 +108,8 @@ void main() {
         resultDist = historyDist;
     }
 
-    outClouds = max(result, vec4(0.0));
+    outClouds = max(sanitize(result), vec4(0.0));
+    if (!(resultDist > 0.0 && resultDist < 1e7)) resultDist = 4000.0;
     outDist = vec4(resultDist, 0.0, 0.0, 1.0);
     #endif
 }

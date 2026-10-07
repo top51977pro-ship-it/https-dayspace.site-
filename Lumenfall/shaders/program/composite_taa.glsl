@@ -101,7 +101,7 @@ void main() {
 
     bool offscreen = any(lessThan(prevUV, vec2(0.0))) || any(greaterThan(prevUV, vec2(1.0)));
 
-    vec3 history = rgbToYCoCg(tonemapWeight(sampleCatmullRom(colortex4, prevUV)));
+    vec3 history = rgbToYCoCg(tonemapWeight(sanitize(sampleCatmullRom(colortex4, prevUV))));
     vec3 cur = rgbToYCoCg(tonemapWeight(current));
 
     // variance clip (tight) intersected with min/max box
@@ -123,7 +123,7 @@ void main() {
 
     vec3 result = mix(cur, history, blend);
     result = tonemapWeightInv(yCoCgToRgb(result));
-    result = max(result, vec3(0.0));
+    result = max(sanitize(result), vec3(0.0));
 
     outColor = vec4(result, 1.0);
     outHistory = vec4(result, 1.0);

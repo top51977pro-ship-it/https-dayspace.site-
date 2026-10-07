@@ -180,7 +180,7 @@ void main() {
     color = colorGrade(color);
     color = applyTonemap(color);
 
-    outColor = vec4(color, 1.0);
+    outColor = vec4(sanitize(color), 1.0);
 
     // per-frame data passthrough (+ new exposure)
     if (px.y == 0 && px.x < LD_COUNT) {

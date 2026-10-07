@@ -113,7 +113,7 @@ vec3 shadeSurface(GData g, vec3 playerPos, vec3 viewDirW, float ao, float dither
                 shadowLight = vec3(lmShadow);
             #endif
         }
-        #ifdef OVERWORLD
+        #if defined OVERWORLD && !defined LF_FAST_SHADOWS
             float cs = cloudShadow(playerPos + cameraPosition, l);
             shadowLight *= cs;
         #endif

@@ -5,7 +5,7 @@ import os
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "shaders", "lang")
 
 SCREENS = {
-    "INFO": ("Lumenfall v1.0", "Lumenfall v1.0"),
+    "INFO": ("Lumenfall v1.1", "Lumenfall v1.1"),
     "S_SHADOWS": ("Shadows", "צללים"),
     "S_LIGHTING": ("Lighting", "תאורה"),
     "S_WATER": ("Water", "מים"),

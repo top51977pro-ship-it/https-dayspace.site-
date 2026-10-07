@@ -25,7 +25,7 @@ void main() {
     LightInputs li = readLightInputs();
     vLightCol = li.lightCol;
     vAmbTop = li.ambTop;
-    vFogCol = readLightData(LD_FOG).rgb;
+    vFogCol = lightDataValid() ? readLightData(LD_FOG).rgb : li.ambTop * 2.0;
     #ifdef NETHER
         vLightCol = vec3(0.0); vAmbTop = netherAmbient(); vFogCol = netherBiomeColor();
     #endif
@@ -247,7 +247,7 @@ void main() {
     float blind = max(blindness, darknessFactor);
     if (blind > 0.0) color *= exp(-dist * blind * 0.25);
 
-    outColor = vec4(max(color, vec3(0.0)), 1.0);
+    outColor = vec4(max(sanitize(color), vec3(0.0)), 1.0);
 }
 
 #endif

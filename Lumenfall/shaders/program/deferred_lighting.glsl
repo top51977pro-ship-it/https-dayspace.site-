@@ -170,7 +170,7 @@ void main() {
         #endif
     }
 
-    outColor = vec4(max(color, vec3(0.0)), 1.0);
+    outColor = vec4(max(sanitize(color), vec3(0.0)), 1.0);
 }
 
 #endif

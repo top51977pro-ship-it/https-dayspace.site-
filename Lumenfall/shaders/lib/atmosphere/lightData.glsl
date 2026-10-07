@@ -22,14 +22,29 @@ uniform sampler2D colortex9;
 
 vec4 readLightData(int idx) { return texelFetch(colortex9, ivec2(idx, 0), 0); }
 
+bool lightDataValid() {
+    vec4 a = readLightData(LD_AMB_TOP);
+    return a.a > 0.5 && !any(isnan(a.rgb)) && !any(isinf(a.rgb));
+}
+
 LightInputs readLightInputs() {
     LightInputs li;
-    vec4 l = readLightData(LD_LIGHT);
     li.lightDir = lightDirWorld();
-    li.lightCol = l.rgb;
-    li.lightRadius = l.a;
-    li.ambTop = readLightData(LD_AMB_TOP).rgb;
-    li.ambBottom = readLightData(LD_AMB_BOT).rgb;
+    if (lightDataValid()) {
+        vec4 l = readLightData(LD_LIGHT);
+        li.lightCol = l.rgb;
+        li.lightRadius = l.a;
+        li.ambTop = readLightData(LD_AMB_TOP).rgb;
+        li.ambBottom = readLightData(LD_AMB_BOT).rgb;
+    } else {
+        // first frame or a loader without prepare passes: simple analytic fallback
+        float day = smoothstep(-0.08, 0.08, sunDirWorld().y);
+        float rain = 1.0 - lf_rain * 0.85;
+        li.lightCol = mix(vec3(0.03, 0.04, 0.06), vec3(20.0, 17.0, 13.0), day) * rain;
+        li.lightRadius = 0.02;
+        li.ambTop = mix(vec3(0.008, 0.012, 0.025), vec3(0.35, 0.55, 0.9), day);
+        li.ambBottom = li.ambTop * 0.6;
+    }
     return li;
 }
 

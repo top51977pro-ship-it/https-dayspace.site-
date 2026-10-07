@@ -7,6 +7,10 @@
 
 #include "/lib/common.glsl"
 
+#if defined GB_PARTICLES || defined GB_WEATHER || defined GB_CLOUDS || defined GB_ENT_TRANSLUCENT
+    #define LF_FAST_SHADOWS
+#endif
+
 //==================================================================================//
 #ifdef VERTEX_SHADER
 

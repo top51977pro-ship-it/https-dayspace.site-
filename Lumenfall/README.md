@@ -37,7 +37,7 @@ Depth of Field, Motion Blur, Anti-Aliasing, Colour & Exposure, Dimensions.
 ## Installation
 
 1. Install **Fabric** and **Iris** (with Sodium) for your Minecraft version.
-2. Download `release/Lumenfall_v1.0.zip` and put the zip (do not extract it) into
+2. Download `release/Lumenfall_v1.1.zip` and put the zip (do not extract it) into
    `.minecraft/shaderpacks`.
 3. In game: *Options → Video Settings → Shader Packs → Lumenfall*.
 4. Optional: a LabPBR resource pack and *Materials → PBR Mode = LabPBR* for parallax and
@@ -62,7 +62,7 @@ python3 tools/make_noise.py        # regenerate textures/noise.png
 python3 tools/gen_stubs.py         # regenerate the world0/world-1/world1 entry files
 xvfb-run -a python3 tools/compile_test.py --profile all   # compile+link every program, every preset, every dimension
 xvfb-run -a python3 tools/render_test.py --out shot.png --time 0.25   # offline render via an Iris pipeline emulator
-python3 tools/build_pack.py 1.0    # package release/Lumenfall_v1.0.zip
+python3 tools/build_pack.py 1.1    # package release/Lumenfall_v1.1.zip
 ```
 
 `compile_test.py` runs Iris-style preprocessing (includes, option overrides for each
@@ -96,7 +96,7 @@ semantics, so lighting changes can be reviewed without launching the game.
 
 **Lumenfall** הוא Shader Pack מקורי ל-Minecraft Java עם Iris, ברמה קולנועית.
 
-- **התקנה:** מתקינים Fabric + Iris, מעתיקים את `Lumenfall_v1.0.zip` (בלי לחלץ) לתיקיית
+- **התקנה:** מתקינים Fabric + Iris, מעתיקים את `Lumenfall_v1.1.zip` (בלי לחלץ) לתיקיית
   `.minecraft/shaderpacks` ובוחרים אותו במשחק.
 - **Presets:** `PERFORMANCE`, `HIGH`, `ULTRA` (ברירת מחדל), `INSANE`, `CINEMATIC`.
   ב-`CINEMATIC` מופעלים DOF, Motion Blur, Letterbox, Film Grain ו-Anamorphic Streaks.

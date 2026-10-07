@@ -6,8 +6,8 @@
 //==================================================================================//
 // Shadows
 //==================================================================================//
-const int   shadowMapResolution   = 6144;  //[1024 2048 3072 4096 6144 8192 12288 16384]
-const float shadowDistance        = 256.0; //[64.0 96.0 128.0 160.0 192.0 256.0 320.0 384.0 448.0 512.0]
+const int   shadowMapResolution   = 4096;  //[1024 2048 3072 4096 6144 8192 12288 16384]
+const float shadowDistance        = 192.0; //[64.0 96.0 128.0 160.0 192.0 256.0 320.0 384.0 448.0 512.0]
 const float shadowDistanceRenderMul = 1.0;
 const float shadowIntervalSize    = 2.0;
 const bool  shadowHardwareFiltering1 = true;
@@ -16,8 +16,8 @@ const float sunPathRotation       = -25.0; //[-60.0 -50.0 -40.0 -35.0 -30.0 -25.
 
 #define SHADOWS
 #define SHADOW_FILTER 2              //[0 1 2]
-#define SHADOW_SAMPLES 24            //[8 12 16 24 32 48 64 96]
-#define SHADOW_BLOCKER_SAMPLES 12    //[6 8 12 16 24 32]
+#define SHADOW_SAMPLES 16            //[8 12 16 24 32 48 64 96]
+#define SHADOW_BLOCKER_SAMPLES 8    //[6 8 12 16 24 32]
 #define SHADOW_SOFTNESS 1.0          //[0.25 0.5 0.75 1.0 1.25 1.5 2.0 2.5 3.0 4.0]
 #define COLORED_SHADOWS
 #define SCREEN_SPACE_SHADOWS
@@ -37,7 +37,7 @@ const float sunPathRotation       = -25.0; //[-60.0 -50.0 -40.0 -35.0 -30.0 -25.
 #define EMISSIVE_STRENGTH 1.0        //[0.25 0.5 0.75 1.0 1.5 2.0 3.0 4.0]
 #define MIN_LIGHT 1.0                //[0.0 0.25 0.5 1.0 1.5 2.0 3.0]
 #define AO_ENABLED
-#define AO_SAMPLES 12                 //[4 6 8 12 16 24 32]
+#define AO_SAMPLES 8                 //[4 6 8 12 16 24 32]
 #define AO_RADIUS 1.5                //[0.5 0.75 1.0 1.5 2.0 2.5 3.0]
 #define AO_STRENGTH 1.0              //[0.25 0.5 0.75 1.0 1.25 1.5 2.0]
 #define VANILLA_AO_STRENGTH 0.6      //[0.0 0.2 0.4 0.6 0.8 1.0]
@@ -52,7 +52,7 @@ const float sunPathRotation       = -25.0; //[-60.0 -50.0 -40.0 -35.0 -30.0 -25.
 #define GENERATED_NORMALS
 #define POM
 #define POM_DEPTH 0.25               //[0.05 0.1 0.15 0.2 0.25 0.3 0.4 0.5 0.75 1.0]
-#define POM_SAMPLES 96               //[16 32 48 64 96 128 192 256]
+#define POM_SAMPLES 48               //[16 32 48 64 96 128 192 256]
 #define POM_DISTANCE 32              //[16 24 32 48 64 96 128]
 #define POM_SHADOWS
 #define WAVING_PLANTS
@@ -68,7 +68,7 @@ const float sunPathRotation       = -25.0; //[-60.0 -50.0 -40.0 -35.0 -30.0 -25.
 #define WATER_WAVE_HEIGHT 1.0        //[0.0 0.25 0.5 0.75 1.0 1.25 1.5 2.0 3.0]
 #define WATER_WAVE_SPEED 1.0         //[0.25 0.5 0.75 1.0 1.25 1.5 2.0 3.0]
 #define WATER_WAVE_SCALE 1.0         //[0.5 0.75 1.0 1.25 1.5 2.0]
-#define WATER_WAVE_OCTAVES 7         //[3 4 5 6 7 8 10 12 16]
+#define WATER_WAVE_OCTAVES 6         //[3 4 5 6 7 8 10 12 16]
 #define WATER_VERTEX_WAVES
 #define WATER_PARALLAX
 #define WATER_REFRACTION
@@ -89,17 +89,17 @@ const float sunPathRotation       = -25.0; //[-60.0 -50.0 -40.0 -35.0 -30.0 -25.
 // Reflections
 //==================================================================================//
 #define SSR
-#define SSR_STEPS 48                 //[12 16 24 32 48 64 96 128]
-#define SSR_REFINE_STEPS 8           //[0 4 6 8 10 12]
+#define SSR_STEPS 24                 //[12 16 24 32 48 64 96 128]
+#define SSR_REFINE_STEPS 6           //[0 4 6 8 10 12]
 #define ROUGH_REFLECTIONS
 #define PBR_REFLECTIONS
 #define SKY_REFLECTIONS
-#define REFLECTION_CLOUDS
+//#define REFLECTION_CLOUDS
 
 //==================================================================================//
 // Atmosphere, fog & volumetrics
 //==================================================================================//
-#define ATMOSPHERE_STEPS 16          //[8 12 16 24 32]
+#define ATMOSPHERE_STEPS 12          //[8 12 16 24 32]
 #define FOG_DENSITY 1.0              //[0.0 0.25 0.5 0.75 1.0 1.25 1.5 2.0 3.0]
 #define HEIGHT_FOG
 #define HEIGHT_FOG_DENSITY 1.0       //[0.25 0.5 0.75 1.0 1.5 2.0 3.0 4.0]
@@ -107,7 +107,7 @@ const float sunPathRotation       = -25.0; //[-60.0 -50.0 -40.0 -35.0 -30.0 -25.
 #define CAVE_FOG
 #define BORDER_FOG
 #define VOLUMETRIC_LIGHT
-#define VL_STEPS 32                  //[8 12 16 24 32 48 64 96]
+#define VL_STEPS 16                  //[8 12 16 24 32 48 64 96]
 #define VL_STRENGTH 1.0              //[0.25 0.5 0.75 1.0 1.25 1.5 2.0 3.0]
 #define VL_NIGHT_STRENGTH 1.0        //[0.0 0.25 0.5 0.75 1.0 1.5 2.0]
 #define UNDERWATER_VL
@@ -116,8 +116,8 @@ const float sunPathRotation       = -25.0; //[-60.0 -50.0 -40.0 -35.0 -30.0 -25.
 // Clouds
 //==================================================================================//
 #define VOLUMETRIC_CLOUDS
-#define CLOUD_STEPS 64               //[16 24 32 48 64 96 128 192]
-#define CLOUD_LIGHT_STEPS 6          //[3 4 5 6 8 10 12 16]
+#define CLOUD_STEPS 32               //[16 24 32 48 64 96 128 192]
+#define CLOUD_LIGHT_STEPS 5          //[3 4 5 6 8 10 12 16]
 #define CLOUD_COVERAGE 0.5           //[0.0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0]
 #define CLOUD_DENSITY 1.0            //[0.25 0.5 0.75 1.0 1.25 1.5 2.0 3.0]
 #define CLOUD_ALTITUDE 320           //[192 256 320 384 448 512 640 768]
@@ -160,7 +160,7 @@ const float sunPathRotation       = -25.0; //[-60.0 -50.0 -40.0 -35.0 -30.0 -25.
 #define DOF_FOCUS_DISTANCE 16.0      //[1.0 2.0 3.0 4.0 6.0 8.0 12.0 16.0 24.0 32.0 48.0 64.0 96.0 128.0 256.0]
 #define DOF_INTENSITY 1.0            //[0.25 0.5 0.75 1.0 1.5 2.0 3.0 4.0 6.0 8.0]
 #define DOF_MAX_RADIUS 24.0          //[8.0 12.0 16.0 24.0 32.0 48.0 64.0]
-#define DOF_SAMPLES 64               //[16 32 48 64 96 128 192 256]
+#define DOF_SAMPLES 48               //[16 32 48 64 96 128 192 256]
 #define DOF_BLADES 0                 //[0 5 6 7 8]
 #define DOF_BOKEH_HIGHLIGHTS 1.0     //[0.0 0.5 1.0 1.5 2.0 3.0]
 #define DOF_CHROMATIC
@@ -169,7 +169,7 @@ const float centerDepthHalflife = 1.0; //[0.1 0.25 0.5 1.0 1.5 2.0 3.0 4.0]
 
 //#define MOTION_BLUR
 #define MOTION_BLUR_STRENGTH 1.0     //[0.1 0.25 0.5 0.75 1.0 1.25 1.5 2.0 3.0]
-#define MOTION_BLUR_SAMPLES 16       //[6 8 12 16 24 32 48 64]
+#define MOTION_BLUR_SAMPLES 12       //[6 8 12 16 24 32 48 64]
 
 #define AUTO_EXPOSURE
 #define EXPOSURE 0.0                 //[-3.0 -2.5 -2.0 -1.5 -1.0 -0.75 -0.5 -0.25 0.0 0.25 0.5 0.75 1.0 1.5 2.0 2.5 3.0]

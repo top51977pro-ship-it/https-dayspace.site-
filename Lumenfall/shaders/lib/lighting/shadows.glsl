@@ -61,6 +61,14 @@ ShadowResult sampleShadow(vec3 playerPos, vec3 geoNormal, float NdotL, float dit
 
     float receiver = sp.z - 0.00002;
 
+    #ifdef LF_FAST_SHADOWS
+        // particles / rain / translucent entities: one filtered tap is plenty
+        r.opaque = texture(shadowtex1, vec3(sp.xy, receiver));
+        r.light = vec3(mix(r.opaque, 1.0, fade));
+        r.thickness = 0.5;
+        return r;
+    #endif
+
     // --- blocker search ------------------------------------------------------
     float searchRadius = 1.6 * blockToUV * SHADOW_SOFTNESS + 2.0 * texel;
     float blockerSum = 0.0, blockerCount = 0.0;

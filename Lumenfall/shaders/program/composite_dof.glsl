@@ -145,7 +145,7 @@ void main() {
     vec3 blurredT = wSum > 1e-5 ? sum / wSum : center * exposure / (1.0 + luminance(center) * exposure);
     vec3 blurred = blurredT / max(1.0 - luminance(blurredT), 0.02) / max(exposure, 1e-4);
     float mixAmt = smoothstep(0.5, 1.5, radius);
-    outColor = vec4(mix(center, blurred, mixAmt), 1.0);
+    outColor = vec4(sanitize(mix(center, blurred, mixAmt)), 1.0);
     #endif
 }
 

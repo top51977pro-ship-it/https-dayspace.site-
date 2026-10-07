@@ -29,7 +29,7 @@ void main() {
     vLightCol = li.lightCol;
     vAmbTop = li.ambTop;
     vAmbBottom = li.ambBottom;
-    vFogCol = readLightData(LD_FOG).rgb;
+    vFogCol = lightDataValid() ? readLightData(LD_FOG).rgb : li.ambTop * 2.0;
     #ifdef NETHER
         vLightCol = vec3(0.0); vAmbTop = netherAmbient(); vAmbBottom = vAmbTop;
     #endif
@@ -309,7 +309,7 @@ void main() {
         color = mix(color, vAmbTop * 1.5 + vec3(0.05), 1.0 - exp(-dist * 0.6));
     }
 
-    outColor = vec4(max(color, vec3(0.0)), 1.0);
+    outColor = vec4(max(sanitize(color), vec3(0.0)), 1.0);
 }
 
 #endif
