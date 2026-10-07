@@ -1,0 +1,7 @@
+#version 330 compatibility
+
+#define VERTEX_SHADER
+#define OVERWORLD
+#define GB_CLOUDS
+
+#include "/program/gbuffers_translucent.glsl"
