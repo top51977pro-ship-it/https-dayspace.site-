@@ -164,8 +164,12 @@ CloudResult marchClouds(vec3 rayDir, float maxDist, vec3 lightDir, vec3 lightCol
 
             res.transmittance *= ext;
             if (res.transmittance < 0.01) break;
+            t += stepLen;
+        } else {
+            // empty space: stride further (the step budget then ends the march early)
+            t += stepLen * 1.8;
         }
-        t += stepLen;
+        if (t > tEnd) break;
     }
 
     res.distance = weightSum > 1e-4 ? weightedDist / weightSum : tEnd;

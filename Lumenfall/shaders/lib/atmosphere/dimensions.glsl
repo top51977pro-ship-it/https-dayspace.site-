@@ -14,7 +14,7 @@ vec3 netherBiomeColor() {
     return wSum > 0.05 ? mix(vanilla, c / wSum, 0.75) : vanilla;
 }
 
-vec3 netherAmbient() { return netherBiomeColor() * 0.55 + vec3(0.02, 0.012, 0.01); }
+vec3 netherAmbient() { return netherBiomeColor() * 0.4 + vec3(0.015, 0.009, 0.008); }
 
 vec3 endAmbient() { return vec3(0.075, 0.055, 0.12); }
 vec3 endLightColor() { return vec3(0.85, 0.75, 1.0) * 1.4; }

@@ -366,11 +366,11 @@ class Renderer:
             "gbufferPreviousProjection": ("m4", prev["proj"] if prev else proj),
             "shadowModelView": ("m4", sview), "shadowModelViewInverse": ("m4", np.linalg.inv(sview)),
             "shadowProjection": ("m4", sproj), "shadowProjectionInverse": ("m4", np.linalg.inv(sproj)),
-            "centerDepthSmooth": ("f", 0.999), "lightningBoltPosition": ("v4", (0, 0, 0, 0)),
+            "centerDepthSmooth": ("f", getattr(self, "center_depth", 0.999)), "lightningBoltPosition": ("v4", (0, 0, 0, 0)),
             "entityColor": ("v4", (0, 0, 0, 0)), "lf_rain": ("f", 0.0), "lf_caveFactor": ("f", 0.0),
             "lf_snowyBiome": ("f", 0.0), "lf_dryBiome": ("f", 0.0), "lf_eyeSky": ("f", 1.0),
             "lf_frameTimeSmooth": ("f", frame_time), "lf_netherWastes": ("f", 1.0),
-            "fogColor": ("v3", (0.6, 0.7, 0.9)), "skyColor": ("v3", (0.5, 0.7, 1.0)),
+            "fogColor": ("v3", (0.2, 0.03, 0.03) if self.dim == "world-1" else (0.6, 0.7, 0.9)), "skyColor": ("v3", (0.5, 0.7, 1.0)),
         }
         U.update(extra_uniforms)
 
@@ -484,6 +484,10 @@ class Renderer:
         GL.glFinish()
 
         self.prev = {"cam": cam, "view": view, "proj": proj}
+        # autofocus: Iris' centerDepthSmooth is the (smoothed) depth at the screen centre
+        GL.glBindTexture(GL.GL_TEXTURE_2D, self.depth0)
+        d = np.frombuffer(GL.glGetTexImage(GL.GL_TEXTURE_2D, 0, GL.GL_DEPTH_COMPONENT, GL.GL_FLOAT), np.float32)
+        self.center_depth = float(d.reshape(h, w)[h // 2, w // 2])
         self.frame += 1
 
     def snapshot(self, stage):

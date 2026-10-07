@@ -100,9 +100,10 @@ float causticPatternCheap(vec2 p) {
 // Medium density (per block) at a world position
 float mediumDensity(vec3 wp) {
     #if defined NETHER
-        float base = 0.010 * NETHER_FOG_DENSITY;
-        float n = fbm3D(wp * 0.04 + vec3(frameTimeCounter * 0.15, frameTimeCounter * 0.05, 0.0), 3);
-        return base * (0.6 + n * 0.9);
+        float base = 0.0055 * NETHER_FOG_DENSITY;
+        // rising smoke columns
+        float n = fbm3D(wp * vec3(0.035, 0.02, 0.035) + vec3(0.0, -frameTimeCounter * 0.35, frameTimeCounter * 0.05), 4);
+        return base * (0.35 + n * n * 2.2);
     #elif defined END
         float n = fbm3D(wp * 0.03 + vec3(frameTimeCounter * 0.05, 0.0, 0.0), 3);
         float low = exp(-max(wp.y - 30.0, 0.0) / 40.0);
@@ -159,8 +160,9 @@ void main() {
 
     #ifdef NETHER
         if (!hand) {
-            float limit = sky ? 1.0 : 1.0 - exp(-dist * 0.012 * NETHER_FOG_DENSITY);
-            color = mix(color, vFogCol * 0.55, limit);
+            float limit = sky ? 1.0 : 1.0 - exp(-dist * 0.0045 * NETHER_FOG_DENSITY);
+            limit = max(limit, smoothstep(far * 0.6, far, dist));
+            color = mix(color, vFogCol * 0.45, limit);
         }
     #endif
 

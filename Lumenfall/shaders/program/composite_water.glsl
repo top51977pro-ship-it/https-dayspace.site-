@@ -74,6 +74,9 @@ layout(location = 0) out vec4 outColor;
 
 // What a reflected ray sees when it leaves the screen
 vec3 reflectionMiss(vec3 dirW, float skyOcclusion, float dither, bool highQuality) {
+    #ifndef SKY_REFLECTIONS
+        skyOcclusion = 0.0;
+    #endif
     vec3 sky = skyAtmosphere(dirW);
     #if defined OVERWORLD && defined VOLUMETRIC_CLOUDS && defined REFLECTION_CLOUDS
         if (highQuality && dirW.y > 0.0) {
@@ -114,6 +117,28 @@ void main() {
     float z1 = texelFetch(depthtex1, px, 0).r;
     vec3 color = texelFetch(colortex0, px, 0).rgb;
     float dither = blueNoise(gl_FragCoord.xy);
+
+    #ifdef UNDERWATER_DISTORTION
+        if (isEyeInWater == 1) {
+            vec2 q = uv * vec2(aspectRatio, 1.0) * 6.0;
+            float t = frameTimeCounter * 1.4;
+            vec2 wobble = vec2(sin(q.y * 3.1 + t) + sin(q.y * 5.3 - t * 1.3), cos(q.x * 2.7 + t * 0.8) + cos(q.x * 4.9 - t)) * 0.0011;
+            uv = clamp(uv + wobble, vec2(0.001), vec2(0.999));
+            color = texture(colortex0, uv).rgb;
+        }
+    #endif
+
+    #if defined NETHER && defined NETHER_HEAT_HAZE
+    {
+        // shimmering hot air: rising distortion that grows with distance
+        float zh = texelFetch(depthtex0, px, 0).r;
+        float distH = zh >= 1.0 ? far : linearizeDepth(zh);
+        float amount = smoothstep(4.0, 48.0, distH) * float(zh >= HAND_DEPTH);
+        vec2 q = uv * vec2(aspectRatio, 1.0) * 14.0 + vec2(0.0, -frameTimeCounter * 0.9);
+        vec2 hazeOffset = (vec2(noise2D(q * 8.0), noise2D(q * 8.0 + 37.0)) - 0.5) * 0.0035 * amount;
+        color = texture(colortex0, uv + hazeOffset).rgb;
+    }
+    #endif
 
     vec2 uvU = uv - taaOffset();
     vec3 viewPos0 = screenToView(vec3(uvU, z0));

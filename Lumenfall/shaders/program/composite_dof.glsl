@@ -40,6 +40,7 @@ uniform sampler2D depthtex0;
 
 #include "/lib/util/noise.glsl"
 #include "/lib/util/space.glsl"
+#include "/lib/atmosphere/lightData.glsl"
 
 /* RENDERTARGETS: 0 */
 layout(location = 0) out vec4 outColor;
@@ -101,10 +102,12 @@ void main() {
     }
 
     vec2 texel = 1.0 / vec2(viewWidth, viewHeight);
-    float phi = blueNoise(gl_FragCoord.xy) * TAU;
+    const int N = DOF_SAMPLES;
+    // rotate the pattern only within one sample spacing: stable, no visible noise
+    float phi = blueNoise(gl_FragCoord.xy) * TAU / float(N);
+    float exposure = readExposure();
     vec3 sum = vec3(0.0);
     float wSum = 0.0;
-    const int N = DOF_SAMPLES;
 
     for (int i = 0; i < N; i++) {
         float r = sqrt((float(i) + 0.5) / float(N));
@@ -130,12 +133,17 @@ void main() {
         #else
             s = texture(colortex0, suv).rgb;
         #endif
-        float lum = luminance(s);
-        w *= 1.0 + DOF_BOKEH_HIGHLIGHTS * smoothstep(1.0, 6.0, lum) * 4.0;
-        sum += s * w;
+        // accumulate in a tonemapped (exposure-relative) space: kills fireflies;
+        // bright samples get extra weight so lights still open into bokeh discs
+        vec3 sE = s * exposure;
+        float lumE = luminance(sE);
+        float highlight = 1.0 + DOF_BOKEH_HIGHLIGHTS * smoothstep(0.8, 2.5, lumE) * 1.5;
+        w *= highlight;
+        sum += sE / (1.0 + lumE) * w;
         wSum += w;
     }
-    vec3 blurred = wSum > 1e-5 ? sum / wSum : center;
+    vec3 blurredT = wSum > 1e-5 ? sum / wSum : center * exposure / (1.0 + luminance(center) * exposure);
+    vec3 blurred = blurredT / max(1.0 - luminance(blurredT), 0.02) / max(exposure, 1e-4);
     float mixAmt = smoothstep(0.5, 1.5, radius);
     outColor = vec4(mix(center, blurred, mixAmt), 1.0);
     #endif

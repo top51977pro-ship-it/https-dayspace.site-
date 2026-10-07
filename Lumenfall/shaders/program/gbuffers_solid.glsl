@@ -216,6 +216,7 @@ void main() {
     #elif defined GB_ENTITIES
         mat = MAT_ENTITY;
         if (entityId == 50001) mat = MAT_LIGHTNING;
+        if (entityId == 50002) mat = MAT_GLOWING_ENT;
     #elif defined GB_HAND
         mat = MAT_HAND;
     #endif
@@ -241,6 +242,8 @@ void main() {
     #ifdef GB_GLOWING
         mp.emission = max(mp.emission, 0.35);
     #endif
+    // glow squids, blazes, magma cubes, allays...: their bright texels glow
+    if (mat == MAT_GLOWING_ENT) mp.emission = max(mp.emission, smoothstep(0.45, 0.8, luminance(albedo.rgb)) * 0.8);
     if (mat == MAT_LIGHTNING) { mp.emission = 1.0; albedo.rgb = vec3(0.75, 0.82, 1.0); }
 
     //---- normal --------------------------------------------------------------
