@@ -1,5 +1,11 @@
 # Aurelia Shaders - Changelog
 
+## v1.8
+- **Nether portal matched to the reference look:** the window between the streaks is now clear
+  (no violet tint), and every bright swirl pixel becomes a deep magenta dash with a short glowing
+  trail extruded into the portal (10 thin layers in a shallow depth, combined with max() so they
+  never pile up into a solid sheet).
+
 ## v1.7
 - **Nether portal cleaned up:** up close or at an angle the depth layers shifted so far that
   they wrapped around the texture, turning the portal into a solid sheet of stretched, curved
