@@ -1,5 +1,11 @@
 # Aurelia Shaders - Changelog
 
+## v1.10
+- **Nether portal colours matched to the reference screenshot:** streak colours were measured
+  from the reference (edge 140,15,200 / main 200,12,234 / core 230,95,250) and solved back through
+  Aurelia's tonemap and colour grading, so they appear with those exact on-screen colours.
+  The Nether and End exposure is compensated so portals look the same in every dimension.
+
 ## v1.9
 - **Nether portal glow halved:** the streaks were too bright in game. Same look, about half the
   brightness, so the colour stays a deep purple-magenta instead of glaring.
