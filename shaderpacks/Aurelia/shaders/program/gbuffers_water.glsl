@@ -77,43 +77,7 @@ flat in int blockId;
 #include "/lib/water.glsl"
 
 #ifdef PORTAL_EFFECT
-// Nether portal: a see-through window with glowing streaks stacked at several depths
-// behind the surface (parallax), which gives the swirling "tunnel" look.
-vec4 netherPortal(float dither) {
-    vec3 N = normalize(normalW);
-    vec3 T = normalize(tangentW.xyz - N * dot(tangentW.xyz, N));
-    vec3 B = cross(N, T) * tangentW.w;
-    vec3 rd = normalize(playerPos);
-    float rdN = max(abs(dot(rd, N)), 0.25);
-    vec2 tileSize = max(texHalf * 2.0, vec2(1e-6));
-    vec2 tileMin = midCoord - texHalf;
-    // uv shift per block of depth into the portal
-    vec2 uvPerDepth = vec2(dot(rd, T), dot(rd, B)) / rdN * tileSize;
-
-    vec3 glow = vec3(0.0);
-    float front = 0.0;
-    const int layers = 4;
-    for (int i = 0; i < layers; i++) {
-        float depth = (float(i) + dither * 0.5) * 0.22;
-        vec2 coord = texcoord + uvPerDepth * depth;
-        coord = tileMin + mod(coord - tileMin, tileSize);
-        vec3 s = textureLod(gtexture, coord, 0.0).rgb;
-        float l = luminance(s);
-        // only the light swirls of the vanilla texture become glowing streaks
-        float streak = smoothstep(0.42, 0.72, l);
-        streak *= streak;
-        vec3 col = mix(vec3(0.70, 0.12, 1.00), vec3(1.00, 0.55, 1.00), smoothstep(0.62, 0.85, l));
-        float w = i == 0 ? 1.0 : 0.55 * exp(-float(i) * 0.6);
-        glow += col * streak * w;
-        if (i == 0) front = streak;
-    }
-    glow *= 1.6 * PORTAL_BRIGHTNESS;
-
-    // the dark gaps let the world show through, dimmed and tinted violet
-    float alpha = 0.45 + front * 0.35;
-    vec3 tint = vec3(0.18, 0.03, 0.35) * 0.25;
-    return vec4(glow / alpha + tint, alpha);
-}
+#include "/lib/portal.glsl"
 #endif
 
 /* RENDERTARGETS: 3,1,2 */
@@ -166,7 +130,11 @@ void main() {
     else if (blockId == ID_NETHER_PORTAL) {
         material = MAT_GLASS;
         smoothness = 0.0;
-        outCol = netherPortal(dither);
+        vec3 N = normalize(normalW);
+        vec3 T = normalize(tangentW.xyz - N * dot(tangentW.xyz, N));
+        vec3 B = cross(N, T) * tangentW.w;
+        vec2 tileSize = max(texHalf * 2.0, vec2(1e-6));
+        outCol = netherPortal(texcoord, midCoord - texHalf, tileSize, T, B, N, normalize(playerPos), dither);
         outCol.rgb = applyFog(outCol.rgb, playerPos);
     }
     #endif

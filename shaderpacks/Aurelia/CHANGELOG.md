@@ -1,5 +1,11 @@
 # Aurelia Shaders - Changelog
 
+## v1.5
+- **Nether portal fixed:** the glowing streaks never appeared in v1.4 because they were tuned
+  for a brighter texture than the real one. Retuned and tested against the actual vanilla
+  portal texture: vivid magenta streaks stacked in depth that stretch towards the centre like a
+  tunnel, with see-through gaps and a violet haze. The portal code now lives in lib/portal.glsl.
+
 ## v1.4
 - **Fixed glowing mobs and players:** block light at full strength was about 2.4x brighter than
   vanilla, and caves / the Nether added a big exposure boost on top, so anything next to lava,
