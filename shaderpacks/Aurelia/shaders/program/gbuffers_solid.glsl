@@ -72,6 +72,21 @@ in vec2 midCoord;
 in vec2 texHalf;
 flat in int blockId;
 
+#if defined PROG_ENTITIES || defined PROG_BLOCK
+// Entities and block entities are lit right here (forward) and stored as "passthrough".
+// Recent Iris versions can draw them after the deferred lighting pass, which left them
+// completely unlit (full-bright) when they relied on it.
+#define FORWARD_LIT
+#include "/lib/atmosphere.glsl"
+#include "/lib/sky.glsl"
+#include "/lib/shadows.glsl"
+#ifdef OVERWORLD
+#include "/lib/clouds.glsl"
+#endif
+#include "/lib/lighting.glsl"
+#include "/lib/fog.glsl"
+#endif
+
 /* RENDERTARGETS: 0,1,2 */
 layout(location = 0) out vec4 outColor;
 layout(location = 1) out vec4 outData;
@@ -241,6 +256,20 @@ void main() {
         vec3 dir = normalize(playerPos);
         albedo.rgb = endPortalStars(dir);
         albedo.a = 1.0;
+    }
+    #endif
+
+    #ifdef FORWARD_LIT
+    if (material != MAT_PASSTHROUGH) {
+        setupAtmosphere();
+        vec3 shadow;
+        float dither = getDither(gl_FragCoord.xy);
+        vec3 lit = computeLighting(toLinear(albedo.rgb), normal, playerPos, lmcoord, 1.0, subsurface,
+                                   smoothness, 0.04, emission, dither, shadow);
+        albedo.rgb = applyFog(lit, playerPos);
+        material = MAT_PASSTHROUGH;
+    } else {
+        albedo.rgb = applyFog(albedo.rgb, playerPos);
     }
     #endif
 

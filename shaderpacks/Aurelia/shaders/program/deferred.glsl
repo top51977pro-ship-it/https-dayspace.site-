@@ -86,8 +86,7 @@ void main() {
         int material = decodeMat(matData.r);
 
         if (material == MAT_PASSTHROUGH) {
-            color = albedoData.rgb;
-            if (depth > 0.56) color = applyFog(color, playerPos);
+            color = albedoData.rgb; // already lit and fogged by the program that drew it
         } else {
             vec4 gData = texture(colortex1, texcoord);
             vec3 normal = decodeNormal(gData.xy);

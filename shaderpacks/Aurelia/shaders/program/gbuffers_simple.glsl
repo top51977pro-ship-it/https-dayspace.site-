@@ -65,19 +65,21 @@ layout(location = 0) out vec4 outColor;
 void main() {
     vec4 col = texture(gtexture, texcoord) * glcolor;
     if (col.a < 0.01) discard;
+    #ifdef PROG_ARMOR_GLINT
+    // entities are stored lit (linear HDR), so the glint goes on in the same space
+    col.rgb = toLinear(col.rgb) * 0.8;
+    #endif
     outColor = col;
 }
 
 #elif defined PROG_SPIDEREYES
 
-/* RENDERTARGETS: 0,2 */
+/* RENDERTARGETS: 0 */
 layout(location = 0) out vec4 outColor;
-layout(location = 1) out vec4 outMaterial;
 void main() {
     vec4 col = texture(gtexture, texcoord) * glcolor;
     if (col.a < 0.1) discard;
-    outColor = col;
-    outMaterial = vec4(encodeMat(MAT_ENTITY), 0.0, 1.0, 0.0);
+    outColor = vec4(toLinear(col.rgb) * 2.5, col.a); // glowing eyes on top of the lit body
 }
 
 #else // PROG_BASIC, PROG_BEACONBEAM

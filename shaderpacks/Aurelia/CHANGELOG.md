@@ -1,5 +1,13 @@
 # Aurelia Shaders - Changelog
 
+## v1.11
+- **Fixed full-bright players, mobs and animals:** entities were lit in the deferred pass, but
+  recent Iris versions can draw them after that pass, so they showed up completely unlit (raw
+  texture colours, even at night). Entities and block entities are now lit as they are drawn
+  (sun/moon, shadows, sky light, block light, handheld light, fog), which works whatever order
+  Iris uses.
+- Glowing eyes (spiders, endermen, phantoms) and enchantment glint adjusted to match.
+
 ## v1.10
 - **Nether portal colours matched to the reference screenshot:** streak colours were measured
   from the reference (edge 140,15,200 / main 200,12,234 / core 230,95,250) and solved back through
