@@ -19,7 +19,7 @@ OptiFine/Iris shader-pack format, so it also loads on other recent Iris versions
 | Sky | Hand-tuned day/sunset/night gradients, sun disc and glow, twinkling stars that rotate with the sky, northern lights on clear nights |
 | Clouds | Raymarched volumetric cumulus with a weather map, silver lining, sunset tinting and cloud shadows on the ground |
 | Lighting | Deferred lighting, soft PCF shadows (Vogel disk), colored shadows through stained glass, warm block light, handheld light, minimum cave light |
-| Materials | Generated normals from vanilla textures, rich soil retexture for dirt, subsurface scattering for leaves and grass, emissive torches, lanterns, lava and glowstone, optional glowing ores |
+| Materials | Generated normals from vanilla textures, optional rich soil retexture for dirt (off by default), subsurface scattering for leaves and grass, emissive torches, lanterns, lava and glowstone, optional glowing ores |
 | Water | Animated wave normals, screen-space reflections with sky fallback, refraction, depth-based absorption, caustics projected through the shadow map |
 | Atmosphere | Volumetric light shafts (sun, moon, underwater, End), screen-space sunbeams, height-based fog, morning mist, rain fog, cave darkening, border fog |
 | Weather | Rain puddles with reflections, wet darkened surfaces, overcast sky |

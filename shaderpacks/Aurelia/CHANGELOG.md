@@ -1,5 +1,9 @@
 # Aurelia Shaders - Changelog
 
+## v1.2
+- Dirt is back to its normal vanilla look. *Rich Soil* is now off by default (still available
+  under Lighting for anyone who wants it).
+
 ## v1.1
 - **Water:** clear, natural colour instead of cyan. Shallow water stays see-through and deep
   water fades to a dark, neutral blue-green. Biome tint is toned down.

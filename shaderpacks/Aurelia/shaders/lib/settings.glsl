@@ -40,7 +40,7 @@ const float drynessHalflife = 120.0;
 //#define GLOWING_ORES
 #define BLOCK_REFLECTIONS
 #define RAIN_PUDDLES
-#define SOIL_RETEXTURE
+//#define SOIL_RETEXTURE
 #define CLOUD_SHADOWS
 
 //==================================================================================//
