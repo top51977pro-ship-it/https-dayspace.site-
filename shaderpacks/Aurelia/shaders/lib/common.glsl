@@ -47,18 +47,18 @@ vec3 toLinear(vec3 c) { return pow(c, vec3(2.2)); }
 vec3 toGamma(vec3 c) { return pow(max(c, vec3(0.0)), vec3(1.0 / 2.2)); }
 
 // ---- normal encoding (octahedral) ----
-vec2 signNotZero(vec2 v) { return vec2(v.x >= 0.0 ? 1.0 : -1.0, v.y >= 0.0 ? 1.0 : -1.0); }
+vec2 octWrapSign(vec2 v) { return vec2(v.x >= 0.0 ? 1.0 : -1.0, v.y >= 0.0 ? 1.0 : -1.0); }
 
 vec2 encodeNormal(vec3 n) {
     n /= abs(n.x) + abs(n.y) + abs(n.z);
-    vec2 e = n.z >= 0.0 ? n.xy : (1.0 - abs(n.yx)) * signNotZero(n.xy);
+    vec2 e = n.z >= 0.0 ? n.xy : (1.0 - abs(n.yx)) * octWrapSign(n.xy);
     return e * 0.5 + 0.5;
 }
 
 vec3 decodeNormal(vec2 e) {
     e = e * 2.0 - 1.0;
     vec3 n = vec3(e, 1.0 - abs(e.x) - abs(e.y));
-    if (n.z < 0.0) n.xy = (1.0 - abs(n.yx)) * signNotZero(n.xy);
+    if (n.z < 0.0) n.xy = (1.0 - abs(n.yx)) * octWrapSign(n.xy);
     return normalize(n);
 }
 

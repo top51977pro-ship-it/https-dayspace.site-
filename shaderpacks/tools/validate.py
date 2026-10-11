@@ -20,6 +20,16 @@ IRIS_MACROS = """#define MC_VERSION 260300
 """
 INCLUDE_RE = re.compile(r'^\s*#include\s+"([^"]+)"', re.M)
 
+# Functions Iris/Sodium inject into patched shaders. Defining any of these ourselves breaks
+# loading on real drivers ("function already defined"), which glslang alone cannot see.
+IRIS_INJECTED_FUNCTIONS = [
+    "signNotZero", "decodeOct24", "decode_diamond", "decode_diamond_tangent_with_sign",
+    "getVertexPosition", "_get_draw_translation", "_get_relative_chunk_coord", "_get_texcoord",
+    "_get_texcoord_bias", "_iris_internal_translate", "_material_mip_bias", "_deinterleave_u20x3",
+    "dh_blockFaceUv", "dh_hasTexture", "dh_sampleTexture",
+]
+DEF_RE = re.compile(r"^\s*(?:void|float|int|uint|bool|vec[234]|ivec[234]|mat[234])\s+([A-Za-z_]\w*)\s*\(", re.M)
+
 
 def resolve(path, seen, defines, undefs):
     with open(path) as f:
@@ -70,6 +80,11 @@ def main():
                 with open(out, "w") as f:
                     f.write(src)
                 total += 1
+                clashes = sorted(set(DEF_RE.findall(src)) & set(IRIS_INJECTED_FUNCTIONS))
+                if clashes:
+                    failures += 1
+                    print(f"=== {folder or '.'}/{name} === defines Iris-injected function(s): {', '.join(clashes)}")
+                    continue
                 r = subprocess.run(["glslangValidator", out], capture_output=True, text=True)
                 if r.returncode != 0:
                     failures += 1
