@@ -24,7 +24,7 @@ OptiFine/Iris shader-pack format, so it also loads on other recent Iris versions
 | Atmosphere | Volumetric light shafts (sun, moon, underwater, End), screen-space sunbeams, height-based fog, morning mist, rain fog, cave darkening, border fog |
 | Weather | Rain puddles with reflections, wet darkened surfaces, overcast sky |
 | Post | Bloom, eye-adaptation exposure, Lottes filmic tonemap, vibrance/saturation/contrast grading, TAA (or FXAA), sharpening, vignette |
-| Dimensions | Overworld, Nether (biome-coloured fog, drifting smoke, lava bounce light, no shadow pass) and End (nebula sky with dust lanes, star field, violet haze, light shafts) |
+| Dimensions | Overworld, Nether (biome-coloured fog, drifting smoke, lava bounce light, no shadow pass) and End (nebula sky with dust lanes, star field, violet haze, soft light shafts) |
 | Fun | 3D see-through Nether portals with glowing depth layers, animated starfield on End portals and gateways |
 | Motion blur | Camera motion blur with its own settings page (strength, quality, max length, frame-rate independent) |
 

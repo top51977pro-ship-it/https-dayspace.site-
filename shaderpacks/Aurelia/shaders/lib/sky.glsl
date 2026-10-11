@@ -28,9 +28,6 @@ vec3 getEndSky(vec3 dir) {
     nebCol = mix(nebCol, vec3(0.15, 0.60, 0.85), smoothstep(0.62, 0.82, noise3D(dir * 2.0 + 30.0)));
     sky += nebCol * neb * neb * 0.24 * (1.0 - dust * 0.75) * smoothstep(-0.5, 0.1, up);
     #endif
-    // distant bright star in the direction of the End's light
-    float VdotL = saturate(dot(dir, lightDir));
-    sky += vec3(0.85, 0.65, 1.00) * (pow(VdotL, 2500.0) * 8.0 + pow(VdotL, 150.0) * 0.45 + pow(VdotL, 12.0) * 0.07);
     return sky;
 }
 

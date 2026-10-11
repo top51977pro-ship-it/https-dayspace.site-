@@ -1,5 +1,10 @@
 # Aurelia Shaders - Changelog
 
+## v1.6
+- **No more "sun" in the End:** removed the bright distant star from the End sky, turned off the
+  screen-space sunbeams there, and made the End's light haze even instead of glowing towards
+  the light direction. The End keeps its soft lighting and shadows, just without a visible source.
+
 ## v1.5
 - **Nether portal fixed:** the glowing streaks never appeared in v1.4 because they were tuned
   for a brighter texture than the real one. Retuned and tested against the actual vanilla

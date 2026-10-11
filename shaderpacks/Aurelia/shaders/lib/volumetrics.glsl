@@ -38,6 +38,7 @@ vec3 getVolumetricLight(vec3 dir, float dist, float dither) {
     float depthFactor = 1.0 - exp(-maxDist * 0.02);
 
     #if defined END
+    phase = 0.16 + phaseHG(VdotL, 0.25) * 0.05; // no visible "sun" glare: the End has no light source in the sky
     float amount = 0.08;
     #else
     float amount = mix(0.30, 0.11, noonF) * (1.0 - rainStrength * 0.6);
