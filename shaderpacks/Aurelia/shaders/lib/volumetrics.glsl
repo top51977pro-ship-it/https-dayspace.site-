@@ -21,7 +21,7 @@ vec3 getVolumetricLight(vec3 dir, float dist, float dither) {
         }
         accum *= maxDist / float(VL_SAMPLES);
         float phase = 0.25 + phaseHG(VdotL, 0.65) * 0.12;
-        return accum * lightColor * vec3(0.30, 0.62, 0.55) * phase * 0.045 * VL_STRENGTH;
+        return accum * lightColor * vec3(0.45, 0.58, 0.55) * phase * 0.045 * VL_STRENGTH;
     }
     #endif
 
@@ -34,13 +34,13 @@ vec3 getVolumetricLight(vec3 dir, float dist, float dither) {
     accum /= float(VL_SAMPLES);
 
     // strong forward scattering makes shafts pop when looking towards the light
-    float phase = 0.08 + phaseHG(VdotL, 0.70) * 0.18;
+    float phase = 0.12 + phaseHG(VdotL, 0.70) * 0.22;
     float depthFactor = 1.0 - exp(-maxDist * 0.02);
 
     #if defined END
     float amount = 0.08;
     #else
-    float amount = mix(0.18, 0.065, noonF) * (1.0 - rainStrength * 0.6);
+    float amount = mix(0.30, 0.11, noonF) * (1.0 - rainStrength * 0.6);
     amount *= mix(0.2, 1.0, eyeSky);
     #endif
 
@@ -73,6 +73,6 @@ vec3 getUnderwaterLight(vec3 startPos, vec3 endPos, float dither) {
     accum *= len / float(samples);
 
     float phase = 0.25 + phaseHG(dot(rd, lightDir), 0.65) * 0.12;
-    return accum * lightColor * vec3(0.30, 0.62, 0.55) * phase * 0.035 * VL_STRENGTH;
+    return accum * lightColor * vec3(0.45, 0.58, 0.55) * phase * 0.035 * VL_STRENGTH;
     #endif
 }

@@ -133,6 +133,7 @@ def block_properties():
     text += "# leaves\n" + line(10004, leaves)
     text += "# vines / hanging plants\n" + line(10005, vines)
     text += "# underwater plants\n" + line(10006, water_plants)
+    text += "# soil (retextured dirt)\n" + line(10007, ["dirt", "coarse_dirt", "rooted_dirt", "grass_block", "dirt_path", "farmland"])
     text += "\n# water\n" + line(10010, ["water", "flowing_water", "bubble_column"])
     text += "# translucent blocks\n" + line(10011, glass)
     text += line(10012, ["ice", "frosted_ice"])

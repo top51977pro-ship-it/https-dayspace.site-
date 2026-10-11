@@ -28,7 +28,7 @@ vec3 getAmbientLighting(vec3 normalW, float skyLm) {
     return ambientColor * (0.80 + 0.20 * normalW.y);
     #else
     float skyAmt = skyLm * skyLm;
-    return ambientColor * skyAmt * (0.72 + 0.28 * normalW.y);
+    return ambientColor * skyAmt * (0.62 + 0.38 * normalW.y);
     #endif
 }
 

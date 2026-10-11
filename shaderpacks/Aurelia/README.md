@@ -7,7 +7,7 @@ OptiFine/Iris shader-pack format, so it also loads on other recent Iris versions
 ## Installation
 
 1. Install [Iris](https://irisshaders.dev) (and Sodium) for your Minecraft version.
-2. Copy `Aurelia-v1.0.zip` (from `shaderpacks/release/`) into `.minecraft/shaderpacks/`.
+2. Copy the newest `Aurelia-v<version>.zip` (from `shaderpacks/release/`) into `.minecraft/shaderpacks/`.
    Don't unzip it. If you do unzip it, the `shaders/` folder must sit directly inside the pack folder.
 3. In game, open **Options → Video Settings → Shader Packs** and select **Aurelia**.
 4. Open **Shader Pack Settings** to pick a profile (Potato → Ultra) or tune individual options.
@@ -19,9 +19,9 @@ OptiFine/Iris shader-pack format, so it also loads on other recent Iris versions
 | Sky | Hand-tuned day/sunset/night gradients, sun disc and glow, twinkling stars that rotate with the sky, northern lights on clear nights |
 | Clouds | Raymarched volumetric cumulus with a weather map, silver lining, sunset tinting and cloud shadows on the ground |
 | Lighting | Deferred lighting, soft PCF shadows (Vogel disk), colored shadows through stained glass, warm block light, handheld light, minimum cave light |
-| Materials | Generated normals from vanilla textures, subsurface scattering for leaves and grass, emissive torches, lanterns, lava and glowstone, optional glowing ores |
+| Materials | Generated normals from vanilla textures, rich soil retexture for dirt, subsurface scattering for leaves and grass, emissive torches, lanterns, lava and glowstone, optional glowing ores |
 | Water | Animated wave normals, screen-space reflections with sky fallback, refraction, depth-based absorption, caustics projected through the shadow map |
-| Atmosphere | Volumetric light shafts (sun, moon, underwater, End), height-based fog, morning mist, rain fog, cave darkening, border fog |
+| Atmosphere | Volumetric light shafts (sun, moon, underwater, End), screen-space sunbeams, height-based fog, morning mist, rain fog, cave darkening, border fog |
 | Weather | Rain puddles with reflections, wet darkened surfaces, overcast sky |
 | Post | Bloom, eye-adaptation exposure, Lottes filmic tonemap, vibrance/saturation/contrast grading, TAA (or FXAA), sharpening, vignette |
 | Dimensions | Overworld, Nether (thick biome-tinted haze, no shadow pass) and End (purple nebula sky, star field, light shafts) |
@@ -63,7 +63,7 @@ shaders/
 ```
 python3 shaderpacks/tools/generate.py   # regenerate dimension stubs, block.properties, noise.png
 python3 shaderpacks/tools/validate.py   # compile every program for every dimension with glslangValidator
-python3 shaderpacks/tools/package.py    # build release/Aurelia-v1.0.zip
+python3 shaderpacks/tools/package.py    # build release/Aurelia-v<version>.zip
 ```
 
 `validate.py` accepts `--define NAME[=VALUE]` / `--undef NAME` to test other option combinations.

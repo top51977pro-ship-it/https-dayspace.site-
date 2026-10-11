@@ -1,6 +1,6 @@
 # Aurelia Shaders - option names
 
-profile.comment=Quality preset. Potato and Low are for integrated graphics, Ultra for high-end GPUs.
+profile.comment=Aurelia Shaders v1.1. Quality preset. Potato and Low are for integrated graphics, Ultra for high-end GPUs.
 profile.POTATO=§7Potato
 profile.LOW=§cLow
 profile.MEDIUM=§eMedium
@@ -51,10 +51,15 @@ option.GLOWING_ORES=Glowing Ores
 option.BLOCK_REFLECTIONS=Block Reflections
 option.BLOCK_REFLECTIONS.comment=Metal blocks, ice and polished stone reflect their surroundings.
 option.RAIN_PUDDLES=Rain Puddles
+option.SOIL_RETEXTURE=Rich Soil
+option.SOIL_RETEXTURE.comment=Repaints dirt, coarse dirt, paths, farmland and grass block sides as darker, richer soil.
 
 option.VOLUMETRIC_LIGHT=Volumetric Light
 option.VL_STRENGTH=Light Shaft Strength
 option.VL_SAMPLES=Light Shaft Quality
+option.SUNBEAMS=Sunbeams
+option.SUNBEAMS.comment=Rays streaming from the sun past trees and terrain when the sun is on screen.
+option.SUNBEAM_STRENGTH=Sunbeam Strength
 option.FOG_DENSITY=Fog Density
 option.BORDER_FOG=Border Fog
 option.SUN_SIZE=Sun Size

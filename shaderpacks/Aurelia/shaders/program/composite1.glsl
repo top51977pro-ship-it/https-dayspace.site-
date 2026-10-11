@@ -3,6 +3,7 @@
 #include "/lib/settings.glsl"
 #include "/lib/uniforms.glsl"
 #include "/lib/common.glsl"
+#include "/lib/transforms.glsl"
 
 //==================================================================================//
 #ifdef VSH
@@ -42,9 +43,47 @@ vec3 bloomTile(float lod) {
     return sum / weightSum;
 }
 
+#if defined SUNBEAMS && !defined NETHER
+// Crepuscular rays: march from each pixel towards the sun on screen and count open sky.
+// Trees, terrain and the player block the sky and leave dark streaks between bright rays.
+vec3 getSunbeams(float dither) {
+    if (isEyeInWater != 0) return vec3(0.0);
+    vec3 lightView = shadowLightPosition;
+    float facing = dot(normalize(lightView), vec3(0.0, 0.0, -1.0));
+    if (facing <= 0.0) return vec3(0.0);
+
+    vec2 lightUV = viewToScreen(lightView).xy;
+    vec2 delta = lightUV - texcoord;
+    const int samples = 24;
+    vec2 stepUV = delta / float(samples);
+    vec2 p = texcoord + stepUV * dither;
+    float open = 0.0;
+    for (int i = 0; i < samples; i++) {
+        vec2 q = clamp(p, vec2(0.0), vec2(1.0));
+        open += step(1.0, texture(depthtex0, q).r);
+        p += stepUV;
+    }
+    open /= float(samples);
+
+    float r = length(delta * vec2(aspectRatio, 1.0));
+    float falloff = exp(-r * 2.4) * 0.8 + exp(-r * 7.0) * 0.6;
+
+    #if defined END
+    float amount = 0.18;
+    #else
+    float amount = mix(0.30, 0.13, noonF) * (1.0 - rainStrength) * mix(0.4, 1.0, eyeSky);
+    #endif
+    return lightColor * open * falloff * smoothstep(0.0, 0.35, facing) * amount * SUNBEAM_STRENGTH;
+}
+#endif
+
 void main() {
     setupAtmosphere();
     vec3 color = texture(colortex0, texcoord).rgb;
+
+    #if defined SUNBEAMS && !defined NETHER
+    color += getSunbeams(getDither(gl_FragCoord.xy));
+    #endif
 
     #ifdef BLOOM
     vec3 bloom = vec3(0.0);

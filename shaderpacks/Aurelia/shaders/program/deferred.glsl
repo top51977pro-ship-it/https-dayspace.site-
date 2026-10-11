@@ -35,7 +35,7 @@ layout(location = 0) out vec4 outColor;
 
 #ifdef SSAO
 float getSSAO(vec3 viewPos, vec3 viewNormal, float dither) {
-    const float radius = 0.6;
+    const float radius = 0.85;
     vec3 t = normalize(cross(viewNormal, abs(viewNormal.y) < 0.99 ? vec3(0.0, 1.0, 0.0) : vec3(1.0, 0.0, 0.0)));
     vec3 b = cross(viewNormal, t);
 
@@ -58,7 +58,7 @@ float getSSAO(vec3 viewPos, vec3 viewNormal, float dither) {
         occlusion += step(0.02, diff) * range;
     }
     float ao = 1.0 - occlusion / float(SSAO_SAMPLES);
-    return pow(saturate(ao), 1.4 * SSAO_STRENGTH);
+    return pow(saturate(ao), 2.0 * SSAO_STRENGTH);
 }
 #endif
 

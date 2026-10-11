@@ -58,7 +58,7 @@ void main() {
     if (isWater) {
         vec3 flatN = abs(normalW.y) > 0.5 ? vec3(0.0, sign(normalW.y), 0.0) : normalW;
         vec3 deviation = mat3(gbufferModelView) * (normalW - flatN);
-        vec2 refractUV = texcoord + deviation.xy * 0.12 / (1.0 + dist0 * 0.08);
+        vec2 refractUV = texcoord + deviation.xy * 0.035 / (1.0 + dist0 * 0.12);
         if (all(greaterThan(refractUV, vec2(0.0))) && all(lessThan(refractUV, vec2(1.0)))
             && texture(depthtex1, refractUV).r > depth0) {
             sceneUV = refractUV;

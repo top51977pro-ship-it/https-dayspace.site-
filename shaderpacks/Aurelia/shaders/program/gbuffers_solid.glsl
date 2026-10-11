@@ -84,8 +84,8 @@ float heightSample(vec2 coord, vec2 tileMin, vec2 tileSize) {
     return s.a < 0.1 ? -1.0 : luminance(s.rgb);
 }
 
-vec3 generatedNormal(vec3 n, float dist) {
-    float strength = GEN_NORMAL_STRENGTH * (1.0 - smoothstep(12.0, 40.0, dist));
+vec3 generatedNormal(vec3 n, float dist, float boost) {
+    float strength = GEN_NORMAL_STRENGTH * boost * (1.0 - smoothstep(12.0, 40.0, dist));
     if (strength <= 0.0 || texHalf.x < 1e-6) return n;
 
     vec2 atlasTexel = 1.0 / vec2(textureSize(gtexture, 0));
@@ -107,6 +107,29 @@ vec3 generatedNormal(vec3 n, float dist) {
     vec3 B = cross(n, T) * tangentW.w;
     // B = cross(N, T) * w follows +v (Iris tangent convention), matching the height gradient above
     return normalize(T * tangentNormal.x + B * tangentNormal.y + n * tangentNormal.z);
+}
+#endif
+
+#if defined PROG_TERRAIN && defined SOIL_RETEXTURE
+// Turns the noisy orange vanilla dirt into darker, richer soil. Works on luminance only,
+// so moist farmland, paths and coarse dirt keep their own brightness patterns.
+vec3 retextureSoil(vec3 c) {
+    vec2 o = texHalf * 0.5;
+    float avg = 0.0;
+    avg += luminance(textureLod(gtexture, midCoord + vec2( o.x,  o.y), 0.0).rgb);
+    avg += luminance(textureLod(gtexture, midCoord + vec2(-o.x,  o.y), 0.0).rgb);
+    avg += luminance(textureLod(gtexture, midCoord + vec2( o.x, -o.y), 0.0).rgb);
+    avg += luminance(textureLod(gtexture, midCoord + vec2(-o.x, -o.y), 0.0).rgb);
+    avg += luminance(textureLod(gtexture, midCoord, 0.0).rgb);
+    avg *= 0.2;
+
+    float l = luminance(c);
+    l = mix(l, avg, 0.35);                              // calm the harsh pixel noise
+    float t = saturate((l - 0.20) / 0.40);
+    vec3 soil = mix(vec3(0.19, 0.125, 0.080), vec3(0.50, 0.375, 0.255), t * t * (3.0 - 2.0 * t));
+    float pebble = smoothstep(0.62, 0.75, luminance(c));  // keep light stones/pebbles a bit grey
+    soil = mix(soil, vec3(luminance(c)) * vec3(0.92, 0.90, 0.86), pebble * 0.6);
+    return mix(soil, c, 0.12);
 }
 #endif
 
@@ -174,8 +197,22 @@ void main() {
         smoothness = 0.85;
     }
 
+    float normalBoost = 1.0;
+    #ifdef SOIL_RETEXTURE
+    if (blockId == ID_SOIL) {
+        // vertex colour is grey (only AO) on dirt faces, green on tinted grass top/overlay
+        bool tinted = abs(glcolor.r - glcolor.g) > 0.03 || abs(glcolor.g - glcolor.b) > 0.03;
+        vec3 tex = albedo.rgb / max(glcolor.rgb, vec3(1e-3));
+        bool brownish = tex.r >= tex.g * 0.95 && tex.r > tex.b;
+        if (!tinted && brownish) {
+            albedo.rgb = retextureSoil(tex) * glcolor.rgb;
+            normalBoost = 1.6;
+        }
+    }
+    #endif
+
     #ifdef GENERATED_NORMALS
-    if (material != MAT_PLANT) normal = generatedNormal(normal, dist);
+    if (material != MAT_PLANT) normal = generatedNormal(normal, dist, normalBoost);
     #endif
 
     #ifdef RAIN_PUDDLES

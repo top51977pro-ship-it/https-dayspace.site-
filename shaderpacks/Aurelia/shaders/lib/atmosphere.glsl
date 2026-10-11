@@ -49,15 +49,15 @@ void setupAtmosphere() {
         noonF = smoothstep(0.02, 0.45, sunH);
         nightF = 1.0 - smoothstep(-0.25, -0.02, sunH);
 
-        sunColor = mix(vec3(1.00, 0.42, 0.15), vec3(1.00, 0.92, 0.82), noonF) * 2.6 * SUN_INTENSITY;
+        sunColor = mix(vec3(1.00, 0.42, 0.15), vec3(1.00, 0.90, 0.78), noonF) * 3.0 * SUN_INTENSITY;
         float moonBright = mix(1.0, 0.45, 1.0 - abs(float(moonPhase) - 4.0) / 4.0);
         moonColor = vec3(0.55, 0.70, 1.00) * 0.24 * moonBright;
 
         float lightFade = smoothstep(0.0, 0.10, abs(sunH));
         lightColor = (sunH > 0.0 ? sunColor : moonColor) * lightFade;
 
-        vec3 dayAmb   = vec3(0.42, 0.60, 1.00) * 0.62;
-        vec3 setAmb   = vec3(0.72, 0.52, 0.55) * 0.40;
+        vec3 dayAmb   = vec3(0.40, 0.58, 1.00) * 0.46;
+        vec3 setAmb   = vec3(0.70, 0.52, 0.58) * 0.32;
         vec3 nightAmb = vec3(0.30, 0.42, 0.85) * 0.075;
         ambientColor = mix(nightAmb, mix(setAmb, dayAmb, noonF), dayF) * AMBIENT_STRENGTH;
 

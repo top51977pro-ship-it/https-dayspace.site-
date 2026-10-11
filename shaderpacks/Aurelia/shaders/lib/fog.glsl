@@ -1,10 +1,10 @@
 // Distance fog for every dimension + medium (water / lava / powder snow).
 // Requires sky.glsl.
 
-// Natural water optics: red is absorbed first, then blue, leaving a clear green-teal tint
-// instead of a saturated "pool blue".
-const vec3 WATER_ABSORPTION = vec3(0.30, 0.080, 0.075);
-const vec3 WATER_SCATTER = vec3(0.026, 0.048, 0.050);
+// Natural water optics: red fades a little faster than green/blue, but gently, so shallow
+// water stays clear instead of turning cyan; depth sinks into a dark neutral blue-green.
+const vec3 WATER_ABSORPTION = vec3(0.150, 0.085, 0.072);
+const vec3 WATER_SCATTER = vec3(0.028, 0.040, 0.046);
 
 // colour of light scattered inside the water, skyLight = how much sky reaches the water (0..1)
 vec3 getWaterScatter(float skyLight) {

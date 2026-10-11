@@ -11,6 +11,7 @@
 #define ID_LEAVES       10004
 #define ID_VINES        10005
 #define ID_WATER_PLANT  10006
+#define ID_SOIL         10007
 #define ID_WATER        10010
 #define ID_GLASS        10011
 #define ID_ICE          10012

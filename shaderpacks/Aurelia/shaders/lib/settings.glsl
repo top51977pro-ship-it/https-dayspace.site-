@@ -40,6 +40,7 @@ const float drynessHalflife = 120.0;
 //#define GLOWING_ORES
 #define BLOCK_REFLECTIONS
 #define RAIN_PUDDLES
+#define SOIL_RETEXTURE
 #define CLOUD_SHADOWS
 
 //==================================================================================//
@@ -48,6 +49,8 @@ const float drynessHalflife = 120.0;
 #define VOLUMETRIC_LIGHT
 #define VL_STRENGTH 1.0 // [0.25 0.5 0.75 1.0 1.25 1.5 2.0 3.0]
 #define VL_SAMPLES 12 // [6 8 12 16 24]
+#define SUNBEAMS
+#define SUNBEAM_STRENGTH 1.0 // [0.25 0.5 0.75 1.0 1.25 1.5 2.0 3.0]
 #define VOLUMETRIC_CLOUDS
 #define CLOUD_QUALITY 2 // [1 2 3]
 #define CLOUD_COVERAGE 1.0 // [0.5 0.6 0.7 0.8 0.9 1.0 1.1 1.2 1.3 1.4 1.5]
@@ -90,8 +93,8 @@ const float drynessHalflife = 120.0;
 #define BLOOM
 #define BLOOM_STRENGTH 1.0 // [0.0 0.25 0.5 0.75 1.0 1.25 1.5 2.0 3.0]
 #define EXPOSURE 1.0 // [0.5 0.6 0.7 0.8 0.9 1.0 1.1 1.2 1.3 1.4 1.5 1.75 2.0]
-#define SATURATION 1.0 // [0.0 0.5 0.7 0.8 0.9 1.0 1.1 1.2 1.3 1.5]
-#define VIBRANCE 1.15 // [0.8 0.9 1.0 1.05 1.1 1.15 1.2 1.3 1.4 1.5]
-#define CONTRAST 1.0 // [0.8 0.9 0.95 1.0 1.05 1.1 1.2]
+#define SATURATION 1.1 // [0.0 0.5 0.7 0.8 0.9 1.0 1.1 1.2 1.3 1.5]
+#define VIBRANCE 1.2 // [0.8 0.9 1.0 1.05 1.1 1.15 1.2 1.3 1.4 1.5]
+#define CONTRAST 1.05 // [0.8 0.9 0.95 1.0 1.05 1.1 1.2]
 #define VIGNETTE
 #define VIGNETTE_STRENGTH 1.0 // [0.25 0.5 0.75 1.0 1.25 1.5 2.0]
