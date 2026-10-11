@@ -5,6 +5,8 @@
   for a brighter texture than the real one. Retuned and tested against the actual vanilla
   portal texture: vivid magenta streaks stacked in depth that stretch towards the centre like a
   tunnel, with see-through gaps and a violet haze. The portal code now lives in lib/portal.glsl.
+- **Generated Normals is now off by default** (and no longer switched on by the quality
+  presets), so block textures look like vanilla. It can still be enabled under Lighting.
 
 ## v1.4
 - **Fixed glowing mobs and players:** block light at full strength was about 2.4x brighter than

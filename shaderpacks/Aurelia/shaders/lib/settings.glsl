@@ -34,7 +34,7 @@ const float drynessHalflife = 120.0;
 #define SSAO_STRENGTH 1.0 // [0.25 0.5 0.75 1.0 1.25 1.5 2.0]
 #define SSAO_SAMPLES 8 // [4 6 8 12 16]
 #define SUBSURFACE_SCATTERING
-#define GENERATED_NORMALS
+//#define GENERATED_NORMALS
 #define GEN_NORMAL_STRENGTH 1.0 // [0.25 0.5 0.75 1.0 1.25 1.5 2.0 3.0]
 #define EMISSIVE_STRENGTH 1.0 // [0.0 0.25 0.5 0.75 1.0 1.25 1.5 2.0 3.0]
 //#define GLOWING_ORES
