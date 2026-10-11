@@ -1,5 +1,11 @@
 # Aurelia Shaders - Changelog
 
+## v1.7
+- **Nether portal cleaned up:** up close or at an angle the depth layers shifted so far that
+  they wrapped around the texture, turning the portal into a solid sheet of stretched, curved
+  pink bands. Now there are 3 shallow layers instead of 6, and the shift is capped, so the
+  streaks stay crisp and the gaps stay see-through from any distance or angle.
+
 ## v1.6
 - **No more "sun" in the End:** removed the bright distant star from the End sky, turned off the
   screen-space sunbeams there, and made the End's light haze even instead of glowing towards

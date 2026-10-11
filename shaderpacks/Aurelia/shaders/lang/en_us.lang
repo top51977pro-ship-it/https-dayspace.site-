@@ -1,6 +1,6 @@
 # Aurelia Shaders - option names
 
-profile.comment=Aurelia Shaders v1.6. Quality preset. Potato and Low are for integrated graphics, Ultra for high-end GPUs.
+profile.comment=Aurelia Shaders v1.7. Quality preset. Potato and Low are for integrated graphics, Ultra for high-end GPUs.
 profile.POTATO=§7Potato
 profile.LOW=§cLow
 profile.MEDIUM=§eMedium
