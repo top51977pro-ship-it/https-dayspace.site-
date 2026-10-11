@@ -73,10 +73,17 @@ void main() {
         float sceneDepth = texture(depthtex1, sceneUV).r;
         vec3 scenePlayer = viewToPlayer(screenToView(sceneUV, sceneDepth));
         float waterDist = sceneDepth >= 1.0 ? 256.0 : distance(scenePlayer, playerPos0);
-        vec3 absorb = waterAbsorption(waterDist);
+        // light travels down to the bottom and back up to the eye, so depth darkens twice
+        float verticalDepth = sceneDepth >= 1.0 ? 64.0 : max(playerPos0.y - scenePlayer.y, 0.0);
+        vec3 absorb = waterAbsorption(waterDist + verticalDepth);
         absorb = mix(absorb, vec3(1.0), smoothstep(far * 0.6, far, dist0));
-        vec3 scatterCol = vec3(0.030, 0.200, 0.250) * (ambientColor * lm.y * lm.y * 1.4 + lightColor * 0.10 + 0.01);
+        vec3 scatterCol = getWaterScatter(lm.y * lm.y);
         color = color * absorb + applyFog(scatterCol, playerPos0) * (1.0 - absorb.g);
+        #ifdef VOLUMETRIC_LIGHT
+        // light shafts continue below the surface
+        vec3 bottomPlayer = sceneDepth >= 1.0 ? playerPos0 + dir * 48.0 : scenePlayer;
+        color += getUnderwaterLight(playerPos0, bottomPlayer, dither) * mix(1.0, 0.0, smoothstep(far * 0.6, far, dist0));
+        #endif
     }
 
     // ---- translucent layer (premultiplied) ----

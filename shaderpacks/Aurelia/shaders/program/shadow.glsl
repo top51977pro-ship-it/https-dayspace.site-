@@ -54,7 +54,7 @@ layout(location = 0) out vec4 outShadowColor;
 
 void main() {
     if (blockId == ID_WATER) {
-        vec3 tint = vec3(0.55, 0.85, 0.95);
+        vec3 tint = vec3(0.82, 0.96, 0.90);
         #ifdef WATER_CAUSTICS
         tint *= getCaustics(worldPos);
         #endif

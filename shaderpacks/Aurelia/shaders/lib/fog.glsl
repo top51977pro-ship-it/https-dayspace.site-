@@ -1,8 +1,18 @@
 // Distance fog for every dimension + medium (water / lava / powder snow).
 // Requires sky.glsl.
 
+// Natural water optics: red is absorbed first, then blue, leaving a clear green-teal tint
+// instead of a saturated "pool blue".
+const vec3 WATER_ABSORPTION = vec3(0.30, 0.080, 0.075);
+const vec3 WATER_SCATTER = vec3(0.026, 0.048, 0.050);
+
+// colour of light scattered inside the water, skyLight = how much sky reaches the water (0..1)
+vec3 getWaterScatter(float skyLight) {
+    return WATER_SCATTER * (ambientColor * (0.30 + skyLight * 1.3) + lightColor * 0.12 + 0.012);
+}
+
 vec3 getWaterFogColor() {
-    return vec3(0.030, 0.200, 0.250) * (ambientColor * (0.35 + eyeSky * 1.4) + lightColor * 0.10 + 0.015);
+    return getWaterScatter(eyeSky);
 }
 
 vec3 applyFog(vec3 color, vec3 playerPos) {
@@ -10,8 +20,10 @@ vec3 applyFog(vec3 color, vec3 playerPos) {
     vec3 dir = playerPos / max(dist, 1e-4);
 
     if (isEyeInWater == 1) {
-        float f = 1.0 - exp(-dist * 0.055 * WATER_FOG_DENSITY);
-        return mix(color, getWaterFogColor(), f);
+        // colours fade out by wavelength first, then everything sinks into the murk
+        vec3 transmit = exp(-WATER_ABSORPTION * dist * 0.55 * WATER_FOG_DENSITY);
+        float f = 1.0 - exp(-dist * 0.045 * WATER_FOG_DENSITY);
+        return mix(color * transmit, getWaterFogColor(), f);
     }
     if (isEyeInWater == 2) {
         return mix(color, vec3(1.0, 0.22, 0.02) * 1.5, 1.0 - exp(-dist * 0.8));
@@ -56,5 +68,5 @@ vec3 applyFog(vec3 color, vec3 playerPos) {
 
 // Fog transparency for the composite pass when looking at water from above.
 vec3 waterAbsorption(float dist) {
-    return exp(-vec3(0.34, 0.11, 0.07) * dist * WATER_FOG_DENSITY);
+    return exp(-WATER_ABSORPTION * dist * WATER_FOG_DENSITY);
 }

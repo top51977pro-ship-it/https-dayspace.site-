@@ -30,7 +30,8 @@ float getCaustics(vec3 worldPos) {
 }
 
 vec3 getWaterTint(vec3 vertexColor) {
-    // vanilla biome water colour, nudged towards a clean turquoise
-    vec3 tint = toLinear(vertexColor);
-    return mix(vec3(0.08, 0.42, 0.55), tint * 1.6, 0.45);
+    // vanilla biome water colour, heavily desaturated so swamps still read greener than oceans
+    vec3 biome = toLinear(vertexColor);
+    biome = mix(vec3(luminance(biome)), biome, 0.35);
+    return mix(vec3(0.050, 0.095, 0.090), biome * 0.45, 0.30);
 }

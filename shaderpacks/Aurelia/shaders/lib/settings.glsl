@@ -54,6 +54,7 @@ const float drynessHalflife = 120.0;
 #define CLOUD_ALTITUDE 192 // [128 160 192 224 256 320]
 #define CLOUD_THICKNESS 96 // [48 64 96 128 160]
 #define CLOUD_SPEED 1.0 // [0.0 0.25 0.5 1.0 1.5 2.0 3.0]
+#define SUN_SIZE 1.0 // [0.5 0.75 1.0 1.25 1.5 2.0 2.5 3.0]
 #define STARS
 #define STAR_BRIGHTNESS 1.0 // [0.25 0.5 0.75 1.0 1.5 2.0 3.0]
 #define AURORA

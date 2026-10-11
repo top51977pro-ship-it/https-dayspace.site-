@@ -118,8 +118,10 @@ vec3 getSky(vec3 dir, float dither) {
     #ifdef OVERWORLD
     float clearSky = 1.0 - rainStrength;
     float VdotS = dot(dir, sunDir);
-    float disc = smoothstep(0.99930, 0.99965, VdotS);
-    sky += sunColor * disc * 22.0 * clearSky * smoothstep(-0.02, 0.02, dir.y);
+    float sunRadius = radians(2.6 * SUN_SIZE);
+    float disc = smoothstep(cos(sunRadius), cos(sunRadius * 0.82), VdotS);
+    float corona = pow(saturate((VdotS - cos(sunRadius * 3.0)) / (1.0 - cos(sunRadius * 3.0))), 6.0);
+    sky += sunColor * (disc * 20.0 + corona * 1.5) * clearSky * smoothstep(-0.02, 0.02, dir.y);
 
     float starVis = nightF * clearSky * smoothstep(0.0, 0.2, dir.y);
     #ifdef STARS
