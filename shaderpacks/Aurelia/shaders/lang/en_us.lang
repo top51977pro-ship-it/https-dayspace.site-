@@ -1,0 +1,100 @@
+# Aurelia Shaders - option names
+
+profile.comment=Quality preset. Potato and Low are for integrated graphics, Ultra for high-end GPUs.
+profile.POTATO=§7Potato
+profile.LOW=§cLow
+profile.MEDIUM=§eMedium
+profile.HIGH=§aHigh
+profile.ULTRA=§bUltra
+
+screen.LIGHTING=Lighting
+screen.SHADOWS=Shadows
+screen.ATMOSPHERE=Atmosphere
+screen.CLOUDS=Clouds
+screen.WATER=Water
+screen.WAVING=Waving Plants
+screen.POST=Post Processing
+
+option.shadowMapResolution=Shadow Resolution
+option.shadowMapResolution.comment=Higher values give sharper shadows at a performance cost.
+option.shadowDistance=Shadow Distance
+option.sunPathRotation=Sun Angle
+option.sunPathRotation.comment=Tilts the path of the sun and moon across the sky.
+option.ambientOcclusionLevel=Vanilla AO
+option.SHADOW_SAMPLES=Shadow Filter Samples
+option.SHADOW_SOFTNESS=Shadow Softness
+option.COLORED_SHADOWS=Colored Shadows
+option.COLORED_SHADOWS.comment=Light passing through stained glass and water is tinted.
+option.WATER_CAUSTICS=Water Caustics
+option.CLOUD_SHADOWS=Cloud Shadows
+
+option.SUN_INTENSITY=Sunlight Strength
+option.AMBIENT_STRENGTH=Sky Light Strength
+option.BLOCKLIGHT_STRENGTH=Block Light Strength
+option.BLOCKLIGHT_STYLE=Block Light Color
+value.BLOCKLIGHT_STYLE.0=Warm Orange
+value.BLOCKLIGHT_STYLE.1=Golden
+value.BLOCKLIGHT_STYLE.2=Neutral
+option.MIN_LIGHT=Minimum Cave Light
+option.HANDHELD_LIGHT=Handheld Light
+option.HANDHELD_LIGHT.comment=Torches and other light sources light up the world while held.
+option.SSAO=Ambient Occlusion (SSAO)
+option.SSAO_STRENGTH=AO Strength
+option.SSAO_SAMPLES=AO Samples
+option.SUBSURFACE_SCATTERING=Subsurface Scattering
+option.SUBSURFACE_SCATTERING.comment=Leaves and grass glow when the sun shines through them.
+option.GENERATED_NORMALS=Generated Normals
+option.GENERATED_NORMALS.comment=Adds depth to vanilla textures by deriving bumps from the texture itself.
+option.GEN_NORMAL_STRENGTH=Normal Strength
+option.EMISSIVE_STRENGTH=Emissive Strength
+option.GLOWING_ORES=Glowing Ores
+option.BLOCK_REFLECTIONS=Block Reflections
+option.BLOCK_REFLECTIONS.comment=Metal blocks, ice and polished stone reflect their surroundings.
+option.RAIN_PUDDLES=Rain Puddles
+
+option.VOLUMETRIC_LIGHT=Volumetric Light
+option.VL_STRENGTH=Light Shaft Strength
+option.VL_SAMPLES=Light Shaft Quality
+option.FOG_DENSITY=Fog Density
+option.BORDER_FOG=Border Fog
+option.STARS=Stars
+option.STAR_BRIGHTNESS=Star Brightness
+option.AURORA=Aurora
+option.AURORA.comment=Northern lights on clear nights.
+option.AURORA_STRENGTH=Aurora Strength
+option.END_NEBULA=End Nebula
+
+option.VOLUMETRIC_CLOUDS=Volumetric Clouds
+option.CLOUD_QUALITY=Cloud Quality
+value.CLOUD_QUALITY.1=Fast
+value.CLOUD_QUALITY.2=Fancy
+value.CLOUD_QUALITY.3=Fabulous
+option.CLOUD_COVERAGE=Cloud Coverage
+option.CLOUD_ALTITUDE=Cloud Altitude
+option.CLOUD_THICKNESS=Cloud Thickness
+option.CLOUD_SPEED=Cloud Speed
+
+option.WATER_WAVES=Water Waves
+option.WATER_WAVE_STRENGTH=Wave Strength
+option.WATER_WAVE_SPEED=Wave Speed
+option.WATER_REFLECTIONS=Water Reflections
+option.WATER_REFRACTION=Water Refraction
+option.WATER_OPACITY=Water Surface Opacity
+option.WATER_FOG_DENSITY=Water Fog Density
+
+option.WAVING_PLANTS=Waving Plants
+option.WAVING_LEAVES=Waving Leaves
+option.WAVING_SPEED=Wind Speed
+option.WAVING_AMPLITUDE=Wind Strength
+
+option.TAA=Temporal Anti-Aliasing
+option.TAA.comment=Smooths edges and noise. Uses FXAA when disabled.
+option.SHARPENING=Sharpening
+option.BLOOM=Bloom
+option.BLOOM_STRENGTH=Bloom Strength
+option.EXPOSURE=Exposure
+option.SATURATION=Saturation
+option.VIBRANCE=Vibrance
+option.CONTRAST=Contrast
+option.VIGNETTE=Vignette
+option.VIGNETTE_STRENGTH=Vignette Strength

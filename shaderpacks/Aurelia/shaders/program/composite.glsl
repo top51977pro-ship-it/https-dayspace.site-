@@ -1,0 +1,137 @@
+// Composite 0: refraction + water absorption, translucent blending, reflections, volumetric light.
+
+#include "/lib/settings.glsl"
+#include "/lib/uniforms.glsl"
+#include "/lib/common.glsl"
+#include "/lib/transforms.glsl"
+
+//==================================================================================//
+#ifdef VSH
+
+out vec2 texcoord;
+
+void main() {
+    texcoord = gl_MultiTexCoord0.xy;
+    gl_Position = ftransform();
+}
+
+#endif
+//==================================================================================//
+#ifdef FSH
+
+in vec2 texcoord;
+
+#include "/lib/atmosphere.glsl"
+#include "/lib/sky.glsl"
+#include "/lib/shadows.glsl"
+#include "/lib/fog.glsl"
+#include "/lib/reflections.glsl"
+#include "/lib/volumetrics.glsl"
+
+/* RENDERTARGETS: 0 */
+layout(location = 0) out vec4 outColor;
+
+void main() {
+    setupAtmosphere();
+
+    float depth0 = texture(depthtex0, texcoord).r;
+    float depth1 = texture(depthtex1, texcoord).r;
+    vec3 viewPos0 = screenToView(texcoord, depth0);
+    vec3 playerPos0 = viewToPlayer(viewPos0);
+    float dist0 = length(playerPos0);
+    vec3 dir = playerPos0 / max(dist0, 1e-5);
+    float dither = getDither(gl_FragCoord.xy);
+
+    vec4 gData = texture(colortex1, texcoord);
+    vec4 matData = texture(colortex2, texcoord);
+    int material = decodeMat(matData.r);
+    vec3 normalW = decodeNormal(gData.xy);
+    vec2 lm = gData.zw;
+    float smoothness = matData.g;
+
+    bool translucentSurface = depth0 < depth1 && (material == MAT_WATER || material == MAT_GLASS);
+    bool isWater = translucentSurface && material == MAT_WATER;
+
+    // ---- refraction ----
+    vec2 sceneUV = texcoord;
+    #ifdef WATER_REFRACTION
+    if (isWater) {
+        vec3 flatN = abs(normalW.y) > 0.5 ? vec3(0.0, sign(normalW.y), 0.0) : normalW;
+        vec3 deviation = mat3(gbufferModelView) * (normalW - flatN);
+        vec2 refractUV = texcoord + deviation.xy * 0.12 / (1.0 + dist0 * 0.08);
+        if (all(greaterThan(refractUV, vec2(0.0))) && all(lessThan(refractUV, vec2(1.0)))
+            && texture(depthtex1, refractUV).r > depth0) {
+            sceneUV = refractUV;
+        }
+    }
+    #endif
+
+    vec3 color = texture(colortex0, sceneUV).rgb;
+
+    // ---- looking into water from above: absorption + in-scattering ----
+    if (isWater && isEyeInWater == 0) {
+        float sceneDepth = texture(depthtex1, sceneUV).r;
+        vec3 scenePlayer = viewToPlayer(screenToView(sceneUV, sceneDepth));
+        float waterDist = sceneDepth >= 1.0 ? 256.0 : distance(scenePlayer, playerPos0);
+        vec3 absorb = waterAbsorption(waterDist);
+        absorb = mix(absorb, vec3(1.0), smoothstep(far * 0.6, far, dist0));
+        vec3 scatterCol = vec3(0.030, 0.200, 0.250) * (ambientColor * lm.y * lm.y * 1.4 + lightColor * 0.10 + 0.01);
+        color = color * absorb + applyFog(scatterCol, playerPos0) * (1.0 - absorb.g);
+    }
+
+    // ---- translucent layer (premultiplied) ----
+    vec4 translucent = texture(colortex3, texcoord);
+    color = color * (1.0 - translucent.a) + translucent.rgb;
+
+    // ---- reflections ----
+    bool opaqueReflective = depth0 == depth1 && material != MAT_PASSTHROUGH && material != MAT_NONE;
+    bool reflective = depth0 > 0.56 && depth0 < 1.0 && smoothness > 0.1;
+    #ifndef WATER_REFLECTIONS
+    if (translucentSurface) reflective = false;
+    #endif
+    #ifndef BLOCK_REFLECTIONS
+    if (opaqueReflective) reflective = false;
+    #endif
+    reflective = reflective && (translucentSurface || opaqueReflective);
+    if (isWater && isEyeInWater == 1) reflective = false;
+
+    if (reflective) {
+        vec3 viewN = normalize(mat3(gbufferModelView) * normalW);
+        vec3 viewDir = normalize(viewPos0);
+        float roughness = 1.0 - smoothness;
+        vec3 jitter = (vec3(hash12(gl_FragCoord.xy + dither * 31.0), hash12(gl_FragCoord.yx * 1.3 + dither * 17.0),
+                            hash12(gl_FragCoord.xy * 0.7 + 5.0)) - 0.5) * roughness * roughness * 0.6;
+        vec3 reflView = normalize(reflect(viewDir, normalize(viewN + jitter)));
+        vec3 reflW = mat3(gbufferModelViewInverse) * reflView;
+
+        float NdotV = saturate(dot(viewN, -viewDir));
+        float f0 = material == MAT_METAL ? 0.8 : (material == MAT_WATER ? 0.02 : 0.04);
+        float fresnel = schlick(NdotV, f0);
+
+        float skyVisibility = smoothstep(0.3, 0.9, lm.y);
+        #if defined OVERWORLD
+        vec3 fallback = getSkyColor(reflW) * skyVisibility * smoothstep(-0.35, 0.05, reflW.y);
+        #else
+        vec3 fallback = getSkyColor(reflW);
+        #endif
+
+        vec3 reflection = fallback;
+        vec3 hit = raytraceSSR(viewPos0, reflView, dither);
+        if (hit.z > 0.0) reflection = mix(fallback, texture(colortex0, hit.xy).rgb, hit.z);
+        reflection = applyFog(reflection, playerPos0);
+
+        float weight = fresnel * smoothness * smoothness;
+        if (material == MAT_METAL) weight = mix(weight, 0.75, 0.6) * smoothness;
+        color = mix(color, reflection, saturate(weight));
+    }
+
+    // ---- volumetric light ----
+    #ifdef VOLUMETRIC_LIGHT
+    float vlDist = depth0 >= 1.0 ? shadowDistance : dist0;
+    color += getVolumetricLight(dir, vlDist, dither);
+    #endif
+
+    outColor = vec4(color, 1.0);
+}
+
+#endif
