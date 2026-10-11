@@ -76,3 +76,40 @@ vec3 getUnderwaterLight(vec3 startPos, vec3 endPos, float dither) {
     return accum * lightColor * vec3(0.45, 0.58, 0.55) * phase * 0.035 * VL_STRENGTH;
     #endif
 }
+
+// Slowly drifting wisps of smoke (Nether) or violet haze (End).
+// Returns in-scattered colour in .rgb and transmittance in .a
+vec4 getDimensionHaze(vec3 dir, float dist, float dither) {
+    #if !defined NETHER && !defined END
+    return vec4(0.0, 0.0, 0.0, 1.0);
+    #else
+    #if defined NETHER
+    float maxDist = min(dist, 128.0);
+    vec3 hazeCol = getNetherFogColor() * 2.4;
+    float density = 0.040;
+    #elif defined END
+    float maxDist = min(dist, 192.0);
+    vec3 hazeCol = vec3(0.30, 0.18, 0.48) * 0.40 + lightColor * 0.04;
+    float density = 0.022;
+    #endif
+    const int steps = 8;
+    float stepLen = maxDist / float(steps);
+    float time = frameTimeCounter;
+    vec3 sum = vec3(0.0);
+    float transmittance = 1.0;
+    for (int i = 0; i < steps; i++) {
+        float t = (float(i) + dither) * stepLen;
+        vec3 p = cameraPosition + dir * t;
+        vec3 q = p * 0.03 + vec3(time * 0.05, time * 0.02, time * 0.035);
+        float n = noise3D(q) * 0.6 + noise3D(q * 2.7 + 5.0) * 0.4;
+        float d = smoothstep(0.50, 0.85, n) * density * HAZE_DENSITY;
+        #if defined END
+        d *= exp(-max(abs(p.y - 55.0) - 12.0, 0.0) * 0.03);
+        #endif
+        float a = 1.0 - exp(-d * stepLen);
+        sum += transmittance * a * hazeCol;
+        transmittance *= 1.0 - a;
+    }
+    return vec4(sum, transmittance);
+    #endif
+}

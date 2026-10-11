@@ -48,6 +48,7 @@ uniform int moonPhase;
 uniform int renderStage;
 
 uniform float frameTimeCounter;
+uniform float frameTime;
 uniform float viewWidth;
 uniform float viewHeight;
 uniform float aspectRatio;

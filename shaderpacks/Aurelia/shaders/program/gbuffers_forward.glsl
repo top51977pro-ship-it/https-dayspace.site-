@@ -88,6 +88,13 @@ void main() {
         #endif
         vec3 shadow;
         color = computeLighting(lin, normal, playerPos, lmcoord, 1.0, sss, 0.0, 0.04, 0.0, dither, shadow);
+        #ifdef PROG_PARTICLES
+        // particles drawn at full brightness by the game are light sources: let them glow
+        if (lmcoord.x > 0.93) {
+            float sat = maxOf(lin) - min(lin.r, min(lin.g, lin.b));
+            color = mix(color, lin * 4.0 * EMISSIVE_STRENGTH, smoothstep(0.05, 0.25, sat));
+        }
+        #endif
     #endif
 
     #ifdef TRANSLUCENT_OUTPUT

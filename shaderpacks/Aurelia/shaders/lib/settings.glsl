@@ -41,6 +41,8 @@ const float drynessHalflife = 120.0;
 #define BLOCK_REFLECTIONS
 #define RAIN_PUDDLES
 //#define SOIL_RETEXTURE
+#define PORTAL_EFFECT
+#define PORTAL_BRIGHTNESS 1.0 // [0.25 0.5 0.75 1.0 1.25 1.5 2.0 3.0]
 #define CLOUD_SHADOWS
 
 //==================================================================================//
@@ -65,6 +67,8 @@ const float drynessHalflife = 120.0;
 #define FOG_DENSITY 1.0 // [0.0 0.25 0.5 0.75 1.0 1.25 1.5 2.0 3.0]
 #define BORDER_FOG
 #define END_NEBULA
+#define DIMENSION_HAZE
+#define HAZE_DENSITY 1.0 // [0.0 0.25 0.5 0.75 1.0 1.5 2.0 3.0]
 
 //==================================================================================//
 //  Water                                                                           //
@@ -98,3 +102,12 @@ const float drynessHalflife = 120.0;
 #define CONTRAST 1.05 // [0.8 0.9 0.95 1.0 1.05 1.1 1.2]
 #define VIGNETTE
 #define VIGNETTE_STRENGTH 1.0 // [0.25 0.5 0.75 1.0 1.25 1.5 2.0]
+
+//==================================================================================//
+//  Motion blur                                                                     //
+//==================================================================================//
+#define MOTION_BLUR
+#define MOTION_BLUR_STRENGTH 1.0 // [0.25 0.5 0.75 1.0 1.25 1.5 2.0 3.0]
+#define MOTION_BLUR_SAMPLES 8 // [4 6 8 12 16 24]
+#define MOTION_BLUR_MAX_LENGTH 32 // [8 16 24 32 48 64 96 128]
+#define MOTION_BLUR_FPS_INDEPENDENT

@@ -1,14 +1,19 @@
 // Procedural sky: gradient, sun, stars, aurora, End nebula.
 // Requires atmosphere.glsl (setupAtmosphere() must have been called).
 
+// Follows the biome fog colour (crimson red, warped teal-purple, soul valley blue, basalt grey).
 vec3 getNetherFogColor() {
     vec3 hue = fogColor / (maxOf(fogColor) + 1e-4);
-    return mix(vec3(0.75, 0.26, 0.12), hue * vec3(0.9, 0.55, 0.45), 0.5) * 0.30;
+    float sat = maxOf(fogColor) - min(fogColor.r, min(fogColor.g, fogColor.b));
+    vec3 biome = mix(vec3(luminance(hue)), hue, 0.85);
+    return mix(vec3(0.85, 0.30, 0.13), biome, 0.70) * mix(0.24, 0.30, saturate(sat * 4.0));
 }
 
 vec3 getEndSky(vec3 dir) {
-    float horizon = exp(-abs(dir.y) * 3.0);
-    vec3 sky = mix(vec3(0.030, 0.018, 0.055), vec3(0.090, 0.050, 0.140), horizon);
+    float up = dir.y;
+    float horizon = exp(-abs(up) * 4.0);
+    vec3 sky = mix(vec3(0.008, 0.005, 0.018), vec3(0.070, 0.035, 0.115), horizon);
+    sky = mix(sky, vec3(0.005, 0.003, 0.010), smoothstep(0.0, -0.6, up)); // the void below
     #ifdef END_NEBULA
     float t = frameTimeCounter * 0.01;
     vec3 q = dir * 2.5 + t;
@@ -17,13 +22,15 @@ vec3 getEndSky(vec3 dir) {
     float n = 0.0, amp = 0.5;
     for (int i = 0; i < 4; i++) { n += noise3D(q) * amp; q = rot * q * 2.3; amp *= 0.5; }
     n /= 0.9375;
-    float neb = smoothstep(0.38, 0.80, n);
-    vec3 nebCol = mix(vec3(0.50, 0.16, 0.85), vec3(0.12, 0.55, 0.80), noise3D(dir * 1.5 + 11.0));
-    sky += nebCol * neb * neb * 0.18;
+    float neb = smoothstep(0.36, 0.82, n);
+    float dust = smoothstep(0.50, 0.72, noise3D(dir * 7.0 + 3.0) * 0.6 + noise3D(dir * 16.0) * 0.4);
+    vec3 nebCol = mix(vec3(0.55, 0.15, 0.95), vec3(0.95, 0.35, 0.75), noise3D(dir * 1.3 + 11.0));
+    nebCol = mix(nebCol, vec3(0.15, 0.60, 0.85), smoothstep(0.62, 0.82, noise3D(dir * 2.0 + 30.0)));
+    sky += nebCol * neb * neb * 0.24 * (1.0 - dust * 0.75) * smoothstep(-0.5, 0.1, up);
     #endif
     // distant bright star in the direction of the End's light
     float VdotL = saturate(dot(dir, lightDir));
-    sky += vec3(0.80, 0.60, 1.00) * (pow(VdotL, 600.0) * 3.0 + pow(VdotL, 24.0) * 0.12);
+    sky += vec3(0.85, 0.65, 1.00) * (pow(VdotL, 2500.0) * 8.0 + pow(VdotL, 150.0) * 0.45 + pow(VdotL, 12.0) * 0.07);
     return sky;
 }
 
@@ -133,7 +140,7 @@ vec3 getSky(vec3 dir, float dither) {
     #endif
     #ifdef END
     #ifdef STARS
-    sky += getStars(dir) * 1.3;
+    sky += getStars(dir) * 2.5;
     #endif
     #endif
     return sky;

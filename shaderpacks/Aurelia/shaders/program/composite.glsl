@@ -132,6 +132,14 @@ void main() {
         color = mix(color, reflection, saturate(weight));
     }
 
+    // ---- drifting Nether smoke / End haze ----
+    #if defined DIMENSION_HAZE && (defined NETHER || defined END)
+    if (isEyeInWater == 0 && depth0 > 0.56) {
+        vec4 haze = getDimensionHaze(dir, depth0 >= 1.0 ? 256.0 : dist0, dither);
+        color = color * haze.a + haze.rgb;
+    }
+    #endif
+
     // ---- volumetric light ----
     #ifdef VOLUMETRIC_LIGHT
     float vlDist = depth0 >= 1.0 ? shadowDistance : dist0;

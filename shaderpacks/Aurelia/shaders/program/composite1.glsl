@@ -96,6 +96,9 @@ void main() {
     bloom /= weightSum;
     float bloomAmount = 0.055 * BLOOM_STRENGTH;
     if (isEyeInWater == 1) bloomAmount *= 2.5;
+    #if defined NETHER || defined END
+    bloomAmount *= 1.5;
+    #endif
     color = mix(color, bloom, bloomAmount);
     #endif
 

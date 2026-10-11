@@ -1,5 +1,19 @@
 # Aurelia Shaders - Changelog
 
+## v1.3
+- **3D Nether portals:** see-through portals with bright pink-violet streaks stacked at several
+  depths behind the surface, so they look like a glowing tunnel that shifts as you move.
+  Portal particles (and other full-bright particles like flames and end rods) now glow.
+  Options: *3D Nether Portal*, *Portal Glow*.
+- **Nether:** fog follows each biome's own colour (crimson red, warped teal-violet, soul sand
+  valley blue, basalt grey), drifting wisps of smoke, warm bounce light from lava on ceilings,
+  stronger bloom.
+- **End:** deeper sky with a richer nebula, dust lanes, more visible stars, a glowing distant
+  star and slowly drifting violet haze around the islands.
+- **Motion blur:** new *Motion Blur* settings page with Strength, Quality, Max Blur Length and
+  Same Blur At Any FPS. Your hand always stays sharp.
+- New *Nether & End* settings page.
+
 ## v1.2
 - Dirt is back to its normal vanilla look. *Rich Soil* is now off by default (still available
   under Lighting for anyone who wants it).

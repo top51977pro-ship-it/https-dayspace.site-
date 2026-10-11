@@ -23,7 +23,9 @@ vec3 getBlockLighting(float bl, float dist) {
 
 vec3 getAmbientLighting(vec3 normalW, float skyLm) {
     #if defined NETHER
-    return ambientColor * (0.85 + 0.15 * normalW.y);
+    // ceilings and overhangs catch a warm bounce from the lava seas below
+    float underside = saturate(-normalW.y * 0.5 + 0.5);
+    return ambientColor * (0.85 + 0.15 * normalW.y) + vec3(1.0, 0.32, 0.08) * 0.05 * underside * AMBIENT_STRENGTH;
     #elif defined END
     return ambientColor * (0.80 + 0.20 * normalW.y);
     #else

@@ -11,12 +11,17 @@
 #ifdef VSH
 
 in vec4 mc_Entity;
+in vec4 mc_midTexCoord;
+in vec4 at_tangent;
 
 out vec2 texcoord;
 out vec2 lmcoord;
 out vec4 glcolor;
 out vec3 normalW;
+out vec4 tangentW;
 out vec3 playerPos;
+out vec2 midCoord;
+out vec2 texHalf;
 flat out int blockId;
 
 void main() {
@@ -29,6 +34,11 @@ void main() {
     vec3 viewPos = (gl_ModelViewMatrix * gl_Vertex).xyz;
     playerPos = viewToPlayer(viewPos);
     normalW = normalize(mat3(gbufferModelViewInverse) * (gl_NormalMatrix * gl_Normal));
+    vec3 t = gl_NormalMatrix * at_tangent.xyz;
+    tangentW = vec4(dot(t, t) > 1e-6 ? normalize(mat3(gbufferModelViewInverse) * t) : vec3(1.0, 0.0, 0.0),
+                    at_tangent.w < 0.0 ? -1.0 : 1.0);
+    midCoord = mc_midTexCoord.xy;
+    texHalf = abs(texcoord - mc_midTexCoord.xy);
 
     #ifdef WATER_WAVES
     if (blockId == ID_WATER && normalW.y > 0.5) {
@@ -50,7 +60,10 @@ in vec2 texcoord;
 in vec2 lmcoord;
 in vec4 glcolor;
 in vec3 normalW;
+in vec4 tangentW;
 in vec3 playerPos;
+in vec2 midCoord;
+in vec2 texHalf;
 flat in int blockId;
 
 #include "/lib/atmosphere.glsl"
@@ -62,6 +75,44 @@ flat in int blockId;
 #include "/lib/lighting.glsl"
 #include "/lib/fog.glsl"
 #include "/lib/water.glsl"
+
+#ifdef PORTAL_EFFECT
+// Nether portal: a see-through window with glowing streaks stacked at several depths
+// behind the surface (parallax), which gives the swirling "tunnel" look.
+vec4 netherPortal(float dither) {
+    vec3 N = normalize(normalW);
+    vec3 T = normalize(tangentW.xyz - N * dot(tangentW.xyz, N));
+    vec3 B = cross(N, T) * tangentW.w;
+    vec3 rd = normalize(playerPos);
+    float rdN = max(abs(dot(rd, N)), 0.25);
+    vec2 tileSize = max(texHalf * 2.0, vec2(1e-6));
+    vec2 tileMin = midCoord - texHalf;
+    // uv shift per block of depth into the portal
+    vec2 uvPerDepth = vec2(dot(rd, T), dot(rd, B)) / rdN * tileSize;
+
+    vec3 glow = vec3(0.0);
+    float front = 0.0;
+    const int layers = 7;
+    for (int i = 0; i < layers; i++) {
+        float depth = (float(i) + dither * 0.6) * 0.14;
+        vec2 coord = texcoord + uvPerDepth * depth;
+        coord = tileMin + mod(coord - tileMin, tileSize);
+        vec3 s = textureLod(gtexture, coord, 0.0).rgb;
+        float b = maxOf(s);
+        float streak = smoothstep(0.45, 0.95, b);
+        vec3 col = mix(vec3(0.55, 0.12, 1.00), vec3(1.00, 0.45, 1.00), smoothstep(0.7, 1.0, b));
+        float w = exp(-float(i) * 0.42);
+        glow += col * streak * w;
+        if (i == 0) front = streak;
+    }
+    glow *= 2.6 * PORTAL_BRIGHTNESS;
+
+    // the clear centre lets the world show through with a soft violet tint
+    float alpha = 0.16 + front * 0.30;
+    vec3 tint = vec3(0.30, 0.06, 0.55) * 0.35;
+    return vec4((glow + tint) / alpha, alpha);
+}
+#endif
 
 /* RENDERTARGETS: 3,1,2 */
 layout(location = 0) out vec4 outTranslucent;
@@ -108,7 +159,16 @@ void main() {
 
         lit = applyFog(lit, playerPos);
         outCol = vec4(lit, alpha);
-    } else {
+    }
+    #ifdef PORTAL_EFFECT
+    else if (blockId == ID_NETHER_PORTAL) {
+        material = MAT_GLASS;
+        smoothness = 0.0;
+        outCol = netherPortal(dither);
+        outCol.rgb = applyFog(outCol.rgb, playerPos);
+    }
+    #endif
+    else {
         vec4 albedo = texture(gtexture, texcoord) * glcolor;
         if (albedo.a < 0.02) discard;
         material = MAT_GLASS;

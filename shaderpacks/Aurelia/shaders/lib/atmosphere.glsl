@@ -33,7 +33,7 @@ void setupAtmosphere() {
         sunColor = vec3(0.0); moonColor = vec3(0.0);
         lightColor = vec3(0.0);
         vec3 hue = fogColor / (maxOf(fogColor) + 1e-4);
-        ambientColor = mix(vec3(1.0, 0.55, 0.38), hue, 0.45) * 0.30 * AMBIENT_STRENGTH;
+        ambientColor = mix(vec3(1.0, 0.55, 0.38), hue, 0.60) * 0.30 * AMBIENT_STRENGTH;
     #elif defined END
         sunDir = normalize(mat3(gbufferModelViewInverse) * shadowLightPosition);
         lightDir = sunDir;

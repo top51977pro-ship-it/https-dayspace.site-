@@ -5,7 +5,7 @@ import zipfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 PACK = os.path.normpath(os.path.join(HERE, "..", "Aurelia"))
-VERSION = "1.2"
+VERSION = "1.3"
 OUT = os.path.normpath(os.path.join(HERE, "..", "release", f"Aurelia-v{VERSION}.zip"))
 
 os.makedirs(os.path.dirname(OUT), exist_ok=True)

@@ -1,6 +1,6 @@
 # Aurelia Shaders - option names
 
-profile.comment=Aurelia Shaders v1.2. Quality preset. Potato and Low are for integrated graphics, Ultra for high-end GPUs.
+profile.comment=Aurelia Shaders v1.3. Quality preset. Potato and Low are for integrated graphics, Ultra for high-end GPUs.
 profile.POTATO=§7Potato
 profile.LOW=§cLow
 profile.MEDIUM=§eMedium
@@ -13,6 +13,8 @@ screen.ATMOSPHERE=Atmosphere
 screen.CLOUDS=Clouds
 screen.WATER=Water
 screen.WAVING=Waving Plants
+screen.DIMENSIONS=Nether & End
+screen.MOTION_BLUR=Motion Blur
 screen.POST=Post Processing
 
 option.shadowMapResolution=Shadow Resolution
@@ -104,3 +106,20 @@ option.VIBRANCE=Vibrance
 option.CONTRAST=Contrast
 option.VIGNETTE=Vignette
 option.VIGNETTE_STRENGTH=Vignette Strength
+
+option.PORTAL_EFFECT=3D Nether Portal
+option.PORTAL_EFFECT.comment=See-through portals with glowing streaks layered in depth.
+option.PORTAL_BRIGHTNESS=Portal Glow
+option.DIMENSION_HAZE=Nether Smoke & End Haze
+option.DIMENSION_HAZE.comment=Slowly drifting wisps of smoke in the Nether and violet haze in the End.
+option.HAZE_DENSITY=Smoke / Haze Density
+
+option.MOTION_BLUR=Motion Blur
+option.MOTION_BLUR.comment=Blurs the world when you turn or move quickly. Your hand stays sharp.
+option.MOTION_BLUR_STRENGTH=Blur Strength
+option.MOTION_BLUR_SAMPLES=Blur Quality
+option.MOTION_BLUR_SAMPLES.comment=More samples give smoother blur at a small performance cost.
+option.MOTION_BLUR_MAX_LENGTH=Max Blur Length
+option.MOTION_BLUR_MAX_LENGTH.comment=Longest blur streak in pixels. Lower values keep fast turns readable.
+option.MOTION_BLUR_FPS_INDEPENDENT=Same Blur At Any FPS
+option.MOTION_BLUR_FPS_INDEPENDENT.comment=Keeps the amount of blur constant whether you run at 30 or 240 fps.
