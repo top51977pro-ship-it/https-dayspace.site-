@@ -85,8 +85,8 @@ vec4 getDimensionHaze(vec3 dir, float dist, float dither) {
     #else
     #if defined NETHER
     float maxDist = min(dist, 128.0);
-    vec3 hazeCol = getNetherFogColor() * 2.4;
-    float density = 0.040;
+    vec3 hazeCol = getNetherFogColor() * 1.3;
+    float density = 0.012;
     #elif defined END
     float maxDist = min(dist, 192.0);
     vec3 hazeCol = vec3(0.30, 0.18, 0.48) * 0.40 + lightColor * 0.04;

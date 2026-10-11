@@ -92,25 +92,27 @@ vec4 netherPortal(float dither) {
 
     vec3 glow = vec3(0.0);
     float front = 0.0;
-    const int layers = 7;
+    const int layers = 4;
     for (int i = 0; i < layers; i++) {
-        float depth = (float(i) + dither * 0.6) * 0.14;
+        float depth = (float(i) + dither * 0.5) * 0.22;
         vec2 coord = texcoord + uvPerDepth * depth;
         coord = tileMin + mod(coord - tileMin, tileSize);
         vec3 s = textureLod(gtexture, coord, 0.0).rgb;
-        float b = maxOf(s);
-        float streak = smoothstep(0.45, 0.95, b);
-        vec3 col = mix(vec3(0.55, 0.12, 1.00), vec3(1.00, 0.45, 1.00), smoothstep(0.7, 1.0, b));
-        float w = exp(-float(i) * 0.42);
+        float l = luminance(s);
+        // only the light swirls of the vanilla texture become glowing streaks
+        float streak = smoothstep(0.42, 0.72, l);
+        streak *= streak;
+        vec3 col = mix(vec3(0.70, 0.12, 1.00), vec3(1.00, 0.55, 1.00), smoothstep(0.62, 0.85, l));
+        float w = i == 0 ? 1.0 : 0.55 * exp(-float(i) * 0.6);
         glow += col * streak * w;
         if (i == 0) front = streak;
     }
-    glow *= 2.6 * PORTAL_BRIGHTNESS;
+    glow *= 1.6 * PORTAL_BRIGHTNESS;
 
-    // the clear centre lets the world show through with a soft violet tint
-    float alpha = 0.16 + front * 0.30;
-    vec3 tint = vec3(0.30, 0.06, 0.55) * 0.35;
-    return vec4((glow + tint) / alpha, alpha);
+    // the dark gaps let the world show through, dimmed and tinted violet
+    float alpha = 0.45 + front * 0.35;
+    vec3 tint = vec3(0.18, 0.03, 0.35) * 0.25;
+    return vec4(glow / alpha + tint, alpha);
 }
 #endif
 

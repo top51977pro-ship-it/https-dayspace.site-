@@ -6,7 +6,7 @@
 #endif
 
 float blockLightFalloff(float bl) {
-    return pow(bl, 4.0) * 2.1 + bl * bl * 0.32;
+    return pow(bl, 4.0) * 1.20 + bl * bl * 0.30;
 }
 
 vec3 getBlockLighting(float bl, float dist) {

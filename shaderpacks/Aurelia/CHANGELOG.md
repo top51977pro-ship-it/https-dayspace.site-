@@ -1,5 +1,15 @@
 # Aurelia Shaders - Changelog
 
+## v1.4
+- **Fixed glowing mobs and players:** block light at full strength was about 2.4x brighter than
+  vanilla, and caves / the Nether added a big exposure boost on top, so anything next to lava,
+  torches or portals washed out to white. Block light is now about 1.5x vanilla at its peak and
+  the exposure boosts are much smaller.
+- **Nether portal redone:** dark see-through window with distinct pink-violet streaks instead of
+  a solid bright pink sheet. The streaks are still layered in depth.
+- **Nether fog:** air is much clearer (fog about 2.5x thinner) and the drifting smoke is lighter
+  and dimmer.
+
 ## v1.3
 - **3D Nether portals:** see-through portals with bright pink-violet streaks stacked at several
   depths behind the surface, so they look like a glowing tunnel that shifts as you move.

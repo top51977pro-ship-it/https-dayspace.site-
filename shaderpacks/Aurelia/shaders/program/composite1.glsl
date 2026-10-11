@@ -97,18 +97,18 @@ void main() {
     float bloomAmount = 0.055 * BLOOM_STRENGTH;
     if (isEyeInWater == 1) bloomAmount *= 2.5;
     #if defined NETHER || defined END
-    bloomAmount *= 1.5;
+    bloomAmount *= 1.25;
     #endif
     color = mix(color, bloom, bloomAmount);
     #endif
 
     // eye-adaptation-like exposure from eye brightness (caves and nights get brighter)
     #if defined OVERWORLD
-    float exposure = mix(2.4, 1.0, eyeSky) * mix(1.0, 1.4, eyeSky * (1.0 - dayF));
+    float exposure = mix(1.7, 1.0, eyeSky) * mix(1.0, 1.4, eyeSky * (1.0 - dayF));
     #elif defined NETHER
-    float exposure = 1.6;
+    float exposure = 1.2;
     #else
-    float exposure = 1.5;
+    float exposure = 1.3;
     #endif
     color *= exposure * EXPOSURE;
 

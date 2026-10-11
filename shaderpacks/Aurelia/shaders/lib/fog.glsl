@@ -34,7 +34,7 @@ vec3 applyFog(vec3 color, vec3 playerPos) {
 
     #if defined NETHER
         vec3 fogCol = getNetherFogColor();
-        float f = 1.0 - exp(-dist * 0.016 * FOG_DENSITY);
+        float f = 1.0 - exp(-dist * 0.0065 * FOG_DENSITY);
     #elif defined END
         vec3 fogCol = vec3(0.075, 0.045, 0.12);
         float f = 1.0 - exp(-dist * 0.0045 * FOG_DENSITY);
