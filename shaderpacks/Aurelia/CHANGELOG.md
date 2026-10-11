@@ -1,5 +1,9 @@
 # Aurelia Shaders - Changelog
 
+## v1.9
+- **Nether portal glow halved:** the streaks were too bright in game. Same look, about half the
+  brightness, so the colour stays a deep purple-magenta instead of glaring.
+
 ## v1.8
 - **Nether portal matched to the reference look:** the window between the streaks is now clear
   (no violet tint), and every bright swirl pixel becomes a deep magenta dash with a short glowing

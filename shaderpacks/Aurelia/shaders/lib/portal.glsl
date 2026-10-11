@@ -38,10 +38,10 @@ vec4 netherPortal(vec2 uv, vec2 tileMin, vec2 tileSize, vec3 T, vec3 B, vec3 N, 
         glow = max(glow, col * streak * w);     // max(): overlapping layers never pile up
         if (i == 0) front = streak;
     }
-    glow *= 1.15 * PORTAL_BRIGHTNESS;
+    glow *= 0.55 * PORTAL_BRIGHTNESS;
 
     // between the streaks the window is clear: the world behind is only slightly dimmed
-    float coverage = maxOf(glow) / (1.15 * PORTAL_BRIGHTNESS);
+    float coverage = maxOf(glow) / (0.55 * PORTAL_BRIGHTNESS);
     float alpha = 0.10 + max(front, coverage * 0.8) * 0.75;
     vec3 haze = vec3(0.10, 0.08, 0.16) * 0.10;
     return vec4((glow + haze) / alpha, alpha);
