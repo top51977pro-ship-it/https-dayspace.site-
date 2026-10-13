@@ -5,7 +5,7 @@ import zipfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 PACK = os.path.normpath(os.path.join(HERE, "..", "MirageShaders"))
-VERSION = "1.15"
+VERSION = "1.16"
 OUT = os.path.normpath(os.path.join(HERE, "..", "release", f"MirageShaders_v{VERSION}.zip"))
 
 os.makedirs(os.path.dirname(OUT), exist_ok=True)

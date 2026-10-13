@@ -48,7 +48,7 @@ const float drynessHalflife = 600.0;
 #define RIPPLE_STRENGTH 1.0 // [0.25 0.5 0.75 1.0 1.5 2.0 3.0]
 //#define SOIL_RETEXTURE
 #define PORTAL_EFFECT
-#define PORTAL_EDGES
+//#define PORTAL_EDGES
 #define PORTAL_BRIGHTNESS 1.0 // [0.25 0.5 0.75 1.0 1.25 1.5 2.0 3.0]
 #define CLOUD_SHADOWS
 

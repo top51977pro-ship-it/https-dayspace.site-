@@ -123,8 +123,8 @@ vec3 generatedNormal(vec3 n, float dist, float boost) {
 
     vec3 tangentNormal = normalize(vec3((hl - hr) * strength * 1.6, (hd - hu) * strength * 1.6, 1.0));
     vec3 T = normalize(tangentW.xyz - n * dot(tangentW.xyz, n));
-    vec3 B = cross(n, T) * tangentW.w;
-    // B = cross(N, T) * w follows +v (Iris tangent convention), matching the height gradient above
+    vec3 B = cross(T, n) * tangentW.w;
+    // B = cross(T, N) * w follows the sprite's +v direction, matching the height gradient above
     return normalize(T * tangentNormal.x + B * tangentNormal.y + n * tangentNormal.z);
 }
 #endif

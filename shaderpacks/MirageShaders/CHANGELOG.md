@@ -1,5 +1,14 @@
 # Mirage Shaders - Changelog
 
+## v1.16
+- **Nether portal fixed for real:** the portal's "up" direction (bitangent) was built with the
+  cross product in the wrong order, which flipped the depth effect vertically in game, so the
+  trails ran the wrong way in every previous version. Now uses cross(T, N) * w.
+- The portal no longer picks up orange block light from its own light level; it is lit only by
+  its own glow, keeping the violet clean.
+- *Glowing Portal Edges* is now off by default (it is an extra effect, not part of the look).
+- Same direction fix for the optional *Generated Normals*.
+
 ## v1.15
 - **Puddles toned down:** v1.14 made them reflect ~14% of the sky even when looking straight down,
   which turned them into silvery sheets. Now they reflect like real water (about 6% looking down,

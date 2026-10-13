@@ -138,9 +138,11 @@ void main() {
         smoothness = 0.0;
         vec3 N = normalize(normalW);
         vec3 T = normalize(tangentW.xyz - N * dot(tangentW.xyz, N));
-        vec3 B = cross(N, T) * tangentW.w;
+        // bitangent = cross(T, N) * w: matches the sprite's +v direction in game
+        vec3 B = cross(T, N) * tangentW.w;
         vec2 tileSize = max(texHalf * 2.0, vec2(1e-6));
-        vec3 portalLight = getAmbientLighting(N, lmcoord.y) + getBlockLighting(lmcoord.x, dist) * 0.5 + getMinimumLight();
+        // the portal lights itself: no torch/block light tint on the violet body
+        vec3 portalLight = getMinimumLight() + ambientColor * 0.15;
         outCol = netherPortal(texcoord, midCoord - texHalf, tileSize, T, B, N, normalize(playerPos), portalLight, dither);
         // standing inside the portal: fade it so the screen isn't covered in purple
         outCol.a *= saturate(dist - 0.2);
