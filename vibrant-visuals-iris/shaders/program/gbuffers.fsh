@@ -7,6 +7,7 @@
 #include "/lib/shadows.glsl"
 #include "/lib/water.glsl"
 #include "/lib/lighting.glsl"
+#include "/lib/clouds.glsl"
 
 uniform sampler2D gtexture;
 uniform sampler2D depthtex1;
@@ -83,7 +84,8 @@ void main() {
             // vanilla sun (orange rim, pale yellow ring, cream centre) without
             // the dim halo. The glow around it comes from the sky's glare.
             if (max(tex.r, tex.g) < 0.45) discard;
-            c *= (atmGlow * 0.5 + 0.5) * 9.0 * SUN_DISC_BRIGHTNESS * (1.0 - rainStrength);
+            float sunHigh = smoothstep(0.0, 0.45, dot(normalize(sunPosition), normalize(upPosition)));
+            c = sunDiscColor(c, atmGlow, sunHigh) * (1.0 - rainStrength);
         } else if (renderStage == MC_RENDER_STAGE_MOON) {
             c *= 2.2 * (1.0 - rainStrength);
         }
@@ -126,17 +128,14 @@ void main() {
 #elif defined PROG_CLOUDS
     vec4 c = glcolor;
     if (c.a < 0.01) discard;
-    vec3 wn = mat3(gbufferModelViewInverse) * viewNormal;
-    vec3 L  = normalize(shadowLightPosition);
-    float NdotL = dot(viewNormal, L);
-    float VdotL = dot(normalize(viewPos), L);
-    vec3 col = atmAmbient * (1.05 + 0.25 * wn.y)
-             + atmLight * (0.35 + 0.45 * saturate(NdotL))
-             + atmHorizon * 0.25
-             + atmGlow * phaseHG(VdotL, 0.6) * atmParams.x * 3.0;   // warm sunset rim
-    col *= toLinear(c.rgb) * 1.1;
-    float alpha = c.a * CLOUD_OPACITY * (1.0 - rainStrength * 0.2);
-    outColor = vec4(col, alpha);
+    // Vibrant Visuals-style clouds (lib/clouds.glsl). The vanilla per-face
+    // shading in glcolor.rgb is ignored so undersides stay bright.
+    mat3 toWorld = mat3(gbufferModelViewInverse);
+    vec4 cl = shadeCloud(normalize(toWorld * viewNormal), normalize(toWorld * viewPos),
+                         normalize(toWorld * shadowLightPosition), c.a,
+                         atmLight, atmAmbient, atmHorizon, atmGlow, atmParams.x);
+    cl.rgb = mix(cl.rgb, vec3(luminance(cl.rgb)) * 0.6, rainStrength * 0.7);   // grey rain clouds
+    outColor = vec4(cl.rgb, cl.a * (1.0 - rainStrength * 0.1));
     outData  = vec4(0.5, 0.5, packData(DATA_CLOUD, 1.0, 0.0), 1.0);
 
 // ===================================================================== water & translucents

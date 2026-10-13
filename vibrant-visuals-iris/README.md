@@ -10,6 +10,8 @@ everything learned about the original and where each number comes from.
 
 ![Water preview: noon and facing the sun](water-preview.png)
 
+![Clouds and sun preview](clouds-preview.png)
+
 *These previews are rendered from this pack's real GLSL code (headless WebGL,
 with a simple test seabed). They are not in-game screenshots.*
 
@@ -30,8 +32,8 @@ with a simple test seabed). They are not in-game screenshots.*
 | Atmospheric sky: zenith and horizon colours, Rayleigh, sun Mie glow, glare, horizon blend stops | Two flat colours | Port of `atmospherics.json`: all keyframes plus the 3-band shape (horizon, blend start, Mie bump around the sun) |
 | Volumetric fog and haze, with distant hills fading out | Linear fog | Ray-marched god rays through the shadow map, a sky-coloured distance haze (orange toward the sun at sunset), stronger fog at sunrise, and border fog at the edge of render distance |
 | Water: **still the vanilla water texture**, tinted by the biome colour, with a normal map from that texture, very glossy, no waves, pixel caustics | Flat, semi-opaque texture | Keeps the vanilla water texture and uses Bedrock's brighter biome colour (Java's default `#3F76E4` becomes `#44AFF5`). Builds a normal from the texture's own ripple pattern, so reflections and sun glints break into blocky pixels. Shallows stay clear, deeper water turns the biome colour. Adds Fresnel and screen-space reflections, a calm mirror far away, and pixel caustics stepped every 0.09 s like `water.json` |
-| Translucent clouds lit by the sun | White clouds | Clouds lit by sun, sky and horizon colour, with a warm forward-scatter rim at sunset |
-| The vanilla sun's 8×8 core only (`sun_vv.png`), glowing through the sky glare | Sun with a dim halo | Draws only the bright core of the vanilla sun texture, with glare from the sky model and bloom |
+| Bright pastel clouds (pink-white at noon, peach at sunset), see-through faces, brighter solid edges, bright undersides | White clouds with grey undersides | Ignores vanilla's dark per-face shading. Big faces are about 50% see-through, side edges are brighter and more solid, and clouds near the sun glow, warm orange-peach at sunrise and sunset |
+| Big overexposed cream-white square sun with a soft round glow; warmer at sunset (`sun_vv.png` is the vanilla core without its halo) | Sun with a dim halo | Draws only the bright core of the vanilla sun texture, blown out toward white at midday and warmer at sunset, with a soft round glow in the sky around it |
 | Glowing blocks; mob eyes (spider, Enderman, Phantom) glow softly; player eyes don't | Eyes always fullbright, no bloom | Emissive glowstone, lanterns, torches and lava, softly glowing mob eyes, and mip-chain bloom |
 | `color_grading.json`: contrast 1.15, saturation 1.05, "generic" tone mapper | None | Same contrast and saturation, the Lottes "generic" filmic curve, and eye adaptation for caves and nights |
 | Leaves and grass glow when backlit (subsurface); sheep wool and zombie / villager skin too; **no waving** | Flat | Subsurface on leaves, plants, sheep, zombies and villagers. Waving plants exist but are **off by default** |
@@ -66,6 +68,7 @@ shaders/
     lighting.glsl      sun / sky / torch / subsurface lighting
     shadows.glsl       shadow distortion + PCF
     water.glsl         vanilla-texture water normals, caustics, water shading
+    clouds.glsl        Vibrant Visuals-style cloud and sun disc shading
     tonemap.glsl       colour grading + generic tone mapper
   program/             the real shader sources
   *.vsh / *.fsh        tiny stubs (overworld); world-1/ = Nether, world1/ = End

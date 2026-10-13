@@ -223,6 +223,9 @@ vec3 getSky(vec3 dir, vec3 lightDir, vec3 zenith, vec3 horizon, vec3 glow, vec4 
 
     // Sun glare: a wide soft bloom whose size follows sun_glare_shape
     float ang = acos(clamp(cosT, -1.0, 1.0));
+    // Soft round glow hugging the sun at all times of day (the bright
+    // circle around the square sun in Vibrant Visuals screenshots)
+    col += glow * (exp(-ang / 0.05) * 0.45 + exp(-ang / 0.18) * 0.12) * SUN_GLOW;
     col += glow * exp(-ang / max(p.y * 3.0, 1e-3)) * step(1e-4, p.y) * 0.9 * SUN_GLOW;
 
     // Below the horizon fade to a slightly darker horizon colour
