@@ -14,6 +14,8 @@ option.shadowMapResolution=Shadow Resolution
 option.shadowDistance=Shadow Distance
 option.sunPathRotation=Sun Path Angle
 option.sunPathRotation.comment=Tilts the sun's path so noon shadows are not straight down. Vibrant Visuals uses 0.
+option.BLOCKY_SHADOWS=Blocky Shadows
+option.BLOCKY_SHADOWS.comment=Shadows snap to the 16x16 pixel grid of block textures, the Vibrant Visuals default. Turn off for soft shadows.
 option.SHADOW_SAMPLES=Shadow Filter Samples
 option.SHADOW_SOFTNESS=Shadow Softness
 
@@ -24,6 +26,7 @@ option.NIGHT_BRIGHTNESS=Night Brightness
 option.EMISSIVE_STRENGTH=Glowing Blocks
 option.SUBSURFACE_SCATTERING=Leaf Subsurface Glow
 option.WAVING_PLANTS=Waving Plants
+option.WAVING_PLANTS.comment=Not part of Vibrant Visuals. Off by default.
 option.WAVING_STRENGTH=Wind Strength
 
 option.SUN_GLOW=Sun Glow (Mie)
@@ -39,12 +42,13 @@ option.MORNING_FOG=Sunrise Fog
 
 option.WATER_REFLECTIONS=Reflections
 option.WATER_CAUSTICS=Caustics
-option.PIXELATED_WATER=Pixel Waves
+option.PIXELATED_WATER=Pixel Ocean Waves
 option.PIXELATED_WATER.comment=Snaps waves to the 16x16 texel grid for blocky sun glints, like Vibrant Visuals.
-option.WATER_WAVE_STRENGTH=Wave Height
+option.WATER_WAVE_STRENGTH=Extra Ocean Waves
+option.WATER_WAVE_STRENGTH.comment=Vibrant Visuals water has no waves (only the vanilla ripple texture). Raise this for extra moving waves.
 option.WATER_CLARITY=Water Clarity
-option.WATER_SPARKLE=Pixel Sparkle
-option.WATER_SPARKLE.comment=Random per-texel tilt that makes single pixels of the water glitter, like Vibrant Visuals.
+option.WATER_SPARKLE=Ripple Strength
+option.WATER_SPARKLE.comment=How strongly the vanilla water texture's ripples bend reflections and sun glints.
 
 option.BLOOM=Bloom
 option.BLOOM_STRENGTH=Bloom Strength

@@ -25,6 +25,12 @@ in vec4 mc_Entity;
 in vec2 mc_midTexCoord;
 #endif
 
+#ifdef PROG_WATER
+// UV rectangle of this quad's texture, to read neighbouring texels of
+// the water texture without bleeding into other atlas sprites
+flat out vec4 uvRect;
+#endif
+
 #ifdef PROG_TERRAIN
 #include "/lib/waving.glsl"
 #endif
@@ -48,6 +54,11 @@ void main() {
         playerPos += wavingOffset(playerPos + cameraPosition, matID, top, lmcoord.y);
         vp = gbufferModelView * vec4(playerPos, 1.0);
     }
+#endif
+
+#ifdef PROG_WATER
+    vec2 halfSize = abs(texcoord - mc_midTexCoord);
+    uvRect = vec4(mc_midTexCoord - halfSize, mc_midTexCoord + halfSize);
 #endif
 
     viewPos = vp.xyz;

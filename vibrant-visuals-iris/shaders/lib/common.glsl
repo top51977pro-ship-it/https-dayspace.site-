@@ -50,6 +50,7 @@ const float TAU = 6.28318530718;
 #define MAT_GLASS     6   // glass, ice, slime: reflective translucents
 #define MAT_LAVA      7
 #define MAT_PLANT_TALL 8  // upper half of double plants: whole block waves
+#define MAT_ENTITY_SSS 9  // sheep wool, zombie / villager skin: soft subsurface light
 
 float saturate(float x) { return clamp(x, 0.0, 1.0); }
 vec2  saturate(vec2 x)  { return clamp(x, 0.0, 1.0); }

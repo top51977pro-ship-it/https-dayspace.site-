@@ -101,7 +101,9 @@ void main() {
             float depth1 = texture(depthtex1, refrUV).r;
             float thick = depth1 >= 1.0 ? 128.0 : distance(screenToView(refrUV, depth1), viewPos);
 
-            vec3 tint = toLinear(texture(colortex3, texcoord).rgb);
+            vec4 tintData = texture(colortex3, texcoord);
+            vec3 albedo = toLinear(tintData.rgb);                       // texture x biome colour
+            vec3 tint = toLinear(tintData.rgb / max(tintData.a, 0.05)); // biome colour
             vec3 L = vec3(0.0, 1.0, 0.0);
             float shadow = 0.0;
             #ifdef DIM_OVERWORLD
@@ -110,7 +112,7 @@ void main() {
                 vec3 upW = vec3(0.0, 1.0, 0.0);
                 shadow = getShadow(playerPos, upW, 1.0, false, dith).light * smoothstep(0.05, 0.4, lm.y);
             #endif
-            color = shadeWater(under, thick, tint, N, viewDir, L, atmLight, atmAmbient, lm, shadow, refl);
+            color = shadeWater(under, thick, albedo, tint, N, viewDir, L, atmLight, atmAmbient, lm, shadow, refl);
         } else {
             float NdotV = saturate(dot(N, -viewDir));
             float fres = (0.04 + 0.96 * pow(1.0 - NdotV, 5.0)) * 0.6;
@@ -131,11 +133,13 @@ void main() {
         vec3 L = normalize(shadowLightPosition);
         float VdotL = dot(viewDir, L);
 
-        // Vibrant Visuals: thicker golden haze around sunrise / sunset
+        // Vibrant Visuals biome fogs use density 0.05 x scattering 0.04-0.06
+        // (~0.0025 per block) with Henyey-Greenstein g 0.4-0.6. The haze looks
+        // strongest at sunrise / sunset because the sun is low and behind it.
         float t = vvTime();
-        float morning = exp(-pow((t - 0.75) / 0.06, 2.0)) * 1.4 + exp(-pow((t - 0.25) / 0.06, 2.0)) * 0.8;
-        float density = 0.0035 * (0.35 + morning * MORNING_FOG + rainStrength * 1.5) * FOG_DENSITY;
-        float phase = phaseHG(VdotL, 0.72) * 0.5 + 0.5 / (4.0 * PI);
+        float morning = exp(-pow((t - 0.75) / 0.06, 2.0)) + exp(-pow((t - 0.25) / 0.06, 2.0)) * 0.6;
+        float density = 0.0025 * (1.0 + morning * 0.8 * MORNING_FOG + rainStrength * 1.5) * FOG_DENSITY;
+        float phase = phaseHG(VdotL, 0.6);
 
         float eyeSky = eyeBrightnessSmooth.y / 240.0;
         float accum = 0.0;

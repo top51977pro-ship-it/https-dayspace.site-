@@ -17,6 +17,16 @@ vec3 distortShadow(vec3 p) {
 uniform sampler2D shadowtex0;   // everything, including water and glass
 uniform sampler2D shadowtex1;   // opaque only
 
+// Vibrant Visuals "blocky" shadows: move the lookup point to the centre of
+// the 1/16-block texel it lies in (on the surface plane), so every texture
+// pixel is either fully lit or fully shadowed.
+vec3 snapToTexel(vec3 playerPos, vec3 worldNormal) {
+    vec3 wp = playerPos + cameraPosition;
+    vec3 s = (floor(wp * 16.0 - worldNormal * 0.5) + 0.5) / 16.0;
+    s += worldNormal * dot(wp - s, worldNormal);   // back onto the surface plane
+    return s - cameraPosition;
+}
+
 // playerPos -> undistorted shadow clip space
 vec3 playerToShadowClip(vec3 playerPos) {
     vec4 p = shadowProjection * (shadowModelView * vec4(playerPos, 1.0));
@@ -47,9 +57,17 @@ ShadowResult getShadow(vec3 playerPos, vec3 worldNormal, float NdotL, bool folia
     float bias = foliage ? 0.0006 : 0.00008;
     float z = sp.z - bias;
 
-    // Vogel disk PCF rotated by dither
-    float radius = SHADOW_SOFTNESS * 1.25 / float(shadowMapResolution);
-    float rot = dither * TAU;
+    // Vogel disk PCF rotated by dither (tight when shadows are blocky)
+    #ifdef BLOCKY_SHADOWS
+        float radius = 0.4 / float(shadowMapResolution);
+    #else
+        float radius = SHADOW_SOFTNESS * 1.25 / float(shadowMapResolution);
+    #endif
+    #ifdef BLOCKY_SHADOWS
+        float rot = 0.0;   // same pattern for every pixel of a texel: no noise
+    #else
+        float rot = dither * TAU;
+    #endif
     float lit = 0.0;
     #if SHADOW_SAMPLES <= 1
         lit = step(z, texture(shadowtex1, sp.xy).r);

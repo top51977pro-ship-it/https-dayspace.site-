@@ -31,11 +31,13 @@ vec3 shadeSurface(Surface s, vec3 lightCol, vec3 ambientCol, float dither) {
     vec3 n = s.viewNormal;
     bool plant  = s.mat == MAT_PLANT || s.mat == MAT_PLANT_TALL;
     bool foliage = plant || s.mat == MAT_LEAVES;
+    bool softEntity = s.mat == MAT_ENTITY_SSS;
     vec3 up = normalize(upPosition);
     // Grass and flowers are lit like the ground they stand on
     if (plant) n = up;
 
     vec3 worldNormal = mat3(gbufferModelViewInverse) * n;
+    vec3 geomNormalWorld = mat3(gbufferModelViewInverse) * s.viewNormal;
     float skyLight = s.lm.y;
     float ao = pow(s.ao, 1.3);
 
@@ -45,13 +47,18 @@ vec3 shadeSurface(Surface s, vec3 lightCol, vec3 ambientCol, float dither) {
     vec3 L = normalize(shadowLightPosition);
     float NdotL = dot(n, L);
     float diffuse = foliage ? (s.mat == MAT_LEAVES ? saturate(NdotL * 0.6 + 0.4) : saturate(NdotL * 0.5 + 0.5))
-                            : saturate(NdotL);
+                  : softEntity ? saturate(NdotL * 0.8 + 0.2)
+                  : saturate(NdotL);
 
     ShadowResult sh;
     sh.light = 1.0;
     sh.waterDepth = 0.0;
     if (diffuse > 0.0 || foliage) {
-        sh = getShadow(s.playerPos, worldNormal, NdotL, foliage, dither);
+        vec3 shadowPos = s.playerPos;
+        #if defined BLOCKY_SHADOWS && (defined PROG_TERRAIN || defined PROG_BLOCK)
+            shadowPos = snapToTexel(s.playerPos, geomNormalWorld);
+        #endif
+        sh = getShadow(shadowPos, worldNormal, NdotL, foliage, dither);
     }
     // Beyond the shadow map, and as a guard against leaks into caves,
     // fall back to skylight
@@ -66,7 +73,7 @@ vec3 shadeSurface(Surface s, vec3 lightCol, vec3 ambientCol, float dither) {
             vec3 worldPos = s.playerPos + cameraPosition;
             float c = waterCaustics(worldPos, lightWorld);
             vec3 absorb = exp(-sh.waterDepth * waterAbsorption());
-            direct *= absorb * (0.35 + c * 2.4 * saturate(1.0 - sh.waterDepth / 24.0));
+            direct *= absorb * (0.6 + c * 1.3 * saturate(1.0 - sh.waterDepth / 24.0));
         }
     #endif
 
@@ -79,6 +86,10 @@ vec3 shadeSurface(Surface s, vec3 lightCol, vec3 ambientCol, float dither) {
             float VdotL = dot(V, L);
             float sss = phaseHG(VdotL, 0.55) * 3.0 + 0.12;
             color += lightCol * shadow * sss * (s.mat == MAT_LEAVES ? 0.55 : 0.35);
+        }
+        if (softEntity) {
+            float VdotL = dot(normalize(s.viewPos), L);
+            color += lightCol * shadow * (phaseHG(VdotL, 0.4) * 1.2 + 0.05) * 0.2;
         }
     #endif
 

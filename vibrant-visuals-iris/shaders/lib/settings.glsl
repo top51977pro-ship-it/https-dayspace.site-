@@ -11,7 +11,8 @@ const float shadowDistanceRenderMul = 1.0;
 const float shadowIntervalSize  = 2.0;
 const bool  shadowHardwareFiltering = false;
 
-#define SHADOW_SAMPLES 8          // [1 4 8 12 16]
+#define BLOCKY_SHADOWS            // Snap shadows to the 16x16 texel grid (Vibrant Visuals default)
+#define SHADOW_SAMPLES 4          // [1 4 8 12 16]
 #define SHADOW_SOFTNESS 1.0       // [0.5 0.75 1.0 1.5 2.0 3.0]
 
 // ---------- Lighting ----------
@@ -21,7 +22,7 @@ const bool  shadowHardwareFiltering = false;
 #define NIGHT_BRIGHTNESS 1.0      // [0.5 0.75 1.0 1.5 2.0 3.0]
 #define EMISSIVE_STRENGTH 1.0     // [0.0 0.5 1.0 1.5 2.0 3.0]
 #define SUBSURFACE_SCATTERING     // Light glowing through leaves and grass
-#define WAVING_PLANTS             // Gentle wind on grass, flowers and leaves
+//#define WAVING_PLANTS           // Wind on grass, flowers and leaves (Vibrant Visuals has none)
 #define WAVING_STRENGTH 1.0       // [0.25 0.5 0.75 1.0 1.5 2.0]
 
 // ---------- Sky ----------
@@ -40,8 +41,8 @@ const bool  shadowHardwareFiltering = false;
 // ---------- Water ----------
 #define WATER_REFLECTIONS         // Screen space reflections on water and glass
 #define WATER_CAUSTICS            // Light patterns under water
-#define PIXELATED_WATER           // Snap waves to the 16x16 texel grid like Vibrant Visuals
-#define WATER_WAVE_STRENGTH 1.0   // [0.0 0.25 0.5 0.75 1.0 1.5 2.0]
+#define PIXELATED_WATER           // Snap the optional ocean waves to the 16x16 texel grid
+#define WATER_WAVE_STRENGTH 0.0   // [0.0 0.25 0.5 0.75 1.0 1.5 2.0] Extra ocean waves (Vibrant Visuals has none)
 #define WATER_CLARITY 1.0         // [0.5 0.75 1.0 1.5 2.0 3.0]
 #define WATER_SPARKLE 1.0         // [0.0 0.5 1.0 1.5 2.0 3.0]
 

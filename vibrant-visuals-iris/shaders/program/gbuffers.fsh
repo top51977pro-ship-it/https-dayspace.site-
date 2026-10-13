@@ -13,6 +13,17 @@ uniform sampler2D depthtex1;
 uniform vec4 entityColor;
 uniform float alphaTestRef;
 uniform int renderStage;
+uniform ivec2 atlasSize;
+uniform int entityId;
+
+#ifdef PROG_WATER
+flat in vec4 uvRect;
+float texHeight(vec2 uv) {
+    vec2 halfTexel = 0.5 / vec2(atlasSize);
+    uv = clamp(uv, uvRect.xy + halfTexel, uvRect.zw - halfTexel);
+    return luminance(texture(gtexture, uv).rgb);
+}
+#endif
 
 in vec2 texcoord;
 in vec2 lmcoord;
@@ -68,8 +79,11 @@ void main() {
     vec3 c = toLinear(tex.rgb);
     #if defined DIM_OVERWORLD && defined MC_RENDER_STAGE_SUN
         if (renderStage == MC_RENDER_STAGE_SUN) {
-            // Big, bright, blocky sun that blooms like the Vibrant Visuals sun
-            c *= (atmGlow * 0.6 + 0.4) * 28.0 * SUN_DISC_BRIGHTNESS * (1.0 - rainStrength);
+            // Vibrant Visuals uses its own sun_vv.png: just the 8x8 core of the
+            // vanilla sun (orange rim, pale yellow ring, cream centre) without
+            // the dim halo. The glow around it comes from the sky's glare.
+            if (max(tex.r, tex.g) < 0.45) discard;
+            c *= (atmGlow * 0.5 + 0.5) * 9.0 * SUN_DISC_BRIGHTNESS * (1.0 - rainStrength);
         } else if (renderStage == MC_RENDER_STAGE_MOON) {
             c *= 2.2 * (1.0 - rainStrength);
         }
@@ -91,10 +105,12 @@ void main() {
     outColor = c;
 
 #elif defined PROG_EMISSIVE
-    // Spider/enderman eyes, beacon beams: glow
+    // Spider / Enderman / Phantom eyes and beacon beams. Vibrant Visuals'
+    // entity MERS maps give only the eyes a modest emissive value (~0.15),
+    // so they glow softly and bloom a little - never blinding.
     vec4 c = texture(gtexture, texcoord) * glcolor;
     if (c.a < 0.01) discard;
-    outColor = vec4(toLinear(c.rgb) * 2.5 * EMISSIVE_STRENGTH, c.a);
+    outColor = vec4(toLinear(c.rgb) * 1.6 * EMISSIVE_STRENGTH, c.a);
 
 #elif defined PROG_GLINT
     vec4 c = texture(gtexture, texcoord) * glcolor;
@@ -135,13 +151,31 @@ void main() {
         // scene untouched (alpha 0) and store the surface data.
         vec3 worldN = mat3(gbufferModelViewInverse) * viewNormal;
         vec3 wn = worldN;
-        if (worldN.y > 0.5) wn = waterNormal(playerPos + cameraPosition, length(viewPos));
+        if (worldN.y > 0.5) {
+            // Normal from the vanilla water texture itself (its ripple pattern)
+            vec2 texel = 1.0 / vec2(atlasSize);
+            float hC = texHeight(texcoord);
+            float hR = texHeight(texcoord + vec2(texel.x, 0.0));
+            float hL = texHeight(texcoord - vec2(texel.x, 0.0));
+            float hU = texHeight(texcoord + vec2(0.0, texel.y));
+            float hD = texHeight(texcoord - vec2(0.0, texel.y));
+            wn = waterTextureNormal(hC, hR, hL, hU, hD);
+            // Detail fades with distance so far water is a calm mirror
+            float far01 = smoothstep(8.0, 48.0, length(viewPos));
+            wn = normalize(vec3(wn.xz * (1.0 - far01 * 0.85), 1.0).xzy);
+            wn.xz += oceanWaveSlope(playerPos + cameraPosition, length(viewPos));
+            wn = normalize(wn);
+        }
         vec3 N = normalize(mat3(gbufferModelView) * wn);
 
         // (tiny alpha instead of 0 so an injected alpha test can't discard us)
         outColor = vec4(0.0, 0.0, 0.0, 0.004);
         outData  = vec4(encodeNormal(N), packData(DATA_WATER, lmcoord.y, lmcoord.x), 1.0);
-        outTint  = vec4(glcolor.rgb, 1.0);
+        // Biome colour (Bedrock colours for default water) with the vanilla
+        // texture brightness in alpha. Alpha blending onto the cleared buffer
+        // stores rgb * a, i.e. the water albedo; composite divides by a to
+        // get the tint back.
+        outTint  = vec4(bedrockWaterColor(glcolor.rgb), max(luminance(tex.rgb), 0.05));
     } else {
         // Glass, ice, stained glass, slime, honey...
         vec4 albedo = tex * glcolor;
@@ -188,6 +222,9 @@ void main() {
     s.mat = matID;
     #ifdef PROG_TEXTURED
         s.mat = MAT_PLANT;   // particles: lit flat, like the ground
+    #endif
+    #ifdef PROG_ENTITIES
+        if (entityId == 20001) s.mat = MAT_ENTITY_SSS;   // see entity.properties
     #endif
 
     vec3 c = shadeSurface(s, atmLight, atmAmbient, dither());

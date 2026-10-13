@@ -174,7 +174,7 @@ Atmosphere computeAtmosphere() {
 
     // Ambient sky light: mostly the zenith, a bit of horizon
     vec3 skyAvg = mix(zen, hor, 0.35);
-    a.ambient = mix(skyAvg, vec3(luminance(skyAvg)), 0.3) * 0.55 * AMBIENT_BRIGHTNESS;
+    a.ambient = mix(skyAvg, vec3(luminance(skyAvg)), 0.6) * 0.5 * AMBIENT_BRIGHTNESS;
 
     // Mie glow. Vibrant Visuals only has a sunrise / sunset mie term; we keep a
     // small midday halo so the sun reads as bright like in the reference shots.
