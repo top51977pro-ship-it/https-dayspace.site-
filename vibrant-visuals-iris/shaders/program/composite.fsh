@@ -1,0 +1,137 @@
+// Composite 0: water / glass reflections and volumetric light
+
+#include "/lib/settings.glsl"
+#include "/lib/common.glsl"
+#include "/lib/atmosphere.glsl"
+#include "/lib/shadows.glsl"
+
+uniform sampler2D colortex0;
+uniform sampler2D colortex1;
+uniform sampler2D depthtex0;
+uniform sampler2D depthtex1;
+
+in vec2 texcoord;
+flat in vec3 atmLight;
+flat in vec3 atmAmbient;
+flat in vec3 atmZenith;
+flat in vec3 atmHorizon;
+flat in vec3 atmGlow;
+flat in vec4 atmParams;
+
+/* RENDERTARGETS: 0,2 */
+layout(location = 0) out vec4 outColor;
+layout(location = 1) out vec4 outVL;
+
+vec3 skyInDirection(vec3 viewDir) {
+#ifdef DIM_OVERWORLD
+    vec3 dir = mat3(gbufferModelViewInverse) * viewDir;
+    vec3 lightDir = normalize(mat3(gbufferModelViewInverse) * shadowLightPosition);
+    return getSky(dir, lightDir, atmZenith, atmHorizon, atmGlow, atmParams);
+#else
+    return toLinear(fogColor) * 0.5;
+#endif
+}
+
+// Screen space ray march against the opaque depth buffer
+bool traceSSR(vec3 origin, vec3 dir, float dither, out vec2 hitUV) {
+    float stepLen = 0.35;
+    vec3 pos = origin + dir * stepLen * dither;
+    hitUV = vec2(0.0);
+    for (int i = 0; i < 28; i++) {
+        vec3 prev = pos;
+        pos += dir * stepLen;
+        stepLen *= 1.22;
+        vec3 sp = viewToScreen(pos);
+        if (sp.x < 0.0 || sp.x > 1.0 || sp.y < 0.0 || sp.y > 1.0 || pos.z > -near) return false;
+        float sceneDepth = texture(depthtex1, sp.xy).r;
+        if (sp.z > sceneDepth && sceneDepth < 1.0) {
+            float sceneZ = screenToView(sp.xy, sceneDepth).z;
+            if (abs(pos.z - sceneZ) > stepLen * 2.5 + 0.5) continue;  // passed behind an occluder
+            // Binary refinement
+            vec3 a = prev, b = pos;
+            for (int j = 0; j < 5; j++) {
+                vec3 m = (a + b) * 0.5;
+                vec3 ms = viewToScreen(m);
+                if (ms.z > texture(depthtex1, ms.xy).r) b = m; else a = m;
+            }
+            hitUV = viewToScreen(b).xy;
+            return true;
+        }
+    }
+    return false;
+}
+
+void main() {
+    vec3 color = texture(colortex0, texcoord).rgb;
+    vec4 data = texture(colortex1, texcoord);
+    float depth0 = texture(depthtex0, texcoord).r;
+    vec3 viewPos = screenToView(texcoord, depth0);
+    vec3 viewDir = normalize(viewPos);
+    float dith = bayer16(gl_FragCoord.xy);
+
+    // ------------------------------------------------------ reflections
+    float slot = unpackSlot(data.z);
+    if ((slot == DATA_WATER || slot == DATA_GLASS) && depth0 < 1.0 && isEyeInWater == 0) {
+        vec3 N = decodeNormal(data.xy);
+        float skylight = unpackSkylight(data.z);
+        vec3 R = reflect(viewDir, N);
+        float NdotV = saturate(dot(N, -viewDir));
+        float F0 = slot == DATA_WATER ? 0.02 : 0.04;
+        float fres = F0 + (1.0 - F0) * pow(1.0 - NdotV, 5.0);
+        if (slot == DATA_GLASS) fres *= 0.6;
+
+        // Sky (dimmed under roofs) as the fallback
+        vec3 refl = skyInDirection(R) * smoothstep(0.2, 0.9, skylight);
+        refl += vec3(0.002);
+
+        #ifdef WATER_REFLECTIONS
+            vec2 hitUV;
+            if (traceSSR(viewPos + N * 0.02, R, dith, hitUV)) {
+                vec2 edge = smoothstep(0.0, 0.08, hitUV) * smoothstep(1.0, 0.92, hitUV);
+                float fade = edge.x * edge.y;
+                refl = mix(refl, texture(colortex0, hitUV).rgb, fade);
+            }
+        #endif
+        color = mix(color, refl, fres);
+    }
+
+    // ------------------------------------------------------ volumetric light
+    vec3 vl = vec3(0.0);
+#if defined VOLUMETRIC_LIGHT && defined DIM_OVERWORLD
+    {
+        float maxDist = min(depth0 >= 1.0 ? shadowDistance : length(viewPos), shadowDistance);
+        vec3 dirWorld = mat3(gbufferModelViewInverse) * viewDir;
+        vec3 origin = gbufferModelViewInverse[3].xyz;
+        vec3 L = normalize(shadowLightPosition);
+        float VdotL = dot(viewDir, L);
+
+        // Vibrant Visuals: thicker golden haze around sunrise / sunset
+        float t = vvTime();
+        float morning = exp(-pow((t - 0.75) / 0.06, 2.0)) * 1.4 + exp(-pow((t - 0.25) / 0.06, 2.0)) * 0.8;
+        float density = 0.0035 * (0.35 + morning * MORNING_FOG + rainStrength * 1.5) * FOG_DENSITY;
+        float phase = phaseHG(VdotL, 0.72) * 0.5 + 0.5 / (4.0 * PI);
+
+        float eyeSky = eyeBrightnessSmooth.y / 240.0;
+        float accum = 0.0;
+        float trans = 1.0;
+        float prevT = 0.0;
+        for (int i = 0; i < VL_SAMPLES; i++) {
+            float f = (float(i) + dith) / float(VL_SAMPLES);
+            float d = f * f * maxDist;                // more samples close to the camera
+            float stepLen = d - prevT;
+            prevT = d;
+            vec3 p = origin + dirWorld * d;
+            float height = p.y + cameraPosition.y;
+            float dens = density * exp(-max(height - 63.0, 0.0) / 48.0);
+            float lit = shadowTap(p);
+            accum += lit * dens * stepLen * trans;
+            trans *= exp(-dens * stepLen);
+        }
+        vl = atmLight * accum * phase * 2.0 * VL_STRENGTH * mix(0.35, 1.0, eyeSky);
+        if (isEyeInWater == 1) vl *= vec3(0.2, 0.6, 1.0) * 0.6;
+    }
+#endif
+
+    outColor = vec4(color, 1.0);
+    outVL = vec4(vl, 1.0);
+}

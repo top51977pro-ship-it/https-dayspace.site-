@@ -1,0 +1,54 @@
+profile.LOW=Low
+profile.MEDIUM=Medium
+profile.HIGH=High
+profile.ULTRA=Ultra
+
+screen.LIGHTING=Lighting
+screen.SHADOWS=Shadows
+screen.SKY=Sky & Clouds
+screen.ATMOSPHERE=Atmosphere & God Rays
+screen.WATER=Water
+screen.POST=Camera & Colour
+
+option.shadowMapResolution=Shadow Resolution
+option.shadowDistance=Shadow Distance
+option.sunPathRotation=Sun Path Angle
+option.sunPathRotation.comment=Tilts the sun's path so noon shadows are not straight down. Vibrant Visuals uses 0.
+option.SHADOW_SAMPLES=Shadow Filter Samples
+option.SHADOW_SOFTNESS=Shadow Softness
+
+option.SUN_BRIGHTNESS=Sunlight
+option.AMBIENT_BRIGHTNESS=Sky Light
+option.BLOCKLIGHT_BRIGHTNESS=Torch Light
+option.NIGHT_BRIGHTNESS=Night Brightness
+option.EMISSIVE_STRENGTH=Glowing Blocks
+option.SUBSURFACE_SCATTERING=Leaf Subsurface Glow
+option.WAVING_PLANTS=Waving Plants
+option.WAVING_STRENGTH=Wind Strength
+
+option.SUN_GLOW=Sun Glow (Mie)
+option.SUN_DISC_BRIGHTNESS=Sun Brightness
+option.STAR_BRIGHTNESS=Stars
+option.CLOUD_OPACITY=Cloud Opacity
+
+option.VOLUMETRIC_LIGHT=God Rays
+option.VL_SAMPLES=God Ray Quality
+option.VL_STRENGTH=God Ray Strength
+option.FOG_DENSITY=Haze Density
+option.MORNING_FOG=Sunrise Fog
+
+option.WATER_REFLECTIONS=Reflections
+option.WATER_CAUSTICS=Caustics
+option.PIXELATED_WATER=Pixel Waves
+option.PIXELATED_WATER.comment=Snaps waves to the 16x16 texel grid for blocky sun glints, like Vibrant Visuals.
+option.WATER_WAVE_STRENGTH=Wave Height
+option.WATER_CLARITY=Water Clarity
+option.WATER_TEXTURE=Vanilla Water Texture
+
+option.BLOOM=Bloom
+option.BLOOM_STRENGTH=Bloom Strength
+option.AUTO_EXPOSURE=Eye Adaptation
+option.EXPOSURE=Exposure
+option.CONTRAST=Contrast
+option.SATURATION=Saturation
+option.VIBRANCE=Vibrance
