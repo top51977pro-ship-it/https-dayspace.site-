@@ -53,6 +53,9 @@ in vec3 playerPos;
 #endif
 #include "/lib/lighting.glsl"
 #include "/lib/fog.glsl"
+#ifdef PROG_WEATHER
+#include "/lib/rain.glsl"
+#endif
 
 #ifdef TRANSLUCENT_OUTPUT
 /* RENDERTARGETS: 3 */
@@ -68,16 +71,39 @@ void main() {
     setupAtmosphere();
 
     vec4 albedo = texture(gtexture, texcoord) * glcolor;
-    if (albedo.a < 0.05) discard;
+
+    #if defined PROG_WEATHER && defined REALISTIC_RAIN
+    bool proceduralRain = biome_precipitation != 2; // snowy biomes keep the vanilla snowflakes
+    #else
+    const bool proceduralRain = false;
+    #endif
+    if (!proceduralRain && albedo.a < 0.05) discard;
 
     vec3 lin = toLinear(albedo.rgb);
     float dither = getDither(gl_FragCoord.xy);
     vec3 color;
 
     #if defined PROG_WEATHER
+    if (proceduralRain) {
+        // thin falling streaks of water instead of the vanilla rain texture (lib/rain.glsl)
+        float drop = rainStreaks(texcoord, playerPos + cameraPosition, frameTimeCounter);
+        float dist = length(playerPos);
+        float fade = smoothstep(0.8, 2.0, dist) * (1.0 - smoothstep(18.0, 32.0, dist));
+        float alpha = drop * fade * rainStrength * 0.7 * RAIN_OPACITY;
+        if (alpha < 0.004) discard;
+
+        // water droplets: lit by the sky, warm glints when looking towards the sun or moon
+        vec3 V = playerPos / max(dist, 1e-3);
+        float glint = pow(saturate(dot(V, lightDir)), 6.0);
+        vec3 light = ambientColor * (0.8 + lmcoord.y * 0.8) + lightColor * (0.20 + glint * 0.9)
+                   + getBlockLightColor() * blockLightFalloff(lmcoord.x) * 0.8 + getMinimumLight();
+        color = vec3(0.80, 0.86, 0.95) * light * 1.3;
+        albedo.a = alpha;
+    } else {
         vec3 light = ambientColor * (0.6 + lmcoord.y) + lightColor * 0.12 + getBlockLightColor() * blockLightFalloff(lmcoord.x);
         color = lin * light * 1.2;
         albedo.a *= 0.45;
+    }
     #else
         #ifdef PROG_HAND
         vec3 normal = normalize(normalW);

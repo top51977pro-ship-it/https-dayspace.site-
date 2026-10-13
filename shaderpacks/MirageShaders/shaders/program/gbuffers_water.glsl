@@ -140,11 +140,10 @@ void main() {
         vec3 T = normalize(tangentW.xyz - N * dot(tangentW.xyz, N));
         vec3 B = cross(N, T) * tangentW.w;
         vec2 tileSize = max(texHalf * 2.0, vec2(1e-6));
-        outCol = netherPortal(texcoord, midCoord - texHalf, tileSize, T, B, N, normalize(playerPos), dither);
+        vec3 portalLight = getAmbientLighting(N, lmcoord.y) + getBlockLighting(lmcoord.x, dist) * 0.5 + getMinimumLight();
+        outCol = netherPortal(texcoord, midCoord - texHalf, tileSize, T, B, N, normalize(playerPos), portalLight, dither);
         // standing inside the portal: fade it so the screen isn't covered in purple
-        float closeFade = saturate(dist - 0.3);
-        outCol.rgb *= closeFade;
-        outCol.a *= closeFade;
+        outCol.a *= saturate(dist - 0.2);
         outCol.rgb = applyFog(outCol.rgb, playerPos);
     }
     #endif

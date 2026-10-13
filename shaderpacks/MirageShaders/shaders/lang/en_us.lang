@@ -1,6 +1,6 @@
 # Mirage Shaders - option names
 
-profile.comment=Mirage Shaders v1.13. Quality preset. Potato and Low are for integrated graphics, Ultra for high-end GPUs.
+profile.comment=Mirage Shaders v1.14. Quality preset. Potato and Low are for integrated graphics, Ultra for high-end GPUs.
 profile.POTATO=§7Potato
 profile.LOW=§cLow
 profile.MEDIUM=§eMedium
@@ -134,3 +134,6 @@ option.PLAYER_RIPPLES.comment=Walking or swimming through water sends ripples ou
 option.RIPPLE_STRENGTH=Ripple Strength
 option.PORTAL_EDGES=Glowing Portal Edges
 option.PORTAL_EDGES.comment=A thin glowing rim where Nether portals meet their frame.
+option.REALISTIC_RAIN=Realistic Rain
+option.REALISTIC_RAIN.comment=Thin falling streaks of water that catch the sky light and glint towards the sun, instead of the vanilla rain texture. Snow is unchanged.
+option.RAIN_OPACITY=Rain Visibility

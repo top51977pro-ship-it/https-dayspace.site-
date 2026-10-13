@@ -9,8 +9,8 @@ float getPuddleAmount(vec2 worldXZ, float wet) {
     if (wet <= 0.001) return 0.0;
     float n = noise2D(worldXZ * 0.35) * 0.55 + noise2D(worldXZ * 1.1 + 17.0) * 0.30
             + noise2D(worldXZ * 3.3 + 41.0) * 0.15;
-    float threshold = mix(1.05, 0.45, wet) - (PUDDLE_AMOUNT - 1.0) * 0.20;
-    return smoothstep(threshold, threshold + 0.10, n);
+    float threshold = mix(0.95, 0.40, sqrt(wet)) - (PUDDLE_AMOUNT - 1.0) * 0.20;
+    return smoothstep(threshold, threshold + 0.07, n);
 }
 
 // One layer of raindrop impacts. Every grid cell gets a drop at a random moment, which
@@ -69,10 +69,13 @@ vec2 getPlayerRipples(vec3 playerPos) {
 
     vec2 d = rel.xz;
     float dist = length(d);
-    float wave = sin(dist * 10.0 - frameTimeCounter * 9.0) * exp(-dist * 1.1);
-    wave *= smoothstep(0.05, 0.45, dist);   // calm right under the feet
-    wave *= 1.0 - smoothstep(0.6, 1.4, abs(feetHeight));
-    return d / max(dist, 1e-3) * wave * speed * 0.16 * RIPPLE_STRENGTH;
+    // rings rolling outwards from the feet
+    float wave = sin(dist * 7.0 - frameTimeCounter * 8.0) * exp(-dist * 0.55) * smoothstep(0.05, 0.35, dist);
+    // the water is pushed away around the feet: a bowl with a raised rim
+    float bowl = (dist * 6.0) * exp(-dist * dist * 3.0);
+    float amount = (wave * 0.55 + bowl * 0.35) * speed;
+    amount *= 1.0 - smoothstep(0.6, 1.4, abs(feetHeight));
+    return d / max(dist, 1e-3) * amount * RIPPLE_STRENGTH;
     #else
     return vec2(0.0);
     #endif

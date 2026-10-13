@@ -1,48 +1,47 @@
-// 3D Nether portal: a see-through window with glowing streaks stacked at several depths
-// behind the surface (parallax), giving the look of a deep, swirling tunnel.
-// Samples the portal sprite from gtexture.
+// 3D Nether portal: the portal sprite is sampled several times along the view ray inside a
+// shallow volume behind the surface and the samples are blended together. Closely spaced samples
+// near the front and wider ones at the back give soft, smooth "depth trails" that converge as
+// you look into the portal. Only the brightest pixels glow strongly; the rest is a deep,
+// semi-transparent violet.
 //
 // uv        - sprite texture coordinate of this fragment
 // tileMin   - top-left of the sprite in the atlas, tileSize - its size
 // T, B, N   - world space tangent (+u), bitangent (+v) and normal of the portal face
 // rd        - world space view ray (camera -> fragment), normalized
-// returns premultiplied-ready colour: rgb is divided by alpha so that
-//         dst * (1 - a) + rgb * a == dst * (1 - a) + glow + haze
-vec4 netherPortal(vec2 uv, vec2 tileMin, vec2 tileSize, vec3 T, vec3 B, vec3 N, vec3 rd, float dither) {
-    // lateral shift (in blocks) per block of depth, clamped so steep or close-up views
-    // can't smear the layers across the whole portal
-    vec2 shift = vec2(dot(rd, T), dot(rd, B)) / max(abs(dot(rd, N)), 0.5);
-    shift = clamp(shift, vec2(-1.0), vec2(1.0));
+// light     - diffuse light reaching the portal (ambient + block light)
+// returns straight (non-premultiplied) colour + alpha for the translucent blend
+vec4 netherPortal(vec2 uv, vec2 tileMin, vec2 tileSize, vec3 T, vec3 B, vec3 N, vec3 rd, vec3 light, float dither) {
+    // view ray in the portal's own (u, v, depth) space
+    vec3 rayT = vec3(dot(rd, T), dot(rd, B), -dot(rd, N));
+    const int samples = 8;
+    // how far each step moves across the sprite (in sprite units) - deeper samples move more
+    vec2 stepUV = rayT.xy * (0.4 / (max(rayT.z, 0.08) * float(samples)));
 
-    // many thin layers packed into a shallow depth: every bright swirl pixel becomes a
-    // solid glowing dash with a short trail extruded into the portal
-    const int layers = 10;
-    const float totalDepth = 0.20;
-
-    vec3 glow = vec3(0.0);
-    float front = 0.0;
-    for (int i = 0; i < layers; i++) {
-        float f = (float(i) + dither) / float(layers);
-        vec2 coord = uv + shift * tileSize * (f * totalDepth);
-        coord = tileMin + mod(coord - tileMin, tileSize);
-        vec3 s = textureLod(gtexture, coord, 0.0).rgb;
-
-        // vanilla portal pixels sit between 0.62 and 0.90 in their brightest channel:
-        // only the top of that range (the light swirls) becomes a glowing streak
-        float b = maxOf(s);
-        float streak = smoothstep(0.76, 0.82, b);
-        float core = smoothstep(0.84, 0.90, b);
-
-        // colours measured from the reference screenshot and solved back through
-        // Mirage's tonemap + grading, so they show up as: edge (140,15,200),
-        // main (200,12,234) and bright core (230,95,250) on screen
-        vec3 col = mix(vec3(0.1818, 0.0136, 0.3869), vec3(0.4205, 0.0122, 0.7247), smoothstep(0.78, 0.84, b));
-        col = mix(col, vec3(0.7390, 0.1222, 1.1356), core);
-        float w = 1.0 - f * 0.85;               // trail fades towards the back
-        glow = max(glow, col * streak * w);     // max(): overlapping layers never pile up
-        if (i == 0) front = streak;
+    vec2 local = (uv - tileMin) / tileSize;
+    vec4 sum = vec4(0.0);
+    float brightest = 0.0;
+    for (int i = 0; i < samples; i++) {
+        float depth = (float(i) + dither) / float(samples);
+        local += stepUV * depth;                    // accumulating: spacing grows with depth
+        vec2 coord = tileMin + fract(local) * tileSize;
+        vec4 s = textureLod(gtexture, coord, 0.0);
+        s *= pow(1.0 - depth, 0.1);                 // very slight fade towards the back
+        brightest = max(brightest, s.r);
+        sum += s;
     }
-    // undo the brighter exposure of the Nether / End so the colours match everywhere
+    vec4 col = sum / float(samples);
+
+    // deep violet body: squaring darkens the mid tones and saturates the colour
+    col.rgb *= col.rgb * vec3(1.40, 0.85, 0.55);
+    col.a = sqrt(max(col.a, 0.0)) * 0.8;
+
+    // only the very brightest swirl pixels glow, everything else stays dim
+    float glow = brightest * brightest;
+    glow *= glow;
+    glow *= glow;                                   // ^8
+    glow = clamp(glow * 120.0, 0.03, 1.2);
+
+    // undo the brighter exposure of the Nether / End so the portal looks the same everywhere
     #if defined NETHER
     const float exposureComp = 1.0 / 1.2;
     #elif defined END
@@ -50,11 +49,7 @@ vec4 netherPortal(vec2 uv, vec2 tileMin, vec2 tileSize, vec3 T, vec3 B, vec3 N, 
     #else
     const float exposureComp = 1.0;
     #endif
-    float coverage = saturate(maxOf(glow) / 0.42);
-    glow *= exposureComp * PORTAL_BRIGHTNESS;
 
-    // between the streaks the window is clear: the world behind is only slightly dimmed
-    float alpha = 0.30 + max(front, coverage * 0.8) * 0.55;
-    vec3 haze = vec3(0.16, 0.04, 0.30) * 0.10;
-    return vec4((glow + haze) / alpha, alpha);
+    vec3 color = col.rgb * (light + glow * 5.5 * PORTAL_BRIGHTNESS * exposureComp);
+    return vec4(color, col.a);
 }

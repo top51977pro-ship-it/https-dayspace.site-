@@ -1,5 +1,20 @@
 # Mirage Shaders - Changelog
 
+## v1.14
+- **Realistic rain:** the vanilla rain texture is replaced by thin falling streaks of water with
+  their own speeds, spacing and trail lengths, lit by the sky and glinting towards the sun or
+  moon. Snow keeps the vanilla look. Options: *Realistic Rain*, *Rain Visibility*.
+- **Puddles form much faster:** they react to the rain right away instead of waiting for the
+  ground to slowly get wet, and cover more ground.
+- **Puddles look like real water:** the ground under them turns soaked and dark with a cool tint,
+  the surface reflects the sky from every angle (not just at grazing angles) and catches sun
+  glints, and ripples refract the ground underneath.
+- **Stronger wake:** walking pushes the water away from your feet and sends bigger rings out.
+- **Nether portal rebuilt:** the portal sprite is sampled several times along the view ray and
+  the samples are averaged into soft depth trails; the body is a deep semi-transparent violet and
+  only the brightest swirls glow, calibrated against the reference screenshot's colours.
+  Written from scratch (no third-party code).
+
 ## v1.13
 - **New name: Mirage Shaders** (previously developed as "Aurelia", a name that is already used by
   another shader pack on Modrinth). Release files are now called `MirageShaders_v<version>.zip`.

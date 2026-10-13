@@ -235,25 +235,37 @@ void main() {
     #endif
 
     #ifdef RAIN_PUDDLES
-    if (wetness > 0.001 && material != MAT_PLANT && material != MAT_LEAVES) {
-        float wet = wetness * rainExposure(lmcoord.y);
+    float rainNow = rainStrength * rainExposure(lmcoord.y);
+    // puddles react to the rain right away (rainStrength) and linger while the ground is wet (wetness)
+    float wet = max(wetness, rainStrength * 0.85) * rainExposure(lmcoord.y);
+    if (wet > 0.001 && material != MAT_PLANT && material != MAT_LEAVES) {
         float up = smoothstep(0.6, 0.95, normalW.y);
         vec2 wp = playerPos.xz + cameraPosition.xz;
         float puddleAmt = getPuddleAmount(wp, wet) * up;
 
-        // wet surfaces darken; standing water darkens a bit more and hides the texture detail
-        albedo.rgb *= 1.0 - 0.30 * wet - 0.12 * puddleAmt;
-        smoothness = max(smoothness, mix(0.35 * wet * up, 0.95, puddleAmt));
-
-        vec3 waterNormal = vec3(0.0, 1.0, 0.0);
+        vec2 slope = vec2(0.0);
         if (puddleAmt > 0.01) {
-            vec2 slope = vec2(0.0);
             #ifdef RAIN_RIPPLES
-            slope += getRainRipples(wp, rainStrength * rainExposure(lmcoord.y) * (1.0 - smoothstep(12.0, 36.0, dist)));
+            slope += getRainRipples(wp, rainNow * (1.0 - smoothstep(12.0, 36.0, dist))) * 1.4;
             #endif
             slope += getPlayerRipples(playerPos);
-            waterNormal = normalize(vec3(-slope.x, 1.0, -slope.y));
+
+            // refraction: the ground under the water is seen through the moving surface
+            vec2 tileMin = midCoord - texHalf;
+            vec2 tileSize = max(texHalf * 2.0, vec2(1e-6));
+            vec2 refrUV = texcoord + slope * tileSize * 0.9 * puddleAmt;
+            refrUV = tileMin + mod(refrUV - tileMin, tileSize);
+            vec4 under = textureGrad(gtexture, refrUV, dFdx(texcoord), dFdy(texcoord)) * glcolor;
+            if (under.a > 0.1) albedo.rgb = mix(albedo.rgb, under.rgb, puddleAmt);
         }
+
+        // wet ground darkens; under standing water it turns much darker (soaked) with a cool tint
+        albedo.rgb *= 1.0 - 0.30 * wet;
+        albedo.rgb = mix(albedo.rgb, albedo.rgb * vec3(0.42, 0.47, 0.52), puddleAmt);
+        smoothness = max(smoothness, mix(0.35 * wet * up, 0.97, puddleAmt));
+        if (puddleAmt > 0.5) material = MAT_PUDDLE;
+
+        vec3 waterNormal = normalize(vec3(-slope.x, 1.0, -slope.y));
         normal = normalize(mix(normal, waterNormal, puddleAmt));
     }
     #endif

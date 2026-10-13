@@ -35,6 +35,7 @@
 #define MAT_METAL       6
 #define MAT_ENTITY      7
 #define MAT_PORTAL      8
+#define MAT_PUDDLE      9
 #define MAT_PASSTHROUGH 250
 
 float encodeMat(int m) { return float(m) / 255.0; }
