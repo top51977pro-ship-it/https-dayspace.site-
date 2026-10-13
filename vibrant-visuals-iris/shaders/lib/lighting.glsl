@@ -65,8 +65,8 @@ vec3 shadeSurface(Surface s, vec3 lightCol, vec3 ambientCol, float dither) {
             vec3 lightWorld = mat3(gbufferModelViewInverse) * L;
             vec3 worldPos = s.playerPos + cameraPosition;
             float c = waterCaustics(worldPos, lightWorld);
-            vec3 absorb = exp(-sh.waterDepth * vec3(0.35, 0.12, 0.07) / WATER_CLARITY);
-            direct *= absorb * (0.45 + c * 1.9 * saturate(1.0 - sh.waterDepth / 24.0));
+            vec3 absorb = exp(-sh.waterDepth * waterAbsorption());
+            direct *= absorb * (0.35 + c * 2.4 * saturate(1.0 - sh.waterDepth / 24.0));
         }
     #endif
 

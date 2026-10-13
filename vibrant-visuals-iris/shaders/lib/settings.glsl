@@ -43,7 +43,7 @@ const bool  shadowHardwareFiltering = false;
 #define PIXELATED_WATER           // Snap waves to the 16x16 texel grid like Vibrant Visuals
 #define WATER_WAVE_STRENGTH 1.0   // [0.0 0.25 0.5 0.75 1.0 1.5 2.0]
 #define WATER_CLARITY 1.0         // [0.5 0.75 1.0 1.5 2.0 3.0]
-#define WATER_TEXTURE 0.15        // [0.0 0.1 0.15 0.25 0.5 1.0]
+#define WATER_SPARKLE 1.0         // [0.0 0.5 1.0 1.5 2.0 3.0]
 
 // ---------- Post processing ----------
 #define BLOOM

@@ -7,8 +7,10 @@ intensity, tone mapping and water.
 
 ![Sky preview at different times of day](sky-preview.png)
 
-*The sky and tone mapping above are rendered from this pack's real GLSL code
-(headless WebGL). They are not in-game screenshots.*
+![Water preview: noon and facing the sun](water-preview.png)
+
+*These previews are rendered from this pack's real GLSL code (headless WebGL,
+with a simple test seabed). They are not in-game screenshots.*
 
 ## Install (Minecraft 26.3)
 
@@ -26,7 +28,7 @@ intensity, tone mapping and water.
 | Sun colour keyframed over the day: white at noon, orange `(255,127,0)` at sunset | Flat, uncoloured light | Exact `lighting/global.json` sun colour and illuminance keyframes |
 | Atmospheric sky: zenith and horizon colours, Rayleigh, sun Mie glow, glare, horizon blend stops | Two flat colours | Port of `atmospherics.json`: all keyframes plus the 3-band shape (horizon, blend start, Mie bump around the sun) |
 | Volumetric fog and haze, with distant hills fading out | Linear fog | Ray-marched god rays through the shadow map, a sky-coloured distance haze (orange toward the sun at sunset), stronger fog at sunrise, and border fog at the edge of render distance |
-| Water: reflections, sun glints, clear water, caustics | Flat, opaque-ish texture | Screen-space reflections with a sky fallback, Fresnel, sharp sun specular on **pixel-snapped waves** (the blocky glints in VV screenshots), depth-based transparency, and animated caustics on the sea floor |
+| Water: crystal clear, turquoise shallows, deep blue depths, mirror reflections far away, pixel sparkles, caustics | Flat, semi-opaque texture | The water is shaded in a post pass that can see the scene behind it. It uses **per-channel pure-water absorption** (Bedrock's `water.json` has no sediment or chlorophyll), so red fades first: sand under 1–2 blocks turns turquoise and deep water turns blue. Also: refraction, Fresnel and screen-space reflections, **pixel-snapped waves with per-texel sparkle** (calm toward the distance so far water becomes a mirror), sharp blocky sun glints, and fine pixel caustics on the sea floor |
 | Translucent clouds lit by the sun | White clouds | Clouds lit by sun, sky and horizon colour, with a warm forward-scatter rim at sunset |
 | Glowing emissive blocks, bloom around the sun | No bloom | Emissive glowstone, lanterns, torches and lava, and mip-chain bloom |
 | `color_grading.json`: contrast 1.15, saturation 1.05, "generic" tone mapper | None | Same contrast and saturation, the Lottes "generic" filmic curve, and eye adaptation for caves and nights |
@@ -43,7 +45,7 @@ individual options:
 - **Shadows:** resolution, distance, filter samples, softness, sun path angle
 - **Sky:** sun glow, sun brightness, stars, cloud opacity
 - **Atmosphere:** god rays (on/off, quality, strength), haze density, sunrise fog
-- **Water:** reflections, caustics, pixel waves, wave height, clarity, vanilla texture amount
+- **Water:** reflections, caustics, pixel waves, wave height, clarity, pixel sparkle
 - **Camera:** bloom, eye adaptation, exposure, contrast, saturation, vibrance
 
 For Vibrant Visuals' straight overhead sun path, set *Sun Path Angle* to 0.

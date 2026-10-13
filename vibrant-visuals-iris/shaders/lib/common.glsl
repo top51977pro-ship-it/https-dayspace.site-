@@ -86,13 +86,20 @@ vec3 decodeNormal(vec2 e) {
     return normalize(n);
 }
 
-// Data stored in colortex1.z: material slot * 0.25 + skylight * 0.24
+// Data stored in colortex1.z (16 bit): material slot * 0.25, plus sky and
+// block light quantised to 64 levels each in the remaining 0.24.
 #define DATA_WATER 1.0
 #define DATA_GLASS 2.0
 #define DATA_CLOUD 3.0
-float packData(float slot, float skylight) { return slot * 0.25 + saturate(skylight) * 0.24; }
-float unpackSlot(float z)    { return floor(z * 4.0 + 0.02); }
-float unpackSkylight(float z) { return saturate((z - unpackSlot(z) * 0.25) / 0.24); }
+float packData(float slot, float skylight, float blocklight) {
+    float v = floor(saturate(skylight) * 63.0 + 0.5) * 64.0 + floor(saturate(blocklight) * 63.0 + 0.5);
+    return slot * 0.25 + (v + 0.5) / 4096.0 * 0.24;
+}
+float unpackSlot(float z) { return floor(z * 4.0 + 0.02); }
+vec2 unpackLight(float z) {   // x: block light, y: sky light (same order as lmcoord)
+    float v = floor((z - unpackSlot(z) * 0.25) / 0.24 * 4096.0);
+    return vec2(mod(v, 64.0), floor(v / 64.0)) / 63.0;
+}
 
 vec3 screenToView(vec2 uv, float depth) {
     vec4 p = gbufferProjectionInverse * vec4(vec3(uv, depth) * 2.0 - 1.0, 1.0);

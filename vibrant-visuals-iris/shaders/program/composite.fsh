@@ -4,9 +4,11 @@
 #include "/lib/common.glsl"
 #include "/lib/atmosphere.glsl"
 #include "/lib/shadows.glsl"
+#include "/lib/water.glsl"
 
 uniform sampler2D colortex0;
 uniform sampler2D colortex1;
+uniform sampler2D colortex3;
 uniform sampler2D depthtex0;
 uniform sampler2D depthtex1;
 
@@ -69,31 +71,55 @@ void main() {
     vec3 viewDir = normalize(viewPos);
     float dith = bayer16(gl_FragCoord.xy);
 
-    // ------------------------------------------------------ reflections
+    // ------------------------------------------------------ water & glass
     float slot = unpackSlot(data.z);
     if ((slot == DATA_WATER || slot == DATA_GLASS) && depth0 < 1.0 && isEyeInWater == 0) {
         vec3 N = decodeNormal(data.xy);
-        float skylight = unpackSkylight(data.z);
+        vec2 lm = unpackLight(data.z);
         vec3 R = reflect(viewDir, N);
-        float NdotV = saturate(dot(N, -viewDir));
-        float F0 = slot == DATA_WATER ? 0.02 : 0.04;
-        float fres = F0 + (1.0 - F0) * pow(1.0 - NdotV, 5.0);
-        if (slot == DATA_GLASS) fres *= 0.6;
 
-        // Sky (dimmed under roofs) as the fallback
-        vec3 refl = skyInDirection(R) * smoothstep(0.2, 0.9, skylight);
-        refl += vec3(0.002);
-
+        // Reflection: SSR, falling back to the sky (dimmed under roofs)
+        vec3 refl = skyInDirection(R) * smoothstep(0.2, 0.9, lm.y) + vec3(0.002);
         #ifdef WATER_REFLECTIONS
             vec2 hitUV;
             if (traceSSR(viewPos + N * 0.02, R, dith, hitUV)) {
                 vec2 edge = smoothstep(0.0, 0.08, hitUV) * smoothstep(1.0, 0.92, hitUV);
-                float fade = edge.x * edge.y;
-                refl = mix(refl, texture(colortex0, hitUV).rgb, fade);
+                refl = mix(refl, texture(colortex0, hitUV).rgb, edge.x * edge.y);
             }
         #endif
-        color = mix(color, refl, fres);
+
+        if (slot == DATA_WATER) {
+            // Refraction: nudge the lookup by the wave normal, but only onto
+            // pixels that are also under water
+            vec3 upV = normalize(upPosition);
+            vec2 offset = (N.xy - upV.xy * dot(N, upV)) * 0.05 / max(1.0, -viewPos.z * 0.08);
+            vec2 refrUV = texcoord + offset;
+            if (unpackSlot(texture(colortex1, refrUV).z) != DATA_WATER
+                || texture(depthtex1, refrUV).r < depth0) refrUV = texcoord;
+
+            vec3 under = texture(colortex0, refrUV).rgb / (1.0 - 0.004);
+            float depth1 = texture(depthtex1, refrUV).r;
+            float thick = depth1 >= 1.0 ? 128.0 : distance(screenToView(refrUV, depth1), viewPos);
+
+            vec3 tint = toLinear(texture(colortex3, texcoord).rgb);
+            vec3 L = vec3(0.0, 1.0, 0.0);
+            float shadow = 0.0;
+            #ifdef DIM_OVERWORLD
+                L = normalize(shadowLightPosition);
+                vec3 playerPos = (gbufferModelViewInverse * vec4(viewPos, 1.0)).xyz;
+                vec3 upW = vec3(0.0, 1.0, 0.0);
+                shadow = getShadow(playerPos, upW, 1.0, false, dith).light * smoothstep(0.05, 0.4, lm.y);
+            #endif
+            color = shadeWater(under, thick, tint, N, viewDir, L, atmLight, atmAmbient, lm, shadow, refl);
+        } else {
+            float NdotV = saturate(dot(N, -viewDir));
+            float fres = (0.04 + 0.96 * pow(1.0 - NdotV, 5.0)) * 0.6;
+            color = mix(color, refl, fres);
+        }
     }
+
+    // Looking up at the water surface from below: tint what we see through it
+    if (slot == DATA_WATER && isEyeInWater == 1) color *= vec3(0.55, 0.85, 0.95);
 
     // ------------------------------------------------------ volumetric light
     vec3 vl = vec3(0.0);

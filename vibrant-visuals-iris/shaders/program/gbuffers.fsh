@@ -34,6 +34,11 @@ flat in vec4 atmParams;
     /* RENDERTARGETS: 0 */
     layout(location = 0) out vec4 outColor;
     #define SINGLE_TARGET
+#elif defined PROG_WATER
+    /* RENDERTARGETS: 0,1,3 */
+    layout(location = 0) out vec4 outColor;
+    layout(location = 1) out vec4 outData;
+    layout(location = 2) out vec4 outTint;
 #else
     /* RENDERTARGETS: 0,1 */
     layout(location = 0) out vec4 outColor;
@@ -116,7 +121,7 @@ void main() {
     col *= toLinear(c.rgb) * 1.1;
     float alpha = c.a * CLOUD_OPACITY * (1.0 - rainStrength * 0.2);
     outColor = vec4(col, alpha);
-    outData  = vec4(0.5, 0.5, packData(DATA_CLOUD, 1.0), 1.0);
+    outData  = vec4(0.5, 0.5, packData(DATA_CLOUD, 1.0, 0.0), 1.0);
 
 // ===================================================================== water & translucents
 #elif defined PROG_WATER
@@ -124,51 +129,19 @@ void main() {
     float dith = dither();
 
     if (matID == MAT_WATER) {
+        // Water is shaded in composite.fsh, where the scene behind it is
+        // known: there we do per-channel absorption (turquoise shallows,
+        // blue depths), reflections and sun glints. Here we only leave the
+        // scene untouched (alpha 0) and store the surface data.
         vec3 worldN = mat3(gbufferModelViewInverse) * viewNormal;
         vec3 wn = worldN;
-        if (worldN.y > 0.5) wn = waterNormal(playerPos + cameraPosition);
+        if (worldN.y > 0.5) wn = waterNormal(playerPos + cameraPosition, length(viewPos));
         vec3 N = normalize(mat3(gbufferModelView) * wn);
 
-        // How much water is behind this pixel
-        vec2 uv = gl_FragCoord.xy / vec2(viewWidth, viewHeight);
-        float dBehind = texelFetch(depthtex1, ivec2(gl_FragCoord.xy), 0).r;
-        float thick = dBehind >= 1.0 ? 96.0 : distance(screenToView(uv, dBehind), viewPos);
-        if (isEyeInWater == 1) thick = 2.0;
-
-        vec3 tint = toLinear(glcolor.rgb);
-        // Vibrant Visuals water is clean and slightly teal
-        vec3 waterCol = normalize(tint * vec3(0.75, 1.0, 0.95) + 0.001) * 0.5;
-        float detail = mix(1.0, luminance(tex.rgb) * 1.5, WATER_TEXTURE);
-
-        float alpha = 1.0 - exp(-thick * 0.16 / WATER_CLARITY);
-        alpha = clamp(alpha, 0.05, 0.93);
-
-        float sky = lmcoord.y;
-        float shadow = 1.0;
-        vec3 L = vec3(0.0, 1.0, 0.0);
-        #ifndef NO_SKY
-            L = normalize(shadowLightPosition);
-            shadow = getShadow(playerPos, worldN, 1.0, false, dith).light * smoothstep(0.05, 0.4, sky);
-        #endif
-
-        vec3 scatter = waterCol * detail * (atmAmbient * sky * sky * 0.6
-                     + atmLight * shadow * 0.12
-                     + BLOCKLIGHT_COLOR * pow(lmcoord.x, 3.0) * 1.2 * BLOCKLIGHT_BRIGHTNESS
-                     + vec3(0.002));
-
-        // Sun glints: very sharp highlight on the pixelated wave facets
-        vec3 V = normalize(viewPos);
-        vec3 H = normalize(L - V);
-        float NdotH = saturate(dot(N, H));
-        float fres = 0.02 + 0.98 * pow(1.0 - saturate(dot(N, -V)), 5.0);
-        vec3 spec = atmLight * shadow * (pow(NdotH, 1400.0) * 60.0 + pow(NdotH, 160.0) * 1.2) * (0.3 + fres);
-        #ifdef NO_SKY
-            spec = vec3(0.0);
-        #endif
-        if (isEyeInWater == 1) spec = vec3(0.0);
-
-        outColor = vec4(scatter + spec / alpha, alpha);
-        outData  = vec4(encodeNormal(N), packData(DATA_WATER, sky), 1.0);
+        // (tiny alpha instead of 0 so an injected alpha test can't discard us)
+        outColor = vec4(0.0, 0.0, 0.0, 0.004);
+        outData  = vec4(encodeNormal(N), packData(DATA_WATER, lmcoord.y, lmcoord.x), 1.0);
+        outTint  = vec4(glcolor.rgb, 1.0);
     } else {
         // Glass, ice, stained glass, slime, honey...
         vec4 albedo = tex * glcolor;
@@ -184,7 +157,8 @@ void main() {
         vec3 c = shadeSurface(s, atmLight, atmAmbient, dith);
         outColor = vec4(c, albedo.a);
         float slot = matID == MAT_GLASS ? DATA_GLASS : 0.0;
-        outData = vec4(encodeNormal(viewNormal), packData(slot, lmcoord.y), 1.0);
+        outData = vec4(encodeNormal(viewNormal), packData(slot, lmcoord.y, lmcoord.x), 1.0);
+        outTint = vec4(0.0, 0.0, 0.0, 1.0);
     }
 
 // ===================================================================== lit opaque
