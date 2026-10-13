@@ -261,7 +261,7 @@ void main() {
 
         // wet ground darkens; under standing water it turns much darker (soaked) with a cool tint
         albedo.rgb *= 1.0 - 0.30 * wet;
-        albedo.rgb = mix(albedo.rgb, albedo.rgb * vec3(0.42, 0.47, 0.52), puddleAmt);
+        albedo.rgb = mix(albedo.rgb, albedo.rgb * vec3(0.50, 0.53, 0.56), puddleAmt);
         smoothness = max(smoothness, mix(0.35 * wet * up, 0.97, puddleAmt));
         if (puddleAmt > 0.5) material = MAT_PUDDLE;
 

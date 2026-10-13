@@ -9,7 +9,7 @@ float getPuddleAmount(vec2 worldXZ, float wet) {
     if (wet <= 0.001) return 0.0;
     float n = noise2D(worldXZ * 0.35) * 0.55 + noise2D(worldXZ * 1.1 + 17.0) * 0.30
             + noise2D(worldXZ * 3.3 + 41.0) * 0.15;
-    float threshold = mix(0.95, 0.40, sqrt(wet)) - (PUDDLE_AMOUNT - 1.0) * 0.20;
+    float threshold = mix(0.95, 0.46, sqrt(wet)) - (PUDDLE_AMOUNT - 1.0) * 0.20;
     return smoothstep(threshold, threshold + 0.07, n);
 }
 

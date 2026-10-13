@@ -101,7 +101,7 @@ void main() {
             if (depth > 0.56) ao = getSSAO(viewPos, mat3(gbufferModelView) * normal, dither);
             #endif
 
-            float f0 = material == MAT_PUDDLE ? 0.14 : 0.04;
+            float f0 = material == MAT_PUDDLE ? 0.06 : 0.04;
             if (material == MAT_METAL) {
                 f0 = 0.8;
                 albedo *= 0.75;

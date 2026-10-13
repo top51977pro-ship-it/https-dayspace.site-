@@ -147,7 +147,7 @@ void main() {
         vec3 reflW = mat3(gbufferModelViewInverse) * reflView;
 
         float NdotV = saturate(dot(viewN, -viewDir));
-        float f0 = material == MAT_METAL ? 0.8 : (material == MAT_WATER ? 0.02 : (material == MAT_PUDDLE ? 0.14 : 0.04));
+        float f0 = material == MAT_METAL ? 0.8 : (material == MAT_WATER ? 0.02 : (material == MAT_PUDDLE ? 0.06 : 0.04));
         float fresnel = schlick(NdotV, f0);
 
         float skyVisibility = smoothstep(0.3, 0.9, lm.y);
@@ -164,7 +164,7 @@ void main() {
 
         float weight = fresnel * smoothness * smoothness;
         if (material == MAT_METAL) weight = mix(weight, 0.75, 0.6) * smoothness;
-        if (material == MAT_PUDDLE) weight = fresnel;
+        if (material == MAT_PUDDLE) weight = fresnel * 0.85;
         color = mix(color, reflection, saturate(weight));
     }
 

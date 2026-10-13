@@ -1,5 +1,11 @@
 # Mirage Shaders - Changelog
 
+## v1.15
+- **Puddles toned down:** v1.14 made them reflect ~14% of the sky even when looking straight down,
+  which turned them into silvery sheets. Now they reflect like real water (about 6% looking down,
+  much more at low angles), the floor under them is darker but not grey, and they cover a bit
+  less ground at full wetness. Ripples, refraction and the player wake are unchanged.
+
 ## v1.14
 - **Realistic rain:** the vanilla rain texture is replaced by thin falling streaks of water with
   their own speeds, spacing and trail lengths, lit by the sky and glinting towards the sun or
