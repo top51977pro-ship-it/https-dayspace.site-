@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Builds release/Aurelia-v<version>.zip (zip root contains shaders/ as Iris expects)."""
+"""Builds release/MirageShaders_v<version>.zip (zip root contains shaders/ as Iris expects)."""
 import os
 import zipfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-PACK = os.path.normpath(os.path.join(HERE, "..", "Aurelia"))
-VERSION = "1.12"
-OUT = os.path.normpath(os.path.join(HERE, "..", "release", f"Aurelia-v{VERSION}.zip"))
+PACK = os.path.normpath(os.path.join(HERE, "..", "MirageShaders"))
+VERSION = "1.13"
+OUT = os.path.normpath(os.path.join(HERE, "..", "release", f"MirageShaders_v{VERSION}.zip"))
 
 os.makedirs(os.path.dirname(OUT), exist_ok=True)
 with zipfile.ZipFile(OUT, "w", zipfile.ZIP_DEFLATED) as z:

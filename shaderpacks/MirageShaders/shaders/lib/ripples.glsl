@@ -59,7 +59,7 @@ vec2 getRainRipples(vec2 worldXZ, float intensity) {
 // playerPos is relative to the camera; the player's feet are 1.62 blocks below the eye.
 vec2 getPlayerRipples(vec3 playerPos) {
     #ifdef PLAYER_RIPPLES
-    float speed = saturate(aurPlayerSpeed / 4.3);
+    float speed = saturate(miragePlayerSpeed / 4.3);
     if (speed < 0.02) return vec2(0.0);
 
     vec3 eye = (eyePosition == vec3(0.0)) ? cameraPosition : eyePosition;

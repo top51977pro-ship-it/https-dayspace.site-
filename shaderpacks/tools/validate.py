@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compile-checks every Aurelia program (all dimensions) with glslangValidator.
+"""Compile-checks every Mirage program (all dimensions) with glslangValidator.
 
 Resolves Iris style absolute #include paths and injects the macros Iris normally provides.
 Usage: python3 shaderpacks/tools/validate.py [--define NAME ...] [--undef NAME ...]
@@ -10,7 +10,7 @@ import subprocess
 import sys
 import tempfile
 
-ROOT = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "Aurelia", "shaders"))
+ROOT = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "MirageShaders", "shaders"))
 IRIS_MACROS = """#define MC_VERSION 260300
 #define MC_GL_VERSION 460
 #define MC_GLSL_VERSION 460

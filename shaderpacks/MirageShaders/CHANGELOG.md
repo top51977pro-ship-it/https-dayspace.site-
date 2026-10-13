@@ -1,4 +1,8 @@
-# Aurelia Shaders - Changelog
+# Mirage Shaders - Changelog
+
+## v1.13
+- **New name: Mirage Shaders** (previously developed as "Aurelia", a name that is already used by
+  another shader pack on Modrinth). Release files are now called `MirageShaders_v<version>.zip`.
 
 ## v1.12
 - **Rain & Puddles (new settings page):**
@@ -27,7 +31,7 @@
 ## v1.10
 - **Nether portal colours matched to the reference screenshot:** streak colours were measured
   from the reference (edge 140,15,200 / main 200,12,234 / core 230,95,250) and solved back through
-  Aurelia's tonemap and colour grading, so they appear with those exact on-screen colours.
+  Mirage's tonemap and colour grading, so they appear with those exact on-screen colours.
   The Nether and End exposure is compensated so portals look the same in every dimension.
 
 ## v1.9

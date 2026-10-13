@@ -34,7 +34,7 @@ vec4 netherPortal(vec2 uv, vec2 tileMin, vec2 tileSize, vec3 T, vec3 B, vec3 N, 
         float core = smoothstep(0.84, 0.90, b);
 
         // colours measured from the reference screenshot and solved back through
-        // Aurelia's tonemap + grading, so they show up as: edge (140,15,200),
+        // Mirage's tonemap + grading, so they show up as: edge (140,15,200),
         // main (200,12,234) and bright core (230,95,250) on screen
         vec3 col = mix(vec3(0.1818, 0.0136, 0.3869), vec3(0.4205, 0.0122, 0.7247), smoothstep(0.78, 0.84, b));
         col = mix(col, vec3(0.7390, 0.1222, 1.1356), core);

@@ -1,4 +1,4 @@
-// All uniforms used across Aurelia. Unused ones are stripped by the GLSL compiler.
+// All uniforms used across Mirage. Unused ones are stripped by the GLSL compiler.
 
 uniform sampler2D gtexture;
 uniform sampler2D noisetex;
@@ -65,4 +65,4 @@ uniform float darknessFactor;
 uniform float screenBrightness;
 
 // custom uniform from shaders.properties: smoothed horizontal player speed (blocks/s)
-uniform float aurPlayerSpeed;
+uniform float miragePlayerSpeed;

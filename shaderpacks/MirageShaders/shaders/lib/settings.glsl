@@ -1,5 +1,5 @@
 /*
-    Aurelia Shaders - user settings
+    Mirage Shaders - user settings
     Every #define with a [ ... ] list below is exposed in the Iris shader options menu.
 */
 
