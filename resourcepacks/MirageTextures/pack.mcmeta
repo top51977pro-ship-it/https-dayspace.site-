@@ -1,0 +1,12 @@
+{
+  "pack": {
+    "description": "§dMirage Textures §7128x §8v1.0\n§7Realistic procedural textures",
+    "pack_format": 69,
+    "supported_formats": {
+      "min_inclusive": 34,
+      "max_inclusive": 999
+    },
+    "min_format": 34,
+    "max_format": 999
+  }
+}
