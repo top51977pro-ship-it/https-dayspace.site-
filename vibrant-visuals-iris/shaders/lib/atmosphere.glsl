@@ -139,7 +139,7 @@ Atmosphere computeAtmosphere() {
     vec3  sunCol  = vvSunColor(t);
     float sunLux  = vvSunIlluminance(t) / 100.0;
     float sunFade = smoothstep(0.0, 0.12, sunElev);
-    vec3  sunLight = sunCol * sqrt(sunLux) * sunFade * 1.9 * SUN_BRIGHTNESS;
+    vec3  sunLight = sunCol * sqrt(sunLux) * sunFade * 1.7 * SUN_BRIGHTNESS;
 
     vec3  moonCol  = toLinear(vec3(163.0, 182.0, 255.0) / 255.0);
     float moonFade = smoothstep(0.0, 0.12, moonElev);
@@ -151,7 +151,7 @@ Atmosphere computeAtmosphere() {
     float rayleigh = vvRayleigh(t) / 10.0;
     vec3 zen = vvZenith(t);
     vec3 hor = vvHorizon(t);
-    vec3 rayleighTint = mix(vec3(1.0), vec3(0.42, 0.78, 1.45), rayleigh);
+    vec3 rayleighTint = mix(vec3(1.0), vec3(0.52, 0.82, 1.32), rayleigh);
     zen = zen * rayleighTint;
     hor = mix(hor, hor * vec3(0.92, 0.98, 1.08), rayleigh);
 

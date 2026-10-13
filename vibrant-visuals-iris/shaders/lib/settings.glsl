@@ -12,7 +12,7 @@ const float shadowIntervalSize  = 2.0;
 const bool  shadowHardwareFiltering = false;
 
 #define BLOCKY_SHADOWS            // Snap shadows to the 16x16 texel grid (Vibrant Visuals default)
-#define SHADOW_SAMPLES 4          // [1 4 8 12 16]
+#define SHADOW_SAMPLES 4          // [1 2 4 8 12 16] (each sample is bilinear-filtered)
 #define SHADOW_SOFTNESS 1.0       // [0.5 0.75 1.0 1.5 2.0 3.0]
 
 // ---------- Lighting ----------
@@ -50,7 +50,7 @@ const bool  shadowHardwareFiltering = false;
 #define BLOOM
 #define BLOOM_STRENGTH 1.0        // [0.25 0.5 0.75 1.0 1.5 2.0 3.0]
 #define EXPOSURE 1.0              // [0.5 0.75 0.9 1.0 1.1 1.25 1.5 2.0]
-#define CONTRAST 1.15             // [1.0 1.05 1.1 1.15 1.2 1.25 1.3]
-#define SATURATION 1.05           // [0.8 0.9 1.0 1.05 1.1 1.2 1.3 1.5]
-#define VIBRANCE 0.15             // [0.0 0.1 0.15 0.2 0.3 0.4 0.5]
+#define CONTRAST 1.08             // [1.0 1.05 1.08 1.1 1.15 1.2 1.25 1.3]
+#define SATURATION 1.0            // [0.8 0.85 0.9 0.95 1.0 1.05 1.1 1.2 1.3 1.5]
+#define VIBRANCE 0.0              // [0.0 0.05 0.1 0.15 0.2 0.3 0.4 0.5]
 #define AUTO_EXPOSURE             // Brighten caves and nights like Vibrant Visuals

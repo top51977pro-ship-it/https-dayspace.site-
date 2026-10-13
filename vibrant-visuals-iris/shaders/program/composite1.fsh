@@ -4,6 +4,7 @@
 #include "/lib/settings.glsl"
 #include "/lib/common.glsl"
 #include "/lib/atmosphere.glsl"
+#include "/lib/water.glsl"
 
 uniform sampler2D colortex0;
 uniform sampler2D colortex1;
@@ -75,14 +76,17 @@ void main() {
     }
 #endif
 
-    // Underwater: blue absorption + scattering
+    // Underwater: like Bedrock, fog toward the water colour over ~60 blocks,
+    // with red fading first, and a light blue tint on everything
     if (isEyeInWater == 1) {
-        vec3 absorb = exp(-dist * vec3(0.22, 0.07, 0.045) / WATER_CLARITY);
-        vec3 scatterCol = vec3(0.02, 0.09, 0.13) * (atmAmbient * 0.8 + atmLight * 0.15 + 0.02);
+        vec3 plains = toLinear(vec3(68.0, 175.0, 245.0) / 255.0);
+        vec3 fogCol = underwaterFogColor(plains, atmAmbient, atmLight);
         #ifdef NO_SKY
-            scatterCol = vec3(0.01, 0.03, 0.05);
+            fogCol = vec3(0.01, 0.03, 0.05);
         #endif
-        color = color * absorb + scatterCol * (1.0 - absorb) * 3.0;
+        vec3 T = exp(-dist * waterAbsorption() * 0.5);
+        float fog = 1.0 - exp(-dist / (20.0 * WATER_CLARITY));
+        color = mix(color * T * vec3(0.85, 0.96, 1.0), fogCol, fog);
     } else if (isEyeInWater == 2) {
         color = mix(color, vec3(1.0, 0.25, 0.02) * 2.0, 1.0 - exp(-dist * 0.8));
     } else if (isEyeInWater == 3) {

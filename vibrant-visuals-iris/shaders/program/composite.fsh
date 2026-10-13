@@ -120,8 +120,23 @@ void main() {
         }
     }
 
-    // Looking up at the water surface from below: tint what we see through it
-    if (slot == DATA_WATER && isEyeInWater == 1) color *= vec3(0.55, 0.85, 0.95);
+    // Looking up at the water surface from below (Snell's window): light can
+    // only leave the water within ~48.6 deg of straight up. Inside that circle
+    // you see the world above, tinted and rippled; outside it the surface is a
+    // mirror of the water below (total internal reflection).
+    if (slot == DATA_WATER && isEyeInWater == 1) {
+        vec4 tintData = texture(colortex3, texcoord);
+        vec3 tint = toLinear(tintData.rgb / max(tintData.a, 0.05));
+        float ripple = tintData.a / 0.64;           // vanilla texture brightness
+        vec3 upV = normalize(upPosition);
+        float cosUp = dot(viewDir, upV);            // 1 = looking straight up
+        float window = smoothstep(0.6, 0.72, cosUp);
+        vec3 below = underwaterFogColor(tint, atmAmbient, atmLight);
+        vec3 through = color * mix(vec3(1.0), tint * 1.6, 0.3) * (0.82 + 0.25 * ripple);
+        // Edge of the window: a bright rim like in real water
+        through += below * 0.6 * (1.0 - smoothstep(0.72, 0.85, cosUp));
+        color = mix(below, through, window);
+    }
 
     // ------------------------------------------------------ volumetric light
     vec3 vl = vec3(0.0);

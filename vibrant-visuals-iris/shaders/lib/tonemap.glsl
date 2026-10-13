@@ -7,7 +7,7 @@
 // =====================================================================
 
 vec3 tonemapGeneric(vec3 x) {
-    const float a = 1.36;      // contrast
+    const float a = 1.22;      // contrast
     const float d = 0.955;     // shoulder
     const float hdrMax = 12.0;
     const float midIn  = 0.18;

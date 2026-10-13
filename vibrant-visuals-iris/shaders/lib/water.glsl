@@ -26,6 +26,11 @@ vec3 bedrockWaterColor(vec3 javaTint) {
 vec3 waterExtinction(vec3 tintLinear) {
     return ((1.0 - tintLinear) * 0.4 + 0.01) / WATER_CLARITY;
 }
+// Underwater fog colour: Bedrock fogs underwater toward the biome water
+// colour (plains #44AFF5) over 60 blocks, lit by sky and sun.
+vec3 underwaterFogColor(vec3 tintLinear, vec3 ambient, vec3 light) {
+    return tintLinear * (ambient * 0.55 + light * 0.08 + 0.004);
+}
 // Default (plains) water, for places that don't know the biome colour
 vec3 waterAbsorption() { return waterExtinction(toLinear(vec3(68.0, 175.0, 245.0) / 255.0)); }
 

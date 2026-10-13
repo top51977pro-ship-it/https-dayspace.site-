@@ -2,7 +2,7 @@
 //  Shadow mapping. The distortion here must match shadow.vsh.
 // =====================================================================
 
-#define SHADOW_DISTORT 0.85
+#define SHADOW_DISTORT 0.9   // higher = more shadow detail near the player
 // Shadow depth is squashed by this in the shadow pass (more depth range)
 #define SHADOW_Z_SCALE 0.2
 
@@ -33,6 +33,21 @@ vec3 playerToShadowClip(vec3 playerPos) {
     return p.xyz / p.w;
 }
 
+// Depth compare with bilinear weights between the 4 nearest shadow texels:
+// smooth, sub-texel shadow edges instead of jagged shadow-map stair steps.
+float shadowCompareBilinear(vec2 uv, float z) {
+    vec2 res = vec2(shadowMapResolution);
+    vec2 p = uv * res - 0.5;
+    vec2 f = fract(p);
+    ivec2 i = ivec2(floor(p));
+    ivec2 maxI = ivec2(shadowMapResolution - 1);
+    float s00 = step(z, texelFetch(shadowtex1, clamp(i,               ivec2(0), maxI), 0).r);
+    float s10 = step(z, texelFetch(shadowtex1, clamp(i + ivec2(1, 0), ivec2(0), maxI), 0).r);
+    float s01 = step(z, texelFetch(shadowtex1, clamp(i + ivec2(0, 1), ivec2(0), maxI), 0).r);
+    float s11 = step(z, texelFetch(shadowtex1, clamp(i + ivec2(1, 1), ivec2(0), maxI), 0).r);
+    return mix(mix(s00, s10, f.x), mix(s01, s11, f.x), f.y);
+}
+
 struct ShadowResult {
     float light;       // 0 = shadowed, 1 = lit
     float waterDepth;  // blocks of translucent (water) between surface and the sun, 0 if none
@@ -59,7 +74,7 @@ ShadowResult getShadow(vec3 playerPos, vec3 worldNormal, float NdotL, bool folia
 
     // Vogel disk PCF rotated by dither (tight when shadows are blocky)
     #ifdef BLOCKY_SHADOWS
-        float radius = 0.4 / float(shadowMapResolution);
+        float radius = 0.6 / float(shadowMapResolution);
     #else
         float radius = SHADOW_SOFTNESS * 1.25 / float(shadowMapResolution);
     #endif
@@ -70,14 +85,14 @@ ShadowResult getShadow(vec3 playerPos, vec3 worldNormal, float NdotL, bool folia
     #endif
     float lit = 0.0;
     #if SHADOW_SAMPLES <= 1
-        lit = step(z, texture(shadowtex1, sp.xy).r);
+        lit = shadowCompareBilinear(sp.xy, z);
     #else
         for (int i = 0; i < SHADOW_SAMPLES; i++) {
             float fi = float(i) + 0.5;
             float rr = sqrt(fi / float(SHADOW_SAMPLES));
             float th = fi * 2.39996323 + rot;
             vec2 o = vec2(cos(th), sin(th)) * rr * radius;
-            lit += step(z, texture(shadowtex1, sp.xy + o).r);
+            lit += shadowCompareBilinear(sp.xy + o, z);
         }
         lit /= float(SHADOW_SAMPLES);
     #endif

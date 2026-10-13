@@ -84,8 +84,8 @@ vec3 shadeSurface(Surface s, vec3 lightCol, vec3 ambientCol, float dither) {
             // Light glowing through leaves when looking toward the sun
             vec3 V = normalize(s.viewPos);
             float VdotL = dot(V, L);
-            float sss = phaseHG(VdotL, 0.55) * 3.0 + 0.12;
-            color += lightCol * shadow * sss * (s.mat == MAT_LEAVES ? 0.55 : 0.35);
+            float sss = phaseHG(VdotL, 0.5) * 1.6 + 0.08;
+            color += lightCol * shadow * sss * (s.mat == MAT_LEAVES ? 0.32 : 0.22);
         }
         if (softEntity) {
             float VdotL = dot(normalize(s.viewPos), L);
