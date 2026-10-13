@@ -22,7 +22,7 @@ OptiFine/Iris shader-pack format, so it also loads on other recent Iris versions
 | Materials | Generated normals from vanilla textures, optional rich soil retexture for dirt (off by default), subsurface scattering for leaves and grass, emissive torches, lanterns, lava and glowstone, optional glowing ores |
 | Water | Animated wave normals, screen-space reflections with sky fallback, refraction, depth-based absorption, caustics projected through the shadow map |
 | Atmosphere | Volumetric light shafts (sun, moon, underwater, End), screen-space sunbeams, height-based fog, morning mist, rain fog, cave darkening, border fog |
-| Weather | Rain puddles with reflections, wet darkened surfaces, overcast sky |
+| Weather | Puddles that grow into pools during storms, raindrop impact ripples, a wake around the player in water, wet darkened surfaces, overcast sky |
 | Post | Bloom, eye-adaptation exposure, Lottes filmic tonemap, vibrance/saturation/contrast grading, TAA (or FXAA), sharpening, vignette |
 | Dimensions | Overworld, Nether (biome-coloured fog, drifting smoke, lava bounce light, no shadow pass) and End (nebula sky with dust lanes, star field, violet haze, soft light shafts) |
 | Fun | 3D see-through Nether portals with glowing depth layers, animated starfield on End portals and gateways |

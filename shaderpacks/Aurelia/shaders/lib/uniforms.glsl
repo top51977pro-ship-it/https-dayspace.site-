@@ -28,6 +28,7 @@ uniform mat4 shadowModelViewInverse;
 uniform mat4 shadowProjection;
 
 uniform vec3 cameraPosition;
+uniform vec3 eyePosition;
 uniform vec3 previousCameraPosition;
 uniform vec3 sunPosition;
 uniform vec3 shadowLightPosition;
@@ -46,6 +47,7 @@ uniform int entityId;
 uniform int blockEntityId;
 uniform int moonPhase;
 uniform int renderStage;
+uniform int biome_precipitation;
 
 uniform float frameTimeCounter;
 uniform float frameTime;
@@ -61,3 +63,6 @@ uniform float nightVision;
 uniform float blindness;
 uniform float darknessFactor;
 uniform float screenBrightness;
+
+// custom uniform from shaders.properties: smoothed horizontal player speed (blocks/s)
+uniform float aurPlayerSpeed;

@@ -1,6 +1,6 @@
 # Aurelia Shaders - option names
 
-profile.comment=Aurelia Shaders v1.11. Quality preset. Potato and Low are for integrated graphics, Ultra for high-end GPUs.
+profile.comment=Aurelia Shaders v1.12. Quality preset. Potato and Low are for integrated graphics, Ultra for high-end GPUs.
 profile.POTATO=§7Potato
 profile.LOW=§cLow
 profile.MEDIUM=§eMedium
@@ -14,6 +14,7 @@ screen.CLOUDS=Clouds
 screen.WATER=Water
 screen.WAVING=Waving Plants
 screen.DIMENSIONS=Nether & End
+screen.RAIN=Rain & Puddles
 screen.MOTION_BLUR=Motion Blur
 screen.POST=Post Processing
 
@@ -52,7 +53,6 @@ option.EMISSIVE_STRENGTH=Emissive Strength
 option.GLOWING_ORES=Glowing Ores
 option.BLOCK_REFLECTIONS=Block Reflections
 option.BLOCK_REFLECTIONS.comment=Metal blocks, ice and polished stone reflect their surroundings.
-option.RAIN_PUDDLES=Rain Puddles
 option.SOIL_RETEXTURE=Rich Soil
 option.SOIL_RETEXTURE.comment=Repaints dirt, coarse dirt, paths, farmland and grass block sides as darker, richer soil.
 
@@ -123,3 +123,14 @@ option.MOTION_BLUR_MAX_LENGTH=Max Blur Length
 option.MOTION_BLUR_MAX_LENGTH.comment=Longest blur streak in pixels. Lower values keep fast turns readable.
 option.MOTION_BLUR_FPS_INDEPENDENT=Same Blur At Any FPS
 option.MOTION_BLUR_FPS_INDEPENDENT.comment=Keeps the amount of blur constant whether you run at 30 or 240 fps.
+
+option.RAIN_PUDDLES=Rain Puddles
+option.RAIN_PUDDLES.comment=Puddles form on open ground while it rains and grow into pools in long storms. They dry up slowly afterwards.
+option.PUDDLE_AMOUNT=Puddle Amount
+option.RAIN_RIPPLES=Raindrop Ripples
+option.RAIN_RIPPLES.comment=Every raindrop that lands in a puddle or on open water leaves an impact and a spreading ring.
+option.PLAYER_RIPPLES=Player Wake
+option.PLAYER_RIPPLES.comment=Walking or swimming through water sends ripples out from your feet.
+option.RIPPLE_STRENGTH=Ripple Strength
+option.PORTAL_EDGES=Glowing Portal Edges
+option.PORTAL_EDGES.comment=A thin glowing rim where Nether portals meet their frame.

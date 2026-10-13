@@ -54,7 +54,7 @@ vec4 netherPortal(vec2 uv, vec2 tileMin, vec2 tileSize, vec3 T, vec3 B, vec3 N, 
     glow *= exposureComp * PORTAL_BRIGHTNESS;
 
     // between the streaks the window is clear: the world behind is only slightly dimmed
-    float alpha = 0.10 + max(front, coverage * 0.8) * 0.75;
-    vec3 haze = vec3(0.10, 0.08, 0.16) * 0.10;
+    float alpha = 0.30 + max(front, coverage * 0.8) * 0.55;
+    vec3 haze = vec3(0.16, 0.04, 0.30) * 0.10;
     return vec4((glow + haze) / alpha, alpha);
 }

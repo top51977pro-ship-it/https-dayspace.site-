@@ -90,6 +90,41 @@ void main() {
     vec4 translucent = texture(colortex3, texcoord);
     color = color * (1.0 - translucent.a) + translucent.rgb;
 
+    // ---- glowing portal edges ----
+    #if defined PORTAL_EFFECT && defined PORTAL_EDGES
+    if (material == MAT_PORTAL && depth0 < depth1) {
+        // portal planes are axis aligned: build the in-plane axes from the stored normal
+        vec3 N = abs(normalW.x) > abs(normalW.z) ? vec3(sign(normalW.x), 0.0, 0.0) : vec3(0.0, 0.0, sign(normalW.z));
+        vec3 T = vec3(N.z, 0.0, -N.x);
+        const vec3 B = vec3(0.0, 1.0, 0.0);
+        float edge = 0.0;
+        for (int k = 0; k < 8; k++) {
+            float ang = float(k) * 0.785398 + dither * 0.785398;
+            vec3 dirInPlane = T * cos(ang) + B * sin(ang);
+            for (int r = 0; r < 2; r++) {
+                float radius = r == 0 ? 0.045 : 0.11;
+                vec3 q = playerPos0 + dirInPlane * radius;
+                vec3 s = viewToScreen(playerToView(q));
+                if (any(lessThan(s.xy, vec2(0.0))) || any(greaterThan(s.xy, vec2(1.0)))) continue;
+                float d = texture(depthtex0, s.xy).r;
+                vec3 seen = viewToPlayer(screenToView(s.xy, d));
+                bool isPortal = decodeMat(texture(colortex2, s.xy).r) == MAT_PORTAL && distance(seen, q) < 0.1;
+                // the frame block covering that point sits at most ~0.7 blocks closer to the camera
+                bool frameThere = !isPortal && distance(seen, q) < 0.75;
+                if (frameThere) edge = max(edge, r == 0 ? 1.0 : 0.45);
+            }
+        }
+        #if defined NETHER
+        const float comp = 1.0 / 1.2;
+        #elif defined END
+        const float comp = 1.0 / 1.3;
+        #else
+        const float comp = 1.0;
+        #endif
+        color += vec3(0.74, 0.12, 1.14) * 1.6 * edge * comp * PORTAL_BRIGHTNESS;
+    }
+    #endif
+
     // ---- reflections ----
     bool opaqueReflective = depth0 == depth1 && material != MAT_PASSTHROUGH && material != MAT_NONE;
     bool reflective = depth0 > 0.56 && depth0 < 1.0 && smoothness > 0.1;

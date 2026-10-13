@@ -13,7 +13,7 @@ const float shadowDistanceRenderMul = 1.0;
 const float ambientOcclusionLevel = 1.0; // [0.0 0.25 0.5 0.75 1.0]
 const float eyeBrightnessHalflife = 6.0;
 const float wetnessHalflife = 300.0;
-const float drynessHalflife = 120.0;
+const float drynessHalflife = 600.0;
 
 #define SHADOW_SAMPLES 12 // [4 8 12 16 24 32]
 #define SHADOW_SOFTNESS 1.0 // [0.0 0.5 1.0 1.5 2.0 3.0]
@@ -40,8 +40,13 @@ const float drynessHalflife = 120.0;
 //#define GLOWING_ORES
 #define BLOCK_REFLECTIONS
 #define RAIN_PUDDLES
+#define PUDDLE_AMOUNT 1.0 // [0.5 0.75 1.0 1.25 1.5 2.0]
+#define RAIN_RIPPLES
+#define PLAYER_RIPPLES
+#define RIPPLE_STRENGTH 1.0 // [0.25 0.5 0.75 1.0 1.5 2.0 3.0]
 //#define SOIL_RETEXTURE
 #define PORTAL_EFFECT
+#define PORTAL_EDGES
 #define PORTAL_BRIGHTNESS 1.0 // [0.25 0.5 0.75 1.0 1.25 1.5 2.0 3.0]
 #define CLOUD_SHADOWS
 

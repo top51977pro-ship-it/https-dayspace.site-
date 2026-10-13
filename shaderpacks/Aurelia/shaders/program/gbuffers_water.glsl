@@ -75,6 +75,7 @@ flat in int blockId;
 #include "/lib/lighting.glsl"
 #include "/lib/fog.glsl"
 #include "/lib/water.glsl"
+#include "/lib/ripples.glsl"
 
 #ifdef PORTAL_EFFECT
 #include "/lib/portal.glsl"
@@ -106,6 +107,11 @@ void main() {
         float strength = WATER_WAVE_STRENGTH * mix(1.0, 0.35, smoothstep(24.0, 96.0, dist));
         if (normal.y > 0.5) {
             normal = getWaterNormal(worldPos.xz, strength);
+            vec2 slope = getPlayerRipples(playerPos);
+            #ifdef RAIN_RIPPLES
+            slope += getRainRipples(worldPos.xz, rainStrength * rainExposure(lmcoord.y) * (1.0 - smoothstep(12.0, 36.0, dist))) * 1.3;
+            #endif
+            normal = normalize(normal + vec3(-slope.x, 0.0, -slope.y));
         } else if (normal.y > -0.5) {
             vec3 n2 = getWaterNormal(worldPos.xz + worldPos.y, strength * 0.5);
             normal = normalize(normal + vec3(n2.x, 0.0, n2.z));
@@ -128,13 +134,17 @@ void main() {
     }
     #ifdef PORTAL_EFFECT
     else if (blockId == ID_NETHER_PORTAL) {
-        material = MAT_GLASS;
+        material = MAT_PORTAL;
         smoothness = 0.0;
         vec3 N = normalize(normalW);
         vec3 T = normalize(tangentW.xyz - N * dot(tangentW.xyz, N));
         vec3 B = cross(N, T) * tangentW.w;
         vec2 tileSize = max(texHalf * 2.0, vec2(1e-6));
         outCol = netherPortal(texcoord, midCoord - texHalf, tileSize, T, B, N, normalize(playerPos), dither);
+        // standing inside the portal: fade it so the screen isn't covered in purple
+        float closeFade = saturate(dist - 0.3);
+        outCol.rgb *= closeFade;
+        outCol.a *= closeFade;
         outCol.rgb = applyFog(outCol.rgb, playerPos);
     }
     #endif

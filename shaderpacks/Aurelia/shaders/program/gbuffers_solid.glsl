@@ -92,6 +92,10 @@ layout(location = 0) out vec4 outColor;
 layout(location = 1) out vec4 outData;
 layout(location = 2) out vec4 outMaterial;
 
+#if defined PROG_TERRAIN && defined RAIN_PUDDLES
+#include "/lib/ripples.glsl"
+#endif
+
 #ifdef PROG_TERRAIN
 float heightSample(vec2 coord, vec2 tileMin, vec2 tileSize) {
     coord = tileMin + mod(coord - tileMin, tileSize);
@@ -232,15 +236,25 @@ void main() {
 
     #ifdef RAIN_PUDDLES
     if (wetness > 0.001 && material != MAT_PLANT && material != MAT_LEAVES) {
-        float exposed = smoothstep(0.85, 0.95, lmcoord.y);
+        float wet = wetness * rainExposure(lmcoord.y);
         float up = smoothstep(0.6, 0.95, normalW.y);
         vec2 wp = playerPos.xz + cameraPosition.xz;
-        float puddle = smoothstep(0.42, 0.62, noise2D(wp * 1.6) * 0.65 + noise2D(wp * 5.0) * 0.35);
-        float wet = wetness * exposed;
-        albedo.rgb *= 1.0 - 0.30 * wet;
-        float puddleAmt = wet * up * puddle;
-        smoothness = max(smoothness, mix(0.35 * wet * up, 0.92, puddleAmt));
-        normal = normalize(mix(normal, normalW, puddleAmt));
+        float puddleAmt = getPuddleAmount(wp, wet) * up;
+
+        // wet surfaces darken; standing water darkens a bit more and hides the texture detail
+        albedo.rgb *= 1.0 - 0.30 * wet - 0.12 * puddleAmt;
+        smoothness = max(smoothness, mix(0.35 * wet * up, 0.95, puddleAmt));
+
+        vec3 waterNormal = vec3(0.0, 1.0, 0.0);
+        if (puddleAmt > 0.01) {
+            vec2 slope = vec2(0.0);
+            #ifdef RAIN_RIPPLES
+            slope += getRainRipples(wp, rainStrength * rainExposure(lmcoord.y) * (1.0 - smoothstep(12.0, 36.0, dist)));
+            #endif
+            slope += getPlayerRipples(playerPos);
+            waterNormal = normalize(vec3(-slope.x, 1.0, -slope.y));
+        }
+        normal = normalize(mix(normal, waterNormal, puddleAmt));
     }
     #endif
 

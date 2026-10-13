@@ -1,5 +1,21 @@
 # Aurelia Shaders - Changelog
 
+## v1.12
+- **Rain & Puddles (new settings page):**
+  - Puddles form on open, upward-facing ground while it rains and spread into larger pools
+    during long storms, then dry up slowly afterwards (about 30 s half-life). Not in snowy biomes.
+  - Raindrop impacts: every drop that lands in a puddle or on open water leaves a small splash
+    and a ring that spreads out and fades.
+  - Player wake: walking or swimming through puddles and water sends ripples out from your feet;
+    the faster you move, the stronger they are.
+  - Options: *Rain Puddles*, *Puddle Amount*, *Raindrop Ripples*, *Player Wake*, *Ripple Strength*.
+- **Glowing Portal Edges:** a thin glowing rim where Nether portals meet their frame, detected in
+  screen space (no voxel data needed). Option under *Nether & End*.
+- Portal interior: a soft dark-violet veil between the streaks and it fades out when you stand
+  inside the portal.
+- Note: written from scratch. Complementary's code is not included (its license does not allow
+  reusing parts of it here); only the general technique was studied.
+
 ## v1.11
 - **Fixed full-bright players, mobs and animals:** entities were lit in the deferred pass, but
   recent Iris versions can draw them after that pass, so they showed up completely unlit (raw
