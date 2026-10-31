@@ -1,0 +1,8 @@
+# OPTIONAL post-June-2026 style (OFF by default). Only the AH slot change (25 -> 18) is taken from the
+# wiki description; everything else mirrors feb-2026. Not a goal of this project.
+keyall: {enabled: true}
+auction: {max-listings: 18}
+shardshop:
+  sp_skeleton:  {type: spawner, value: SKELETON, price: 1500, slot: 10}
+  key_prime:    {type: key, value: prime, price: 2000, slot: 29}
+  key_crimson:  {type: key, value: crimson, price: 2500, slot: 30}

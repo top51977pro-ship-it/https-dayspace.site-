@@ -1,0 +1,8 @@
+// Pure-Java logic (math, persistence, ledger). No Bukkit dependency, so it is unit-testable offline.
+dependencies {
+    compileOnly 'org.xerial:sqlite-jdbc:3.47.1.0'
+    testImplementation 'org.xerial:sqlite-jdbc:3.47.1.0'
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.11.4'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher:1.11.4'
+}
+test { useJUnitPlatform(); testLogging { events 'passed', 'failed'; exceptionFormat 'full' } }

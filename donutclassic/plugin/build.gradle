@@ -1,0 +1,21 @@
+// Paper plugin. Compiled against paper-api (1.21.4 API surface; api-version 1.21 runs on newer 1.21.x Paper builds).
+def paperApi = findProperty('paperApi') ?: '1.21.4-R0.1-SNAPSHOT'
+dependencies {
+    compileOnly "io.papermc.paper:paper-api:${paperApi}"
+    implementation project(':core')
+}
+processResources {
+    inputs.property 'version', project.version
+    filesMatching('plugin.yml') { expand(version: project.version) }
+}
+jar {
+    archiveBaseName = 'DonutClassic'
+    archiveVersion = ''
+    from { project(':core').sourceSets.main.output }
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+tasks.register('dist', Copy) {
+    dependsOn jar
+    from jar.archiveFile
+    into rootProject.file('dist')
+}

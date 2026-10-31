@@ -1,0 +1,19 @@
+# EARLY CLASSIC: all five crate keys in the shard shop, hourly keyall, 25 AH listings, old AFK rewards.
+# Spawner price 1,500 shards is DOCUMENTED (Feb 2026); key prices here are APPROX (not verified).
+keyall: {enabled: true}
+auction: {max-listings: 25}
+shardshop:
+  sp_skeleton:  {type: spawner, value: SKELETON, price: 1500, slot: 10}
+  sp_golem:     {type: spawner, value: IRON_GOLEM, price: 1500, slot: 11}
+  sp_creeper:   {type: spawner, value: CREEPER, price: 1500, slot: 12}
+  sp_spider:    {type: spawner, value: SPIDER, price: 1500, slot: 13}
+  sp_pigman:    {type: spawner, value: ZOMBIFIED_PIGLIN, price: 1500, slot: 14}
+  sp_blaze:     {type: spawner, value: BLAZE, price: 1500, slot: 15}
+  sp_cow:       {type: spawner, value: COW, price: 1500, slot: 16}
+  sp_pig:       {type: spawner, value: PIG, price: 1500, slot: 19}
+  key_common:   {type: key, value: common, price: 250, slot: 28}     # APPROX
+  key_prime:    {type: key, value: prime, price: 1500, slot: 29}     # APPROX (raised to 2000 on 26 Feb 2026)
+  key_gold:     {type: key, value: gold, price: 2000, slot: 30}      # APPROX
+  key_amethyst: {type: key, value: amethyst, price: 2000, slot: 31}  # APPROX
+  key_crimson:  {type: key, value: crimson, price: 2000, slot: 32}   # APPROX (raised to 2500 on 26 Feb 2026)
+  booster:      {type: booster, minutes: 60, price: 500, slot: 34}   # APPROX

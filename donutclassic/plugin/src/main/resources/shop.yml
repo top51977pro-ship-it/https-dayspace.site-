@@ -1,0 +1,49 @@
+# Server shop (/shop). Buy prices here; sell prices come from prices.yml. All prices APPROX.
+title: '&8Shop'
+categories:
+  blocks:
+    name: '&aBlocks'
+    icon: GRASS_BLOCK
+    slot: 10
+    items:
+      - {material: DIRT, buy: '2'}
+      - {material: GRASS_BLOCK, buy: '5'}
+      - {material: STONE, buy: '3'}
+      - {material: COBBLESTONE, buy: '2'}
+      - {material: OAK_LOG, buy: '10'}
+      - {material: SPRUCE_LOG, buy: '10'}
+      - {material: SAND, buy: '4'}
+      - {material: GLASS, buy: '8'}
+      - {material: OBSIDIAN, buy: '150'}
+      - {material: END_STONE, buy: '20'}
+  food:
+    name: '&6Food'
+    icon: COOKED_BEEF
+    slot: 12
+    items:
+      - {material: COOKED_BEEF, buy: '15'}
+      - {material: BREAD, buy: '8'}
+      - {material: GOLDEN_CARROT, buy: '40'}
+      - {material: GOLDEN_APPLE, buy: '800'}
+  combat:
+    name: '&cCombat'
+    icon: DIAMOND_SWORD
+    slot: 14
+    items:
+      - {material: ARROW, buy: '5'}
+      - {material: ENDER_PEARL, buy: '100'}
+      - {material: TOTEM_OF_UNDYING, buy: '25k'}
+      - {material: EXPERIENCE_BOTTLE, buy: '50'}
+      - {material: END_CRYSTAL, buy: '1.5k'}
+      - {material: RESPAWN_ANCHOR, buy: '2k'}
+      - {material: GLOWSTONE, buy: '40'}
+  farming:
+    name: '&2Farming'
+    icon: WHEAT
+    slot: 16
+    items:
+      - {material: WHEAT_SEEDS, buy: '5'}
+      - {material: SUGAR_CANE, buy: '10'}
+      - {material: CACTUS, buy: '10'}
+      - {material: NETHER_WART, buy: '25'}
+      - {material: BONE_MEAL, buy: '8'}

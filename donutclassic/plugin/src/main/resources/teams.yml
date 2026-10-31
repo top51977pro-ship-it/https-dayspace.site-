@@ -1,0 +1,8 @@
+max-members: 50                 # DOCUMENTED historic maximum
+name-regex: '[A-Za-z0-9_]{3,16}'
+friendly-fire-default: false
+chat-format: '&b[Team] &f{player}&7: &f{message}'
+# What non-leaders may do (leader can do everything).
+permissions:
+  officer: [invite, kick, sethome, home, chat]
+  member: [home, chat]

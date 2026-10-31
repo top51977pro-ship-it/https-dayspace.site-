@@ -1,0 +1,81 @@
+# VIRTUAL STACKED SPAWNERS. Spawner blocks never spawn mobs; they fill virtual storage.
+# Drop rates are per SINGLE spawner per minute (APPROX - official rates are not published).
+
+cycle-seconds: 20              # production tick
+save-interval-seconds: 60      # batched DB writes of changed spawners
+activation-distance: 64        # blocks
+# near-player: produce only while a (non-spectator) player is within activation-distance (DEFAULT)
+# loaded-chunk: produce whenever the chunk is loaded
+# Unloaded chunks never produce and there is NO offline catch-up (prevents exploits).
+offline-policy: near-player
+
+stacking:
+  # Diminishing returns (APPROX - the wiki only says stacking gives less than separate blocks).
+  mode: power                  # power | table
+  exponent: 0.85               # effective = stack ^ exponent
+  max-stack: 10000
+  table:                       # used when mode: table (stack -> effective multiplier, interpolated)
+    1: 1.0
+    10: 8.0
+    64: 40.0
+    100: 58.0
+    1000: 400.0
+
+storage:
+  per-spawner: 2304            # items of storage per spawner in the stack (= 36 stacks)
+  max-total: 10000000
+
+mining:
+  require-silk-touch: true
+  allow-non-owner-break: false # true = raidable spawners
+access:
+  public: false                # false = owner + team only (admins always)
+protect-from-explosions: true
+
+types:
+  SKELETON:
+    entity: SKELETON
+    display: '&fSkeleton Spawner'
+    drops: {BONE: 3.0, ARROW: 3.0}
+    xp-per-minute: 5
+  IRON_GOLEM:
+    entity: IRON_GOLEM
+    display: '&7Iron Golem Spawner'
+    drops: {IRON_INGOT: 2.0}
+    xp-per-minute: 0
+  CREEPER:
+    entity: CREEPER
+    display: '&aCreeper Spawner'
+    drops: {GUNPOWDER: 3.0}
+    xp-per-minute: 5
+  SPIDER:
+    entity: SPIDER
+    display: '&8Spider Spawner'
+    drops: {STRING: 3.0, SPIDER_EYE: 1.0}
+    xp-per-minute: 5
+  ZOMBIFIED_PIGLIN:
+    entity: ZOMBIFIED_PIGLIN
+    display: '&6Zombified Piglin Spawner'
+    drops: {GOLD_NUGGET: 4.0}
+    xp-per-minute: 5
+  BLAZE:
+    entity: BLAZE
+    display: '&eBlaze Spawner'
+    drops: {BLAZE_POWDER: 2.0}     # classic wiki: blaze POWDER, not rods
+    xp-per-minute: 10
+  COW:
+    entity: COW
+    display: '&6Cow Spawner'
+    drops: {BEEF: 3.0}             # classic wiki: raw beef, no leather
+    xp-per-minute: 2
+  PIG:
+    entity: PIG
+    display: '&dPig Spawner'
+    drops: {PORKCHOP: 3.0}
+    xp-per-minute: 2
+  ZOMBIE:                          # OPTIONAL extra, NOT in the classic eight -> disabled
+    enabled: false
+    entity: ZOMBIE
+    display: '&2Zombie Spawner'
+    drops: {ROTTEN_FLESH: 3.0}
+    xp-per-minute: 5

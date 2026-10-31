@@ -1,0 +1,78 @@
+# Classic crates. Keys are VIRTUAL (no key items) and only earned in-game or given by admins.
+# Reward entry: one of item|spawner|money|shards|key|booster|tool + amount, weight, optional name/lore/enchants.
+# Reward lists are APPROX examples built from the documented categories (see HISTORICAL_ACCURACY.md).
+menu-title: '&8Crates'
+candidates-shown: 7                 # DOCUMENTED: 7 candidate rewards, pick one
+on-close-without-choice: refund     # refund | random
+keyall:
+  enabled: true                     # preset may override (presets/*.yml keyall.enabled)
+  interval-minutes: 60              # DOCUMENTED: hourly
+  key: common
+  amount: 1
+
+crates:
+  common:
+    display: '&f&lCommon Crate'
+    icon: CHEST
+    rewards:   # documented: diamond tools/armour
+      - {item: DIAMOND_SWORD, weight: 10, enchants: {sharpness: 3, unbreaking: 2}}
+      - {item: DIAMOND_PICKAXE, weight: 10, enchants: {efficiency: 3, unbreaking: 2}}
+      - {item: DIAMOND_AXE, weight: 8, enchants: {efficiency: 3}}
+      - {item: DIAMOND_SHOVEL, weight: 8, enchants: {efficiency: 3}}
+      - {item: DIAMOND_HELMET, weight: 8, enchants: {protection: 2}}
+      - {item: DIAMOND_CHESTPLATE, weight: 6, enchants: {protection: 2}}
+      - {item: DIAMOND_LEGGINGS, weight: 6, enchants: {protection: 2}}
+      - {item: DIAMOND_BOOTS, weight: 8, enchants: {protection: 2}}
+      - {item: GOLDEN_APPLE, amount: 8, weight: 10}
+      - {item: EXPERIENCE_BOTTLE, amount: 32, weight: 8}
+      - {money: '5k', weight: 10}
+      - {shards: 25, weight: 6}
+  prime:
+    display: '&b&lPrime Crate'
+    icon: ENDER_CHEST
+    rewards:   # documented: netherite gear, mace, crossbow
+      - {item: NETHERITE_SWORD, weight: 10, enchants: {sharpness: 5, unbreaking: 3}}
+      - {item: NETHERITE_PICKAXE, weight: 10, enchants: {efficiency: 5, unbreaking: 3}}
+      - {item: NETHERITE_HELMET, weight: 8, enchants: {protection: 4, unbreaking: 3}}
+      - {item: NETHERITE_CHESTPLATE, weight: 6, enchants: {protection: 4, unbreaking: 3}}
+      - {item: NETHERITE_LEGGINGS, weight: 6, enchants: {protection: 4, unbreaking: 3}}
+      - {item: NETHERITE_BOOTS, weight: 8, enchants: {protection: 4, unbreaking: 3}}
+      - {item: MACE, weight: 4, enchants: {density: 3}}
+      - {item: CROSSBOW, weight: 8, enchants: {quick_charge: 3, multishot: 1}}
+      - {item: TOTEM_OF_UNDYING, weight: 6}
+      - {money: '25k', weight: 8}
+  gold:
+    display: '&6&lGold Crate'
+    icon: GOLD_BLOCK
+    rewards:   # documented: a spawner
+      - {spawner: SKELETON, weight: 14}
+      - {spawner: IRON_GOLEM, weight: 10}
+      - {spawner: CREEPER, weight: 12}
+      - {spawner: SPIDER, weight: 12}
+      - {spawner: ZOMBIFIED_PIGLIN, weight: 10}
+      - {spawner: BLAZE, weight: 8}
+      - {spawner: COW, weight: 16}
+      - {spawner: PIG, weight: 16}
+  amethyst:
+    display: '&5&lAmethyst Crate'
+    icon: AMETHYST_BLOCK
+    rewards:   # documented: unique items
+      - {tool: shard_pickaxe, weight: 10}
+      - {tool: shard_shovel, weight: 10}
+      - {tool: shard_axe, weight: 10}
+      - {tool: amethyst_bucket, weight: 8}
+      - {booster: 60, weight: 12}
+      - {item: ELYTRA, weight: 4}
+      - {shards: 250, weight: 10}
+  crimson:
+    display: '&4&lCrimson Crate'
+    icon: CRIMSON_NYLIUM
+    rewards:   # documented: netherite tools/armour
+      - {item: NETHERITE_SWORD, weight: 8, name: '&4Crimson Blade', enchants: {sharpness: 5, fire_aspect: 2, unbreaking: 3, mending: 1}}
+      - {item: NETHERITE_PICKAXE, weight: 8, name: '&4Crimson Pickaxe', enchants: {efficiency: 5, fortune: 3, unbreaking: 3, mending: 1}}
+      - {item: NETHERITE_AXE, weight: 6, enchants: {efficiency: 5, unbreaking: 3, mending: 1}}
+      - {item: NETHERITE_HELMET, weight: 6, enchants: {protection: 4, unbreaking: 3, mending: 1}}
+      - {item: NETHERITE_CHESTPLATE, weight: 5, enchants: {protection: 4, unbreaking: 3, mending: 1}}
+      - {item: NETHERITE_LEGGINGS, weight: 5, enchants: {protection: 4, unbreaking: 3, mending: 1}}
+      - {item: NETHERITE_BOOTS, weight: 6, enchants: {protection: 4, feather_falling: 4, unbreaking: 3, mending: 1}}
+      - {item: ENCHANTED_GOLDEN_APPLE, amount: 2, weight: 6}

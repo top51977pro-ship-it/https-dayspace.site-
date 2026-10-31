@@ -1,0 +1,24 @@
+# Money is stored in cents. Values accept 1.5k / 2m style.
+pay:
+  minimum: '1'
+sellall:
+  enabled: true
+sell-multipliers:
+  default: 1.0
+  global: 1.0                  # event multiplier
+  tiers:                       # permission dc.sellmulti.<tier> (grant via free/earned ranks only)
+    tier1: 1.1
+    tier2: 1.25
+    tier3: 1.5
+auction:
+  max-listings: 25             # DOCUMENTED classic standard (June update: 18). Presets override.
+  duration-hours: 48           # APPROX
+  sales-tax-percent: 0         # APPROX
+  min-price: '1'
+  max-price: '1t'
+  allow-spawners: false        # Fandom wiki: spawners were excluded from the AH historically
+orders:
+  max-per-player: 10
+  max-amount: 100000
+  creation-fee-percent: 0
+  fill-fee-percent: 0

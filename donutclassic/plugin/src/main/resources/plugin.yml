@@ -1,0 +1,57 @@
+name: DonutClassic
+version: '${version}'
+main: net.donutclassic.DonutClassic
+api-version: '1.21'
+description: Private, original classic-SMP gameplay (virtual stacked spawners, shards, crates, AH, orders, teams, duels) for Java + Bedrock (Geyser/Floodgate).
+authors: [DonutClassic contributors]
+softdepend: [floodgate, Geyser-Spigot, WorldEdit, FastAsyncWorldEdit, WorldGuard]
+commands:
+  dc: {description: DonutClassic admin, usage: /dc help}
+  spawner: {description: Spawner admin shortcut, usage: /spawner give|inspect|benchmark, permission: dc.admin}
+  shards: {description: Show shards, usage: '/shards [player]'}
+  shardshop: {description: Open the shard shop}
+  crates: {description: Open crates, aliases: [crate]}
+  keys: {description: Show your virtual keys}
+  balance: {description: Show balance, aliases: [bal, money]}
+  baltop: {description: Richest players}
+  pay: {description: Pay a player, usage: /pay <player> <amount>}
+  shop: {description: Server shop}
+  sell: {description: Open the sell menu}
+  sellall: {description: Sell all sellable items}
+  sellhistory: {description: Your recent sales}
+  worth: {description: Sell value of the item in hand}
+  claim: {description: Claim mailbox items, aliases: [mailbox]}
+  ah: {description: Auction House, usage: '/ah [sell <price>|search <text>|my|claim]', aliases: [auction, auctionhouse]}
+  orders: {description: Buy orders, usage: '/orders [create <item> <amount> <price-each>|my|claim]', aliases: [order]}
+  team: {description: Teams, usage: /team help, aliases: [t]}
+  spawn: {description: Teleport to spawn}
+  afk: {description: Teleport to the AFK area}
+  warp: {description: Warps, usage: /warp <name>, aliases: [warps]}
+  rtp: {description: Random teleport, usage: '/rtp [overworld|nether|end]', aliases: [wild]}
+  sethome: {description: Set a home}
+  home: {description: Teleport home, aliases: [h]}
+  delhome: {description: Delete a home}
+  homes: {description: List homes}
+  tpa: {description: Request to teleport to a player}
+  tpahere: {description: Request a player to teleport to you}
+  tpaccept: {description: Accept a teleport request, aliases: [tpyes]}
+  tpdeny: {description: Deny a teleport request, aliases: [tpno]}
+  back: {description: Return to your previous location}
+  duel: {description: Duels, usage: '/duel <player>|accept|deny|queue|leave|stats', aliases: [duels]}
+  stats: {description: Player stats}
+  playtime: {description: Playtime}
+  top: {description: Leaderboards, usage: '/top <money|shards|kills|deaths|playtime|duelwins>', aliases: [leaderboard]}
+  settings: {description: Personal settings}
+  rules: {description: Server rules}
+  help: {description: Help, aliases: [dchelp]}
+  report: {description: Report a player, usage: /report <player> <reason>}
+permissions:
+  dc.admin:
+    default: op
+    children: {dc.admin.build: true, dc.admin.spawner: true, dc.staff: true, dc.teleport.bypass: true, dc.combat.bypass: true, dc.chat.bypass: true}
+  dc.admin.build: {default: op, description: Build in protected spawn/AFK regions}
+  dc.admin.spawner: {default: op, description: Open/break any spawner}
+  dc.staff: {default: op, description: Receive reports}
+  dc.teleport.bypass: {default: op, description: No teleport warm-up / RTP cooldown}
+  dc.combat.bypass: {default: op}
+  dc.chat.bypass: {default: op}

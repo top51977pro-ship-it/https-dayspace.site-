@@ -1,0 +1,111 @@
+# DonutClassic main configuration.
+# Values marked APPROX are community-style defaults, NOT verified official values. See HISTORICAL_ACCURACY.md.
+
+# classic-early | feb-2026 | post-2026   (files in presets/). Switch in-game with /dc preset <name>.
+preset: classic-early
+locale: en            # messages_<locale>.yml; add your own translation file, missing keys fall back to English
+
+menus:
+  click-debounce-ms: 250   # ignores double clicks / Bedrock double taps inside menus
+
+spawn:
+  teleport-on-first-join: true
+  teleport-on-join: false
+  respawn-at-spawn: true
+
+regions:
+  protect-afk: true         # AFK region gets the same protection as spawn
+  allow-containers: false   # allow opening chests etc. inside spawn
+  void-return-depth: 10     # blocks below world min height before returning to spawn
+
+teleport:
+  warmup-seconds: 5         # DOCUMENTED classic behaviour (instant only after the late-June-2026 update)
+  tpa-expire-seconds: 60
+  back-enabled: true
+
+homes:
+  default-max: 2            # DOCUMENTED classic default. dc.homes.<n> raises it (ranks are free/admin only)
+
+rtp:
+  attempts: 12
+  cooldown-seconds: 30      # APPROX
+  min-radius: 500           # APPROX
+  max-radius: 5000          # APPROX
+  worlds:
+    overworld: world
+    nether: world_nether
+    end: world_the_end
+  end:
+    min-radius: 1000        # outer End islands
+    max-radius: 4000
+
+scoreboard:
+  enabled: true
+  refresh-ticks: 40
+  title: '&b&lDonutClassic'
+  lines:
+    - '&7&m----------------'
+    - '&fMoney: &a{money}'
+    - '&fShards: &d{shards}'
+    - '&fKills: &c{kills}'
+    - '&fDeaths: &7{deaths}'
+    - '&fPlaytime: &e{playtime}'
+    - '&fTeam: &b{team}'
+    - '&fKeyall: &6{keyall}'
+    - '&fCombat: &c{combat}'
+    - '&7&m---------------- '
+
+tablist:
+  show-rank-prefix: true
+
+chat:
+  format: '{team}{prefix}&f%1$s&7: &f%2$s'
+  min-interval-ms: 1500
+  duplicate-window-ms: 10000
+
+announcements:
+  interval-seconds: 300
+  messages:
+    - '&b[DonutClassic] &fAFK at &e/afk &fto earn &d1 Shard per minute&f.'
+    - '&b[DonutClassic] &fEvery hour every online player gets a &eCommon key&f.'
+    - '&b[DonutClassic] &fSell items with &e/sell&f, trade on &e/ah &fand &e/orders&f.'
+
+# NPC actions created with /dc setnpc <id>; clicking runs the command as the player.
+npcs:
+  shop: {name: '&a&lShop', command: shop}
+  shardshop: {name: '&d&lShard Shop', command: shardshop}
+  crates: {name: '&6&lCrates', command: crates}
+  rtp: {name: '&e&lRandom Teleport', command: rtp}
+  duels: {name: '&c&lDuels', command: duel}
+  afk: {name: '&b&lAFK Area', command: afk}
+  ah: {name: '&e&lAuction House', command: ah}
+  orders: {name: '&e&lOrders', command: orders}
+
+# Shard tools (given via /dc tool give, the shard shop or crates). kind: area3x3 | treefeller | drain
+tools:
+  shard_pickaxe:
+    kind: area3x3
+    material: NETHERITE_PICKAXE
+    name: '&d&lShard Pickaxe'
+    lore: ['&7Mines a 3x3 area.', '&8Sneak to mine one block.']
+    enchants: {efficiency: 5, unbreaking: 3}
+  shard_shovel:
+    kind: area3x3
+    material: NETHERITE_SHOVEL
+    name: '&d&lShard Shovel'
+    lore: ['&7Digs a 3x3 area.', '&8Sneak to dig one block.']
+    enchants: {efficiency: 5, unbreaking: 3}
+  shard_axe:
+    kind: treefeller
+    material: NETHERITE_AXE
+    name: '&d&lShard Axe'
+    lore: ['&7Fells whole trees.', '&8Sneak to cut one log.']
+    max-logs: 128
+    enchants: {efficiency: 5, unbreaking: 3}
+  amethyst_bucket:
+    kind: drain
+    material: BUCKET
+    name: '&5&lAmethyst Bucket'
+    lore: ['&7Right-click to drain nearby water.']
+    radius: 2               # APPROX - drains a (2r+1)^3 cube
+    cooldown-seconds: 5

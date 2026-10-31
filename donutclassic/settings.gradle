@@ -1,0 +1,2 @@
+rootProject.name = 'DonutClassic'
+include 'core', 'plugin'

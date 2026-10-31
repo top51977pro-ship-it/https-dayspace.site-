@@ -1,0 +1,3 @@
+# Written by /dc set... commands. Locations are stored by world UUID (+ name fallback).
+# Do not hand-edit while the server is running.
+warps: {}

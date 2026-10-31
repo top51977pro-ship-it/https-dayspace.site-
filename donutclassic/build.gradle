@@ -1,0 +1,13 @@
+allprojects {
+    group = 'net.donutclassic'
+    version = '1.0.0'
+    repositories {
+        mavenCentral()
+        maven { url = 'https://repo.papermc.io/repository/maven-public/' }
+    }
+}
+subprojects {
+    apply plugin: 'java'
+    java { sourceCompatibility = JavaVersion.VERSION_21; targetCompatibility = JavaVersion.VERSION_21 }
+    tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8'; options.release = 21 }
+}

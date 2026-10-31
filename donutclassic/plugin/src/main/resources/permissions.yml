@@ -1,0 +1,21 @@
+# Ranks are cosmetic/earned/admin-assigned ONLY (/dc rank set <player> <rank>). Never sold.
+ranks:
+  default:
+    prefix: '&7'
+    permissions: []
+  member:
+    prefix: '&a[Member] '
+    inherits: [default]
+    permissions: [dc.homes.3]
+  veteran:
+    prefix: '&b[Veteran] '
+    inherits: [member]
+    permissions: [dc.homes.5, dc.sellmulti.tier1]
+  legend:
+    prefix: '&6[Legend] '
+    inherits: [veteran]
+    permissions: [dc.homes.8, dc.sellmulti.tier2, dc.ah.listings.35]
+  helper:
+    prefix: '&e[Helper] '
+    inherits: [member]
+    permissions: [dc.staff]

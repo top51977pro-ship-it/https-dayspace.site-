@@ -1,0 +1,16 @@
+# Shards: separate currency stored per UUID.
+afk:
+  seconds-per-reward: 60        # DOCUMENTED: 1 shard per complete minute in the AFK area
+  shards-per-reward: 1
+  max-rewarded-accounts-per-ip: 0   # 0 = off (historic). e.g. 2 to limit alt-account farming
+kill-reward:
+  enabled: true                 # DOCUMENTED historic: +10 shards per player kill
+  shards: 10
+  same-victim-cooldown-seconds: 600
+  block-same-ip: true
+booster:
+  multiplier: 4                 # x4 AFK shard booster (APPROX duration set per item)
+shop-title: '&5&lShard Shop'
+# Fallback shard shop if the active preset has none. Normally presets/<preset>.yml -> shardshop is used.
+shardshop:
+  skeleton: {type: spawner, value: SKELETON, price: 1500, slot: 10}

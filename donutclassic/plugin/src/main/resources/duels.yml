@@ -1,0 +1,12 @@
+# Arenas are bound in-game: /dc duel setarena <name> 1  and  /dc duel setarena <name> 2
+gear-mode: own-gear-no-loss     # players fight with their own gear; everything is restored afterwards
+max-duration-seconds: 300
+queue:                          # APPROX of "matched by win rate and armour level"
+  win-rate-weight: 0.5
+  base-gap: 0.15
+  gap-growth-per-second: 0.01
+allowed-commands-in-duel: [duel, msg, r]
+combat:
+  tag-seconds: 15
+  kill-on-logout: true
+  blocked-commands: [spawn, home, homes, tpa, tpahere, tpaccept, rtp, wild, warp, afk, back, team, t, ec, enderchest]

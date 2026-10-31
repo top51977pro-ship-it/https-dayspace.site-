@@ -1,0 +1,79 @@
+name: DonutClassic build
+on:
+  push:
+    paths: ['donutclassic/**', '.github/workflows/donutclassic.yml']
+  pull_request:
+    paths: ['donutclassic/**']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults: {run: {working-directory: donutclassic}}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: {distribution: temurin, java-version: '21'}
+      - name: Unit tests (core) + compile plugin against paper-api
+        run: ./gradlew --no-daemon :core:test :plugin:dist
+      - name: Show jar
+        run: ls -l dist && unzip -l dist/DonutClassic.jar | tail -3
+      - uses: actions/upload-artifact@v4
+        with: {name: DonutClassic-jar, path: donutclassic/dist/DonutClassic.jar}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: {name: core-test-report, path: donutclassic/core/build/reports/tests/test}
+
+  smoke:
+    needs: build
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {mc: '1.21.4', java: '21'}
+          - {mc: 'latest', java: '25'}
+    defaults: {run: {working-directory: donutclassic}}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: {distribution: temurin, java-version: '${{ matrix.java }}'}
+      - uses: actions/download-artifact@v4
+        with: {name: DonutClassic-jar, path: donutclassic/dist}
+      - name: Download Paper ${{ matrix.mc }}
+        run: |
+          set -e
+          MC='${{ matrix.mc }}'
+          if [ "$MC" = latest ]; then
+            MC=$(curl -fsS https://fill.papermc.io/v3/projects/paper | jq -r '[.versions[] | .[]] | map(select(test("^[0-9.]+$"))) | sort_by(split(".") | map(tonumber)) | last')
+          fi
+          echo "Paper version: $MC"
+          URL=$(curl -fsS "https://fill.papermc.io/v3/projects/paper/versions/$MC/builds" | jq -r '[.[] | select(.channel=="STABLE")] | first // empty | .downloads."server:default".url')
+          [ -n "$URL" ] || URL=$(curl -fsS "https://fill.papermc.io/v3/projects/paper/versions/$MC/builds" | jq -r 'first | .downloads."server:default".url')
+          echo "Downloading $URL"; curl -fsSL -o paper.jar "$URL"
+          echo "PAPER_MC=$MC" >> "$GITHUB_ENV"
+      - name: Smoke test on real Paper server
+        run: scripts/smoke-test.sh paper.jar dist/DonutClassic.jar test-server
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: {name: 'smoke-logs-${{ matrix.mc }}', path: 'donutclassic/test-server/*.log'}
+
+  publish-jar:
+    needs: [build, smoke]
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with: {name: DonutClassic-jar, path: donutclassic/dist}
+      - name: Commit verified jar to dist/
+        run: |
+          cd donutclassic
+          sha256sum dist/DonutClassic.jar > dist/DonutClassic.jar.sha256
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f dist/DonutClassic.jar dist/DonutClassic.jar.sha256
+          git diff --cached --quiet && exit 0
+          git commit -m "Build DonutClassic.jar (CI-verified) [skip ci]"
+          git push
