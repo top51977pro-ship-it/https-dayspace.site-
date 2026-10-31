@@ -258,7 +258,19 @@ public final class MapModule extends Module {
             plugin.getLogger().info(done);
             if (!unknownStates.isEmpty()) plugin.getLogger().warning("Replaced/simplified block states: " + unknownStates);
             msg().sendRaw(who, "&a" + done);
-            msg().sendRaw(who, "&7Next: &f/dc map tp " + name + "&7, then &f/dc setspawn&7, &f/dc map region " + name + " spawn&7 (or afk).");
+            // First spawn-world paste: bind spawn + protection automatically if the admin hasn't yet.
+            if (world.getName().equalsIgnoreCase(cfg("config.yml").getString("worlds.spawn-world", "spawn"))) {
+                if (plugin.locs().get("spawn") == null) {
+                    Location c = center(name);
+                    if (c != null) { plugin.locs().set("spawn", c); msg().sendRaw(who, "&aSpawn set to the middle of " + name + " (" + c.getBlockX() + ", " + c.getBlockY() + ", " + c.getBlockZ() + "). Move it with /dc setspawn."); }
+                }
+                if (plugin.locs().get("spawn-corner1") == null) {
+                    plugin.locs().set("spawn-corner1", min); plugin.locs().set("spawn-corner2", max);
+                    plugin.region.reload();
+                    msg().sendRaw(who, "&aSpawn protection set to the pasted area.");
+                }
+            }
+            msg().sendRaw(who, "&7Next: &f/dc map tp " + name + "&7, stand where players should appear, &f/dc setspawn&7.");
             job = null;
         }
 

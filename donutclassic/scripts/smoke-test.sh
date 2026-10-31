@@ -37,6 +37,7 @@ for log in run1.log run2.log; do
 done
 grep -q 'Output per minute' run1.log || { echo "FAIL: benchmark output missing"; fail=1; }
 grep -q 'Paste of ci-test finished: 92 blocks, 2 block entities, 2 entities' run1.log || { echo "FAIL: map paste"; grep -i paste run1.log; fail=1; }
+grep -q 'Spawn set to the middle of ci-test' run1.log && echo "auto spawn ok (not expected for maptest world)"
 grep -q 'Unknown block states: 0' run1.log || { echo "FAIL: unknown block states"; fail=1; }
 if grep -E 'skipped:|failed: ' run1.log | grep -iE 'item|entity|block entity'; then echo "FAIL: map element skipped"; fail=1; fi
 grep -q 'World border world: 20000 blocks wide' run2.log || { echo "FAIL: border not persisted"; fail=1; }
