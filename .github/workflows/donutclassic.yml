@@ -51,9 +51,10 @@ jobs:
         run: |
           set -e
           MC='${{ matrix.mc }}'
-          if [ "$MC" = latest ]; then
-            MC=$(curl -fsS https://fill.papermc.io/v3/projects/paper | jq -r '[.versions[] | .[]] | map(select(test("^[0-9.]+$"))) | sort_by(split(".") | map(tonumber)) | last')
-          fi
+          ALL=$(curl -fsS https://fill.papermc.io/v3/projects/paper | jq -r '[.versions[] | .[]] | map(select(test("^[0-9.]+$"))) | sort_by(split(".") | map(tonumber)) | .[]')
+          if [ "$MC" = latest ]; then MC=$(echo "$ALL" | tail -1)
+          elif ! echo "$ALL" | grep -qx "$MC"; then MC=$(echo "$ALL" | grep "^$MC\." | tail -1); fi
+          [ -n "$MC" ] || { echo "No Paper build for ${{ matrix.mc }}"; echo "$ALL" | tail -20; exit 1; }
           echo "Paper version: $MC"
           URL=$(curl -fsS "https://fill.papermc.io/v3/projects/paper/versions/$MC/builds" | jq -r '[.[] | select(.channel=="STABLE")] | first // empty | .downloads."server:default".url')
           [ -n "$URL" ] || URL=$(curl -fsS "https://fill.papermc.io/v3/projects/paper/versions/$MC/builds" | jq -r 'first | .downloads."server:default".url')
