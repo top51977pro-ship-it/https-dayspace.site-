@@ -8,20 +8,37 @@ The plugin jar **does not contain any map**. The spawn and AFK buildings are a s
 - **DonutSMP AFK Area 1:1 (remade)** by **eliterorr**:
   https://www.planetminecraft.com/project/donutsmp-afk-area-1-1-remade-made-by-eliterorr-free-schematic-download/
 
-Download them yourself from PlanetMinecraft and follow the creator's reuse terms on those pages. The listing
-says "No Map, Just Schematic", so you get `.schem` files, not a world. They were not downloaded or redistributed here.
+Download them yourself from PlanetMinecraft and follow the creator's reuse terms on those pages. You get schematic files, not a world.
 
-## Option A: paste on the server (WorldEdit or FastAsyncWorldEdit)
-1. Install **FastAsyncWorldEdit** (recommended for large pastes, it doesn't freeze the main thread) or WorldEdit.
-2. Upload the `.schem` files to `plugins/FastAsyncWorldEdit/schematics/` (or `plugins/WorldEdit/schematics/`).
-3. Go to an empty, flat area (for example a void or flat world) **while no other players are online**.
-4. Run `//schem load <file>`, then `//paste -a` (`-a` skips air). Wait for FAWE to finish.
-5. Paste the AFK area somewhere separate the same way.
+## Recommended: paste the .litematic files with DonutClassic (no WorldEdit needed)
+The community files are **Litematica** schematics (`.litematic`, Minecraft 1.21.5 data). DonutClassic reads them directly:
 
-## Option B: build the world offline, then upload it
-1. On your PC, run a local Paper server (or single-player with WorldEdit) and paste the schematics.
-2. Stop it and zip the world folder. The ZIP must contain `level.dat` and `region/`.
-3. Upload it to exaroton under **Worlds** (see EXAROTON_INSTALL.md).
+1. Upload both files to `plugins/DonutClassic/maps/` on the server (exaroton → Files).
+   They are **not** included in this repository, which is public, out of respect for the creator's work.
+2. With nobody else online, run from the console or as OP:
+   ```
+   /dc map paste DonutSMP_spawn_by-eliterorr spawn
+   /dc map paste donutsmp_afk_area spawn 1000 0 0
+   ```
+   - This creates an empty **void world called `spawn`**, which loads automatically on every restart. Your
+     survival world and RTP stay untouched.
+   - The spawn is about 19.8 million blocks and pastes in batches (`worlds.paste-ms-per-tick`), so the server
+     stays responsive. Check progress with `/dc map status`.
+   - Signs, player heads, chest contents, the armour-stand holograms and the text displays are all restored.
+3. `/dc map tp DonutSMP_spawn_by-eliterorr` → stand where players should appear → `/dc setspawn`.
+4. `/dc map region DonutSMP_spawn_by-eliterorr spawn` (protection) and `/dc map region donutsmp_afk_area afk`
+   (AFK rewards). `/dc map tp donutsmp_afk_area` → `/dc setafk`.
+5. The pasted holograms are **static text** copied from the original (for example "4843 Players"). Remove them with
+   `/dc map clearholograms <name>` if you like, and add live ones with `/dc leaderboard money` etc.
+
+Tested: the reader is unit-tested against both real files (sizes, 19,760,080 / 55,803 non-air blocks, signs,
+heads, entities). Pasting runs on a real Paper server in CI using a small generated test map. The full-size
+paste of your files hasn't been run on a live server yet.
+
+## Alternative: WorldEdit / FAWE or an offline world
+Convert the `.litematic` to `.schem` (for example with Litematica in single-player, or an online converter), then
+`//schem load` + `//paste -a` with FastAsyncWorldEdit. Or build the world locally and upload a ZIP containing
+`level.dat` + `region/` under exaroton → Worlds.
 
 ## Bind positions in-game (as OP)
 Stand where it applies, then run:

@@ -54,7 +54,7 @@ jobs:
           echo "Downloading $URL"; curl -fsSL -o paper.jar "$URL"
           echo "PAPER_MC=$MC" >> "$GITHUB_ENV"
       - name: Smoke test on real Paper server
-        run: scripts/smoke-test.sh paper.jar dist/DonutClassic.jar test-server
+        run: pip install -q nbtlib && scripts/smoke-test.sh paper.jar dist/DonutClassic.jar test-server
       - uses: actions/upload-artifact@v4
         if: always()
         with: {name: 'smoke-logs-${{ matrix.mc }}', path: 'donutclassic/test-server/*.log'}

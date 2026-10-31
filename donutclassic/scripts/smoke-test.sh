@@ -6,6 +6,8 @@ set -euo pipefail
 PAPER=$(realpath "$1"); PLUGIN=$(realpath "$2"); DIR=${3:-test-server}
 rm -rf "$DIR"; mkdir -p "$DIR/plugins"; cd "$DIR"
 cp "$PLUGIN" plugins/DonutClassic.jar
+mkdir -p plugins/DonutClassic/maps
+python3 "$(dirname "$PLUGIN")/../scripts/make_test_litematic.py" plugins/DonutClassic/maps/ci-test.litematic
 echo "eula=true" > eula.txt
 printf 'online-mode=false\nserver-port=25599\nlevel-type=minecraft\\:flat\ngenerate-structures=false\nspawn-protection=0\nview-distance=4\n' > server.properties
 
@@ -23,7 +25,8 @@ run() { # $1 = log file, rest = console commands
 }
 
 run run1.log "plugins" "dc version" "dc status" "dc spawner list" "dc spawner benchmark" "dc setupwizard" \
-             "dc keyall common 1" "dc preset feb-2026" "dc preset classic-early" "dc reload" "dc backup"
+             "dc keyall common 1" "dc preset feb-2026" "dc preset classic-early" "dc reload" "dc backup" \
+             "dc map list" "dc map paste ci-test maptest 0 64 0" "dc map status" "dc map status" "dc map list"
 run run2.log "dc status"
 
 fail=0
@@ -33,6 +36,10 @@ for log in run1.log run2.log; do
   if grep -nE '(ERROR|SEVERE).*DonutClassic|net\.donutclassic\.[A-Za-z.]+Exception|at net\.donutclassic' "$log"; then echo "FAIL: errors in $log"; fail=1; fi
 done
 grep -q 'Output per minute' run1.log || { echo "FAIL: benchmark output missing"; fail=1; }
+grep -q 'Paste of ci-test finished: 92 blocks, 2 block entities, 2 entities' run1.log || { echo "FAIL: map paste"; grep -i paste run1.log; fail=1; }
+grep -q 'Unknown block states: 0' run1.log || { echo "FAIL: unknown block states"; fail=1; }
+if grep -E 'skipped:|failed: ' run1.log | grep -iE 'item|entity|block entity'; then echo "FAIL: map element skipped"; fail=1; fi
+grep -q 'Loaded void world maptest' run2.log || { echo "FAIL: void world not reloaded on restart"; fail=1; }
 python3 - <<'PY' || fail=1
 import sqlite3, sys
 c = sqlite3.connect("plugins/DonutClassic/data.db")

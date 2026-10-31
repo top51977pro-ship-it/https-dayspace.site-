@@ -5,6 +5,12 @@
 preset: classic-early
 locale: en            # messages_<locale>.yml; add your own translation file, missing keys fall back to English
 
+worlds:
+  spawn-world: spawn          # default target world for /dc map paste (created as an empty void world)
+  void-worlds: []             # void worlds loaded on startup (filled automatically by /dc map paste)
+  paste-base-y: 0             # default Y of the schematic's lowest layer
+  paste-ms-per-tick: 30       # time budget per tick while pasting (keeps the server responsive)
+
 menus:
   click-debounce-ms: 250   # ignores double clicks / Bedrock double taps inside menus
 
