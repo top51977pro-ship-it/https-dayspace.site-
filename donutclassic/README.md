@@ -35,8 +35,8 @@ scripts/smoke-test.sh paper.jar dist/DonutClassic.jar
 ## Compatibility
 | Component | Version |
 |---|---|
-| Paper | 1.21.4+ (CI tests 1.21.4 and the latest Paper) |
-| Java | 21 (25 for the newest Paper releases) |
+| Paper | 1.21.4 up to 26.3 (both smoke-tested in CI on 31 Oct 2026) |
+| Java | 21 for 1.21.x, 25 for Paper 26.x |
 | Geyser / Floodgate | latest from exaroton or geysermc.org, matched to your Paper version |
 | Optional | FastAsyncWorldEdit/WorldEdit (map import), WorldGuard |
 
