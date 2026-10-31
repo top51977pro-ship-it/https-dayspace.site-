@@ -173,7 +173,7 @@ public final class ShardModule extends Module {
                 case "key" -> icon = Items.make(Material.TRIPWIRE_HOOK, "&e" + cap(what) + " Key", "&7Virtual crate key");
                 case "booster" -> icon = boosterItem(e.getInt("minutes", 60));
                 case "tool" -> { icon = plugin.tools.item(what); if (icon == null) continue; }
-                default -> continue;
+                default -> { continue; }
             }
             int amount = Math.max(1, e.getInt("amount", 1));
             var meta = icon.getItemMeta();
