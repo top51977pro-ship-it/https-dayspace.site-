@@ -12,16 +12,16 @@ worlds:
   paste-ms-per-tick: 30       # time budget per tick while pasting (keeps the server responsive)
 
 # World borders applied on every startup and /dc reload. Sizes are the full width in blocks (diameter).
-# APPROX: DonutSMP's exact border sizes are not documented. Change them with /dc border <world> <size>.
+# Sizes reported for DonutSMP (unverified, from an AI answer; no official source found). Change with /dc border <world> <size>.
 world-border:
   enabled: true
   warning-distance: 32
   damage-amount: 0.2
   damage-buffer: 5
   worlds:
-    world:         {center-x: 0, center-z: 0, size: 100000}   # +/- 50,000 blocks
-    world_nether:  {center-x: 0, center-z: 0, size: 25000}    # scales 1:8 with the overworld
-    world_the_end: {center-x: 0, center-z: 0, size: 50000}
+    world:         {center-x: 0, center-z: 0, size: 225000}   # 225,000 x 225,000
+    world_nether:  {center-x: 0, center-z: 0, size: 57000}    # 57,000 x 57,000
+    world_the_end: {center-x: 0, center-z: 0, size: 175000}   # 175,000 x 175,000
     spawn:         {center-x: 0, center-z: 0, size: 1500}     # void spawn world: just around the build
 
 menus:
@@ -49,11 +49,14 @@ rtp:
   attempts: 12
   cooldown-seconds: 30      # APPROX
   min-radius: 500           # APPROX
-  max-radius: 45000         # APPROX (kept inside the world border)
+  max-radius: 100000        # APPROX (inside the 112,500 overworld border radius)
   worlds:
     overworld: world
     nether: world_nether
     end: world_the_end
+  nether:
+    min-radius: 500
+    max-radius: 25000       # inside the 28,500 nether border radius
   end:
     min-radius: 1000        # outer End islands
     max-radius: 4000
