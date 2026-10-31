@@ -3,10 +3,46 @@ package net.donutclassic.core;
 import java.util.*;
 
 /** Tiny JSON parser (objects -> Map, arrays -> List, numbers -> Double, true/false -> Boolean) for text components. */
-final class Json {
+public final class Json {
     private final String s; private int i;
     private Json(String s) { this.s = s; }
-    static Object parse(String s) { Json j = new Json(s); Object v = j.value(); j.ws(); if (j.i != s.length()) throw new IllegalArgumentException("trailing"); return v; }
+    /** Serialises Map/List/String/Number/Boolean/null (and arrays of those) to compact JSON. */
+    public static String stringify(Object o) { StringBuilder sb = new StringBuilder(); write(sb, o); return sb.toString(); }
+
+    private static void write(StringBuilder sb, Object o) {
+        if (o == null) sb.append("null");
+        else if (o instanceof String s) quote(sb, s);
+        else if (o instanceof Boolean || o instanceof Integer || o instanceof Long || o instanceof Short || o instanceof Byte) sb.append(o);
+        else if (o instanceof Number n) { double d = n.doubleValue(); sb.append(Double.isFinite(d) ? String.valueOf(d) : "null"); }
+        else if (o instanceof Map<?, ?> m) {
+            sb.append('{'); boolean first = true;
+            for (var e : m.entrySet()) { if (!first) sb.append(','); first = false; quote(sb, String.valueOf(e.getKey())); sb.append(':'); write(sb, e.getValue()); }
+            sb.append('}');
+        } else if (o instanceof Iterable<?> it) {
+            sb.append('['); boolean first = true;
+            for (Object e : it) { if (!first) sb.append(','); first = false; write(sb, e); }
+            sb.append(']');
+        } else if (o instanceof Object[] arr) write(sb, java.util.Arrays.asList(arr));
+        else quote(sb, String.valueOf(o));
+    }
+
+    private static void quote(StringBuilder sb, String s) {
+        sb.append('"');
+        for (int i = 0; i < s.length(); i++) {
+            char c = s.charAt(i);
+            switch (c) {
+                case '"' -> sb.append("\\\"");
+                case '\\' -> sb.append("\\\\");
+                case '\n' -> sb.append("\\n");
+                case '\r' -> sb.append("\\r");
+                case '\t' -> sb.append("\\t");
+                default -> { if (c < 0x20) sb.append(String.format("\\u%04x", (int) c)); else sb.append(c); }
+            }
+        }
+        sb.append('"');
+    }
+
+    public static Object parse(String s) { Json j = new Json(s); Object v = j.value(); j.ws(); if (j.i != s.length()) throw new IllegalArgumentException("trailing"); return v; }
 
     private void ws() { while (i < s.length() && Character.isWhitespace(s.charAt(i))) i++; }
     private Object value() {

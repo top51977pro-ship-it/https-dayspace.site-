@@ -26,7 +26,7 @@ run() { # $1 = log file, rest = console commands
 
 run run1.log "plugins" "dc version" "dc status" "dc spawner list" "dc spawner benchmark" "dc setupwizard" \
              "dc keyall common 1" "dc preset feb-2026" "dc preset classic-early" "dc reload" "dc backup" \
-             "dc map list" "dc map paste ci-test maptest 0 64 0" "dc map status" "dc map status" "dc map list" "dc border" "dc border world 20000"
+             "dc map list" "dc map paste ci-test maptest 0 64 0" "dc map status" "dc map status" "dc map list" "dc border" "dc border world 20000" "ban NoSuchPlayer 1h test" "banlist" "dc antixray" "dc panel"
 run run2.log "dc status"
 
 fail=0
@@ -50,5 +50,13 @@ need = {"accounts","balances","spawners","ah_listings","orders","mailbox","teams
 print("schema version", v, "tables", sorted(t))
 sys.exit(0 if v >= 1 and need <= t else 1)
 PY
+python3 - <<'PY' || fail=1
+import json, sys
+for f in ["status", "ah", "orders", "bans", "alerts"]:
+    d = json.load(open(f"plugins/DonutClassic/panel/{f}.json"))
+    print("panel", f, "ok", list(d.keys()))
+PY
+grep -q 'anti-xray' run1.log || { echo "FAIL: antixray not configured"; fail=1; }
+grep -q 'enabled: true' config/paper-world-defaults.yml 2>/dev/null && echo "paper anti-xray config present"
 ls plugins/DonutClassic/backups/*.db >/dev/null 2>&1 || { echo "FAIL: backup not written"; fail=1; }
 [ $fail = 0 ] && echo "SMOKE TEST PASSED" || { echo "SMOKE TEST FAILED"; exit 1; }

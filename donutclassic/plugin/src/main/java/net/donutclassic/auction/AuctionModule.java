@@ -227,4 +227,19 @@ public final class AuctionModule extends Module {
     }
 
     public int activeCount() { return active.size(); }
+
+    /** Read-only data for the mobile panel. */
+    public List<Map<String, Object>> snapshot() {
+        List<Map<String, Object>> out = new ArrayList<>();
+        long now = System.currentTimeMillis();
+        for (Listing x : active.values()) {
+            if (x.gone || x.expires <= now) continue;
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("id", x.id); m.put("seller", x.sellerName); m.put("item", Msg.strip(Items.displayName(x.item)));
+            m.put("material", x.item.getType().name()); m.put("amount", x.item.getAmount()); m.put("price", x.price);
+            m.put("each", x.item.getAmount() > 0 ? x.price / x.item.getAmount() : x.price); m.put("expires", x.expires);
+            out.add(m);
+        }
+        return out;
+    }
 }

@@ -45,13 +45,33 @@ commands:
   rules: {description: Server rules}
   help: {description: Help, aliases: [dchelp]}
   report: {description: Report a player, usage: /report <player> <reason>}
+  ban: {description: Ban a player, usage: '/ban <player> [30m|7d|perm] [reason]', aliases: [dcban]}
+  tempban: {description: Temporarily ban, usage: '/tempban <player> <duration> [reason]', aliases: [dctempban]}
+  ipban: {description: IP-ban a player, usage: '/ipban <player> [duration] [reason]', aliases: [dcipban]}
+  unban: {description: Unban a player, usage: /unban <player>, aliases: [dcunban, pardon]}
+  mute: {description: Mute a player, usage: '/mute <player> [duration] [reason]', aliases: [dcmute]}
+  unmute: {description: Unmute a player, aliases: [dcunmute]}
+  kick: {description: Kick a player, usage: '/kick <player> [reason]', aliases: [dckick]}
+  warn: {description: Warn a player, usage: '/warn <player> <reason>', aliases: [dcwarn]}
+  history: {description: Punishment history, usage: /history <player>, aliases: [dchistory]}
+  banlist: {description: Active bans, aliases: [dcbanlist]}
 permissions:
   dc.admin:
     default: op
-    children: {dc.admin.build: true, dc.admin.spawner: true, dc.staff: true, dc.teleport.bypass: true, dc.combat.bypass: true, dc.chat.bypass: true}
+    children: {dc.mod: true, dc.admin.build: true, dc.admin.spawner: true, dc.staff: true, dc.teleport.bypass: true, dc.combat.bypass: true, dc.chat.bypass: true}
   dc.admin.build: {default: op, description: Build in protected spawn/AFK regions}
   dc.admin.spawner: {default: op, description: Open/break any spawner}
   dc.staff: {default: op, description: Receive reports}
   dc.teleport.bypass: {default: op, description: No teleport warm-up / RTP cooldown}
   dc.combat.bypass: {default: op}
   dc.chat.bypass: {default: op}
+  dc.mod:
+    default: op
+    children: {dc.mod.ban: true, dc.mod.ipban: true, dc.mod.mute: true, dc.mod.kick: true, dc.mod.warn: true, dc.mod.history: true, dc.staff: true}
+  dc.mod.ban: {default: op}
+  dc.mod.ipban: {default: op}
+  dc.mod.mute: {default: op}
+  dc.mod.kick: {default: op}
+  dc.mod.warn: {default: op}
+  dc.mod.history: {default: op}
+  dc.anticheat.bypass: {default: false, description: Skip anticheat checks}

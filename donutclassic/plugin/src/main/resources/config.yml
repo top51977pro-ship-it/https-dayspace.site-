@@ -24,6 +24,35 @@ world-border:
     world_the_end: {center-x: 0, center-z: 0, size: 175000}   # 175,000 x 175,000
     spawn:         {center-x: 0, center-z: 0, size: 1500}     # void spawn world: just around the build
 
+moderation:
+  default-reason: 'Breaking the rules'
+  appeal-text: 'Appeal on our Discord.'
+  deny-login-on-error: false
+
+# Server-side checks. Alerts go to dc.staff + the mobile panel; players can be set back and kicked.
+# Nothing is ever banned automatically. Bedrock (Geyser) players get relaxed limits.
+anticheat:
+  enabled: true
+  kick-enabled: true
+  setback: true
+  vl-decay-per-second: 0.05
+  kick-message: '&cUnfair advantage detected. If this is a mistake, contact staff.'
+  antixray:
+    auto-configure: true     # turns on Paper's engine anti-xray (restart required once)
+  checks:
+    fly:         {enabled: true, max-rise-moves: 12, bedrock-max-rise-moves: 20, alert-vl: 4, kick-vl: 20}
+    speed:       {enabled: true, max-bps: 13.5, bedrock-max-bps: 16, alert-vl: 6, kick-vl: 30}
+    reach:       {enabled: true, max: 3.6, bedrock-max: 4.6, alert-vl: 5, kick-vl: 25}
+    killaura:    {enabled: true, max-angle: 95, alert-vl: 5, kick-vl: 25}
+    autoclicker: {enabled: true, max-cps: 22, alert-vl: 3, kick-vl: 15}
+    fastbreak:   {enabled: true, max-per-second: 9, alert-vl: 4, kick-vl: 20}
+    xray:        {enabled: true, window-minutes: 20, min-ores: 10, max-ratio: 0.04, alert-vl: 1, kick-vl: 1000}
+
+# JSON snapshots for the mobile admin app (plugins/DonutClassic/panel/*.json)
+panel:
+  enabled: true
+  interval-seconds: 30
+
 menus:
   click-debounce-ms: 250   # ignores double clicks / Bedrock double taps inside menus
 

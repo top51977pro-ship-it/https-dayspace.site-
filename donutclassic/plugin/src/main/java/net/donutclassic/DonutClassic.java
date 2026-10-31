@@ -11,6 +11,9 @@ import net.donutclassic.duel.DuelModule;
 import net.donutclassic.economy.EconomyModule;
 import net.donutclassic.economy.Mailbox;
 import net.donutclassic.map.MapModule;
+import net.donutclassic.mod.AntiCheatModule;
+import net.donutclassic.mod.ModerationModule;
+import net.donutclassic.mod.PanelModule;
 import net.donutclassic.menu.MenuListener;
 import net.donutclassic.misc.MiscModule;
 import net.donutclassic.region.RegionModule;
@@ -52,6 +55,7 @@ public final class DonutClassic extends JavaPlugin implements Listener {
     public Mailbox mailbox; public AuctionModule auction; public OrderModule orders; public TeamModule teams;
     public TeleportModule teleport; public DuelModule duels; public ToolModule tools; public BoardModule board;
     public MiscModule misc; public RegionModule region; public MapModule maps;
+    public ModerationModule moderation; public AntiCheatModule anticheat; public PanelModule panel;
 
     @Override public void onEnable() {
         for (String f : CONFIG_FILES) if (!new File(getDataFolder(), f).exists()) saveResource(f, false);
@@ -65,6 +69,7 @@ public final class DonutClassic extends JavaPlugin implements Listener {
         getServer().getPluginManager().registerEvents(new MenuListener(this), this);
 
         modules.add(maps = new MapModule(this)); // first: loads the void spawn world
+        modules.add(moderation = new ModerationModule(this));
         modules.add(region = new RegionModule(this));
         modules.add(mailbox = new Mailbox(this));
         modules.add(economy = new EconomyModule(this));
@@ -79,6 +84,8 @@ public final class DonutClassic extends JavaPlugin implements Listener {
         modules.add(tools = new ToolModule(this));
         modules.add(misc = new MiscModule(this));
         modules.add(board = new BoardModule(this));
+        modules.add(anticheat = new AntiCheatModule(this));
+        modules.add(panel = new PanelModule(this));
         modules.add(new AdminModule(this));
         for (Module m : modules) {
             try { m.enable(); getServer().getPluginManager().registerEvents(m, this); }

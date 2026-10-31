@@ -91,5 +91,26 @@ public final class Rules {
         return best;
     }
 
+    /** "30m", "2h", "7d", "1w", "perm" -> milliseconds; 0 = permanent; -1 = invalid. */
+    public static long parseDuration(String s) {
+        if (s == null || s.isBlank()) return -1;
+        s = s.trim().toLowerCase(java.util.Locale.ROOT);
+        if (s.equals("perm") || s.equals("permanent") || s.equals("forever")) return 0;
+        long total = 0, num = -1;
+        for (char c : s.toCharArray()) {
+            if (Character.isDigit(c)) { num = (num < 0 ? 0 : num) * 10 + (c - '0'); if (num > 1_000_000) return -1; continue; }
+            long unit = switch (c) { case 's' -> 1000L; case 'm' -> 60_000L; case 'h' -> 3_600_000L; case 'd' -> 86_400_000L; case 'w' -> 604_800_000L; case 'y' -> 31_536_000_000L; default -> -1; };
+            if (unit < 0 || num < 0) return -1;
+            total += num * unit; num = -1;
+        }
+        return num >= 0 || total <= 0 ? -1 : total;
+    }
+
+    public static String formatDuration(long ms) {
+        if (ms <= 0) return "permanent";
+        long s = ms / 1000, d = s / 86400, h = s / 3600 % 24, m = s / 60 % 60;
+        return d > 0 ? d + "d " + h + "h" : h > 0 ? h + "h " + m + "m" : Math.max(1, m) + "m";
+    }
+
     public static double winRate(long wins, long losses) { long t = wins + losses; return t == 0 ? 0.5 : (double) wins / t; }
 }

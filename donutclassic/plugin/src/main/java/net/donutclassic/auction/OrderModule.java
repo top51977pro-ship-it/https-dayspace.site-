@@ -138,6 +138,19 @@ public final class OrderModule extends Module {
         m.open(p);
     }
 
+    /** Read-only data for the mobile panel. */
+    public List<Map<String, Object>> snapshot() {
+        List<Map<String, Object>> out = new ArrayList<>();
+        for (Order o : open.values()) {
+            if (o.closed) continue;
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("id", o.id); m.put("owner", o.ownerName); m.put("material", o.material.name()); m.put("amount", o.amount);
+            m.put("filled", o.filled); m.put("priceEach", o.priceEach); m.put("escrow", o.escrow);
+            out.add(m);
+        }
+        return out;
+    }
+
     private void cancel(Player p, Order o) {
         if (o.closed || !o.owner.equals(p.getUniqueId())) return;
         o.closed = true; open.remove(o.id);

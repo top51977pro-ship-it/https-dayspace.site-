@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>DonutClassic Panel</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <div class="brand"><span class="dot"></span><b>DonutClassic</b> Panel</div>
+  <div id="srv" class="srv"></div>
+  <button id="refresh" class="icon" title="Refresh">⟳</button>
+</header>
+
+<section id="setup" class="page">
+  <h2>Connect your server</h2>
+  <p class="muted">Uses the official exaroton API. Create an API key in exaroton → Account → API. The key is stored only on this phone.</p>
+  <label>exaroton API key<input id="key" type="password" autocomplete="off" placeholder="paste your API key"></label>
+  <button id="loadServers" class="primary">Load my servers</button>
+  <div id="serverList"></div>
+  <p class="muted small">Needs DonutClassic on the server (it writes <code>plugins/DonutClassic/panel/*.json</code>).</p>
+</section>
+
+<nav id="tabs" class="hidden">
+  <button data-tab="overview" class="on">Overview</button>
+  <button data-tab="bans">Bans</button>
+  <button data-tab="ah">Auction</button>
+  <button data-tab="orders">Orders</button>
+  <button data-tab="alerts">Alerts</button>
+  <button data-tab="console">Console</button>
+</nav>
+
+<main>
+  <section id="overview" class="page hidden">
+    <div class="cards" id="statCards"></div>
+    <h3>Online players</h3>
+    <div id="players" class="list"></div>
+  </section>
+
+  <section id="bans" class="page hidden">
+    <div class="box">
+      <h3>Punish a player</h3>
+      <input id="banName" placeholder="Player name">
+      <div class="row">
+        <select id="banType"><option value="dcban">Ban</option><option value="dcipban">IP ban</option><option value="dcmute">Mute</option><option value="dcwarn">Warn</option><option value="dckick">Kick</option></select>
+        <select id="banDur"><option>1h</option><option>1d</option><option selected>7d</option><option>30d</option><option>perm</option></select>
+      </div>
+      <input id="banReason" placeholder="Reason">
+      <button id="banGo" class="danger">Apply</button>
+    </div>
+    <div class="row"><input id="banSearch" placeholder="Search name…"><select id="banFilter"><option value="active">Active</option><option value="all">All history</option></select></div>
+    <div id="banList" class="list"></div>
+  </section>
+
+  <section id="ah" class="page hidden">
+    <div class="row"><input id="ahSearch" placeholder="Search item / seller…">
+      <select id="ahSort"><option value="each">Cheapest per item</option><option value="price">Cheapest total</option><option value="-price">Most expensive</option><option value="new">Ending soonest</option></select></div>
+    <div id="ahSummary" class="muted small"></div>
+    <div id="ahList" class="list"></div>
+  </section>
+
+  <section id="orders" class="page hidden">
+    <div class="row"><input id="ordSearch" placeholder="Search item / player…"></div>
+    <div id="ordList" class="list"></div>
+  </section>
+
+  <section id="alerts" class="page hidden">
+    <p class="muted small">Anticheat and x-ray alerts. Alerts never ban anyone automatically: review, then act.</p>
+    <div id="alertList" class="list"></div>
+  </section>
+
+  <section id="console" class="page hidden">
+    <p class="muted small">Runs a console command through exaroton (no leading slash).</p>
+    <input id="cmd" placeholder="e.g. say Hello or dc status">
+    <button id="cmdGo" class="primary">Send</button>
+    <div class="box">
+      <button id="logout" class="ghost">Change server / API key</button>
+    </div>
+  </section>
+</main>
+
+<div id="toast" class="toast hidden"></div>
+<script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,36 @@
+name: DonutClassic Panel APK
+# Builds the admin-panel Android app on GitHub's runners and publishes it as a Release asset
+# (direct download link for your phone). The app contains no secrets: the exaroton API key is
+# entered on the phone and stored only there.
+on:
+  push:
+    paths: ['donutclassic/panel-app/**', '.github/workflows/donutclassic-panel.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: {distribution: temurin, java-version: '17'}
+      - uses: android-actions/setup-android@v3
+      - name: Check web UI syntax
+        run: node --check donutclassic/panel-app/android/app/src/main/assets/www/app.js
+      - name: Build debug APK
+        working-directory: donutclassic/panel-app/android
+        run: chmod +x gradlew && ./gradlew assembleDebug --no-daemon --stacktrace
+      - run: cp donutclassic/panel-app/android/app/build/outputs/apk/debug/app-debug.apk DonutClassicPanel.apk
+      - uses: actions/upload-artifact@v4
+        with: {name: DonutClassicPanel-apk, path: DonutClassicPanel.apk, if-no-files-found: error}
+      - name: Publish as Release (direct download)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: donutclassic-panel-latest
+          name: DonutClassic Panel - latest APK
+          body: |
+            Admin panel for DonutClassic (ban/unban, mute, kick, AH prices, orders, anticheat alerts, console).
+            Install DonutClassicPanel.apk on Android (allow "install unknown apps"), then paste your exaroton API key.
+          files: DonutClassicPanel.apk
+          make_latest: false

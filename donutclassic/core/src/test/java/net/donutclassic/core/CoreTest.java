@@ -146,6 +146,22 @@ class CoreTest {
         }
     }
 
+    @Test void jsonAndDurations() {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("name", "a\"b\\c\n"); m.put("n", 5L); m.put("d", 1.5); m.put("ok", true); m.put("l", List.of(1, "x")); m.put("nul", null);
+        String js = Json.stringify(m);
+        assertEquals("{\"name\":\"a\\\"b\\\\c\\n\",\"n\":5,\"d\":1.5,\"ok\":true,\"l\":[1,\"x\"],\"nul\":null}", js);
+        @SuppressWarnings("unchecked") Map<String, Object> back = (Map<String, Object>) Json.parse(js);
+        assertEquals("a\"b\\c\n", back.get("name"));
+        assertEquals(1_800_000, Rules.parseDuration("30m"));
+        assertEquals(93_600_000, Rules.parseDuration("1d2h"));
+        assertEquals(0, Rules.parseDuration("perm"));
+        assertEquals(-1, Rules.parseDuration("abc"));
+        assertEquals(-1, Rules.parseDuration("10"));
+        assertEquals(-1, Rules.parseDuration("-5m"));
+        assertEquals("1d 2h", Rules.formatDuration(93_600_000));
+    }
+
     @Test void rules() {
         var pool = new ArrayList<Rules.Weighted<String>>();
         for (int i = 0; i < 10; i++) pool.add(new Rules.Weighted<>("r" + i, 1));

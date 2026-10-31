@@ -39,6 +39,15 @@ final class Schema {
         CREATE INDEX idx_ah_status ON ah_listings(status, expires);
         CREATE INDEX idx_mail_uuid ON mailbox(uuid);
         CREATE INDEX idx_bal_cur ON balances(currency, amount);
+        """,
+        // v2: moderation + anticheat
+        """
+        CREATE TABLE punishments(id INTEGER PRIMARY KEY AUTOINCREMENT, uuid TEXT, name TEXT, ip TEXT, type TEXT NOT NULL,
+            reason TEXT, actor TEXT, created INTEGER, expires INTEGER, active INTEGER NOT NULL DEFAULT 1,
+            removed_by TEXT, removed_at INTEGER);
+        CREATE INDEX idx_pun_uuid ON punishments(uuid, active);
+        CREATE INDEX idx_pun_ip ON punishments(ip, active);
+        CREATE TABLE alerts(id INTEGER PRIMARY KEY AUTOINCREMENT, ts INTEGER, uuid TEXT, name TEXT, check_name TEXT, vl REAL, detail TEXT);
         """
     };
 

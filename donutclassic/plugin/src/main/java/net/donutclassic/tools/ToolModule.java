@@ -35,6 +35,7 @@ public final class ToolModule extends Module {
     private final Map<UUID, BlockFace> lastFace = new HashMap<>();
     private final Map<UUID, Long> bucketCooldown = new HashMap<>();
     private boolean busy; // re-entrancy guard for our synthetic break events
+    public boolean isBusy() { return busy; }
 
     public ToolModule(DonutClassic plugin) { super(plugin); }
     @Override public String name() { return "tools"; }
