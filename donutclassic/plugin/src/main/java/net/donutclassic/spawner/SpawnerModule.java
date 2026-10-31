@@ -3,6 +3,7 @@ package net.donutclassic.spawner;
 import net.donutclassic.DonutClassic;
 import net.donutclassic.core.*;
 import net.donutclassic.util.*;
+import net.donutclassic.util.Module;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.CreatureSpawner;
