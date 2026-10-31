@@ -39,9 +39,63 @@ public final class MapModule extends Module {
     public MapModule(DonutClassic plugin) { super(plugin); }
     @Override public String name() { return "maps"; }
 
+    private final Deque<String[]> queue = new ArrayDeque<>(); // {file, world, x|null, y, z}
+
     @Override public void enable() {
         new File(plugin.getDataFolder(), "maps").mkdirs();
         for (String w : cfg("config.yml").getStringList("worlds.void-worlds")) loadVoidWorld(w);
+        extractBundled();
+        // Auto-paste bundled maps once (after the server finished loading), one after another.
+        Bukkit.getScheduler().runTaskLater(plugin, this::queueBundled, 100L);
+        Bukkit.getScheduler().runTaskTimer(plugin, () -> {
+            if (job != null || queue.isEmpty()) return;
+            String[] q = queue.poll();
+            File f = new File(new File(plugin.getDataFolder(), "maps"), q[0]);
+            if (!f.isFile()) return;
+            Integer[] at = q[2] == null ? null : new Integer[]{Integer.parseInt(q[2]), Integer.parseInt(q[3]), Integer.parseInt(q[4])};
+            plugin.getLogger().info("Auto-pasting bundled map " + q[0] + " into world " + q[1]);
+            start(Bukkit.getConsoleSender(), f, q[1], at, false);
+        }, 120L, 40L);
+    }
+
+    /** Copies map files shipped inside the jar (bundled-maps/*.litematic) to plugins/DonutClassic/maps once. */
+    private void extractBundled() {
+        File dir = new File(plugin.getDataFolder(), "maps");
+        try (java.util.jar.JarFile jar = new java.util.jar.JarFile(plugin.getPluginFile())) {
+            var en = jar.entries();
+            while (en.hasMoreElements()) {
+                var e = en.nextElement();
+                if (!e.getName().startsWith("bundled-maps/") || !e.getName().endsWith(".litematic")) continue;
+                File out = new File(dir, e.getName().substring("bundled-maps/".length()));
+                if (out.exists()) continue;
+                try (var in = jar.getInputStream(e)) { java.nio.file.Files.copy(in, out.toPath()); }
+                plugin.getLogger().info("Extracted bundled map " + out.getName());
+            }
+        } catch (Exception ex) { plugin.getLogger().warning("Could not read bundled maps: " + ex.getMessage()); }
+    }
+
+    private void queueBundled() {
+        if (!cfg("config.yml").getBoolean("worlds.auto-paste-bundled", true)) return;
+        var sec = cfg("config.yml").getConfigurationSection("worlds.bundled");
+        if (sec == null) return;
+        for (String key : sec.getKeys(false)) {
+            String file = sec.getString(key + ".file", key + ".litematic");
+            String name = file.replace(".litematic", "");
+            if (plugin.locs().get("maps." + name + ".min") != null) continue;           // already pasted once
+            if (!new File(new File(plugin.getDataFolder(), "maps"), file).isFile()) continue; // not shipped
+            List<Integer> at = sec.getIntegerList(key + ".at");
+            String world = sec.getString(key + ".world", cfg("config.yml").getString("worlds.spawn-world", "spawn"));
+            queue.add(at.size() == 3 ? new String[]{file, world, at.get(0).toString(), at.get(1).toString(), at.get(2).toString()} : new String[]{file, world, null, null, null});
+        }
+    }
+
+    /** Role of a pasted map from worlds.bundled.<key>.role (spawn | afk), matched by file name. */
+    private String roleOf(String name) {
+        var sec = cfg("config.yml").getConfigurationSection("worlds.bundled");
+        if (sec == null) return null;
+        for (String key : sec.getKeys(false))
+            if (sec.getString(key + ".file", key + ".litematic").replace(".litematic", "").equalsIgnoreCase(name)) return sec.getString(key + ".role");
+        return null;
     }
 
     @Override public void disable() { if (job != null) job.cancel("server stopping"); }
@@ -259,7 +313,12 @@ public final class MapModule extends Module {
             if (!unknownStates.isEmpty()) plugin.getLogger().warning("Replaced/simplified block states: " + unknownStates);
             msg().sendRaw(who, "&a" + done);
             // First spawn-world paste: bind spawn + protection automatically if the admin hasn't yet.
-            if (world.getName().equalsIgnoreCase(cfg("config.yml").getString("worlds.spawn-world", "spawn"))) {
+            if ("afk".equalsIgnoreCase(roleOf(name))) {
+                if (plugin.locs().get("afk-corner1") == null) { plugin.locs().set("afk-corner1", min); plugin.locs().set("afk-corner2", max); }
+                if (plugin.locs().get("afk") == null) { Location c = center(name); if (c != null) plugin.locs().set("afk", c); }
+                plugin.region.reload();
+                msg().sendRaw(who, "&aAFK area bound: /afk point + AFK reward region = " + name + ". Adjust with /dc setafk.");
+            } else if (world.getName().equalsIgnoreCase(cfg("config.yml").getString("worlds.spawn-world", "spawn"))) {
                 if (plugin.locs().get("spawn") == null) {
                     Location c = center(name);
                     if (c != null) { plugin.locs().set("spawn", c); msg().sendRaw(who, "&aSpawn set to the middle of " + name + " (" + c.getBlockX() + ", " + c.getBlockY() + ", " + c.getBlockZ() + "). Move it with /dc setspawn."); }

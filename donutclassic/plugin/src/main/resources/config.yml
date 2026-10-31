@@ -10,6 +10,11 @@ worlds:
   void-worlds: []             # void worlds loaded on startup (filled automatically by /dc map paste)
   paste-base-y: 0             # default Y of the schematic's lowest layer
   paste-ms-per-tick: 30       # time budget per tick while pasting (keeps the server responsive)
+  # Maps shipped inside the jar (bundled-maps/) or placed in plugins/DonutClassic/maps are pasted ONCE on startup.
+  auto-paste-bundled: true
+  bundled:
+    spawn: {file: spawn.litematic, world: spawn, role: spawn}            # centred on 0,0
+    afk:   {file: afk.litematic,   world: spawn, at: [400, 0, -50], role: afk}
 
 # World borders applied on every startup and /dc reload. Sizes are the full width in blocks (diameter).
 # Sizes reported for DonutSMP (unverified, from an AI answer; no official source found). Change with /dc border <world> <size>.

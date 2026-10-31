@@ -143,6 +143,7 @@ public final class DonutClassic extends JavaPlugin implements Listener {
         catch (Exception e) { getLogger().log(Level.SEVERE, "Could not save " + file, e); }
     }
 
+    public File getPluginFile() { return getFile(); }
     public Database db() { return db; }
     public Ledger ledger() { return ledger; }
     public Msg msg() { return msg; }
