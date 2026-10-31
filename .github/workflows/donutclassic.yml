@@ -72,6 +72,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with: {ref: '${{ github.ref_name }}'}
       - uses: actions/download-artifact@v4
         with: {name: DonutClassic-jar, path: donutclassic/dist}
       - name: Commit verified jar to dist/
@@ -83,4 +84,4 @@ jobs:
           git add -f dist/DonutClassic.jar dist/DonutClassic.jar.sha256
           git diff --cached --quiet && exit 0
           git commit -m "Build DonutClassic.jar (CI-verified) [skip ci]"
-          git push
+          for i in 1 2 3 4; do git pull --rebase origin "${GITHUB_REF_NAME}" && git push && break; sleep 5; done
