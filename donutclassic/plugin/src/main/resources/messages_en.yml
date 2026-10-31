@@ -195,5 +195,6 @@ admin:
     - '&e/dc spawner give|inspect|audit|benchmark|reload|list'
     - '&e/dc key give|take <p> <type> <n> | keyall [type] [n]'
     - '&e/dc money|shards give|take|set <p> <n> | booster <p> <min> | tool give <p> <id>'
+    - '&e/dc border [world] [size] &7- world borders'
     - '&e/dc map list | paste <file> [world] [x y z] | status | tp <name> | region <name> spawn|afk'
     - '&e/dc rank set <p> <rank> | duel setarena <name> 1|2 | preset <name> | backup | reload [module]'

@@ -18,7 +18,7 @@ The community files are **Litematica** schematics (`.litematic`, Minecraft 1.21.
 2. With nobody else online, run from the console or as OP:
    ```
    /dc map paste DonutSMP_spawn_by-eliterorr spawn
-   /dc map paste donutsmp_afk_area spawn 1000 0 0
+   /dc map paste donutsmp_afk_area spawn 400 0 -50
    ```
    - This creates an empty **void world called `spawn`**, which loads automatically on every restart. Your
      survival world and RTP stay untouched.

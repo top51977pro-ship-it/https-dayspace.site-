@@ -23,7 +23,7 @@ public final class AdminModule extends Module {
 
     private static final List<String> SUBS = List.of("help", "reload", "debug", "version", "status", "setupwizard", "setspawn", "setspawncorner1",
         "setspawncorner2", "setafk", "setafkcorner1", "setafkcorner2", "setcrate", "removecrate", "setnpc", "removenpc", "setwarp", "delwarp",
-        "spawner", "key", "keyall", "shards", "money", "booster", "tool", "rank", "duel", "leaderboard", "hologram", "backup", "preset", "map");
+        "spawner", "key", "keyall", "shards", "money", "booster", "tool", "rank", "duel", "leaderboard", "hologram", "backup", "preset", "map", "border");
 
     @Override public void enable() {
         command("dc", this::cmd, (s, a) -> {
@@ -42,6 +42,7 @@ public final class AdminModule extends Module {
                 case "tool" -> a.length == 2 ? List.of("give") : a.length == 4 ? new ArrayList<>(plugin.tools.ids()) : null;
                 case "rank" -> a.length == 4 ? new ArrayList<>(cfg("permissions.yml").getConfigurationSection("ranks").getKeys(false)) : null;
                 case "duel" -> a.length == 2 ? List.of("setarena", "delarena") : null;
+                case "border" -> a.length == 2 ? Bukkit.getWorlds().stream().map(org.bukkit.World::getName).toList() : List.of();
                 case "map" -> a.length == 2 ? List.of("list", "paste", "status", "cancel", "tp", "region", "clearholograms")
                     : a.length == 3 && a[1].equalsIgnoreCase("paste") ? mapFiles() : a.length == 4 && a[1].equalsIgnoreCase("region") ? List.of("spawn", "afk") : null;
                 default -> null;
@@ -104,6 +105,7 @@ public final class AdminModule extends Module {
             }
             case "duel" -> plugin.duels.adminArena(s, a);
             case "map" -> plugin.maps.command(s, a);
+            case "border" -> plugin.region.borderCommand(s, a);
             case "leaderboard" -> { if (p != null && a.length > 1) { plugin.misc.addLeaderboard(p.getLocation().add(0, 2, 0), a[1].toLowerCase(Locale.ROOT)); msg().send(p, "admin.done"); } }
             case "hologram" -> { if (p != null && a.length > 1) { plugin.misc.hologram(p.getLocation().add(0, 2, 0), Arrays.asList(String.join(" ", Arrays.copyOfRange(a, 1, a.length)).split("\\|")), "static"); msg().send(p, "admin.done"); } }
             case "backup" -> {

@@ -38,6 +38,7 @@ them. Re-check them before treating anything as official.
 | 2 homes by default | 2 | DOCUMENTED | brief |
 | 25 AH listing slots (18 after June 2026) | 25 (post-2026 preset: 18) | DOCUMENTED | brief |
 | Shard Pickaxe 3×3, Shard Axe tree-feller, Shard Shovel 3×3, Amethyst Bucket | Implemented | Items DOCUMENTED; radius, cooldown, enchants APPROX | brief |
+| World border sizes (overworld 100k wide, nether 25k, end 50k, spawn world 1.5k) | config `world-border` | APPROX | — |
 | Shop and sell prices, sell-multiplier tiers, AH duration and tax, RTP radius | config | APPROX | — |
 | Spawn and AFK map | community 1:1 schematic by eliterorr (not included) | Fan recreation, not official | PlanetMinecraft |
 

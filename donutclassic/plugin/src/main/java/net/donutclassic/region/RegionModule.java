@@ -25,8 +25,50 @@ public final class RegionModule extends Module {
     @Override public String name() { return "region"; }
     @Override public void enable() { reload(); }
     @Override public void reload() {
+        applyBorders();
         spawn = plugin.locs().cuboid("spawn-corner1", "spawn-corner2");
         afk = cfg("config.yml").getBoolean("regions.protect-afk", true) ? plugin.locs().cuboid("afk-corner1", "afk-corner2") : null;
+    }
+
+    /** Applies world-border settings from config.yml to every loaded world listed there. */
+    public void applyBorders() {
+        var c = cfg("config.yml");
+        if (!c.getBoolean("world-border.enabled", true)) return;
+        var ws = c.getConfigurationSection("world-border.worlds");
+        if (ws == null) return;
+        for (String name : ws.getKeys(false)) {
+            org.bukkit.World w = org.bukkit.Bukkit.getWorld(name);
+            if (w == null) continue;
+            double size = Math.max(16, Math.min(59_999_968, ws.getDouble(name + ".size", 100000)));
+            org.bukkit.WorldBorder b = w.getWorldBorder();
+            b.setCenter(ws.getDouble(name + ".center-x", 0), ws.getDouble(name + ".center-z", 0));
+            b.setSize(size);
+            b.setWarningDistance(c.getInt("world-border.warning-distance", 32));
+            b.setDamageAmount(c.getDouble("world-border.damage-amount", 0.2));
+            b.setDamageBuffer(c.getDouble("world-border.damage-buffer", 5));
+            plugin.getLogger().info("World border " + name + ": " + (long) size + " blocks wide");
+        }
+    }
+
+    /** /dc border [world] [size] */
+    public void borderCommand(org.bukkit.command.CommandSender s, String[] a) {
+        if (a.length < 3) {
+            for (org.bukkit.World w : org.bukkit.Bukkit.getWorlds())
+                msg().sendRaw(s, "&7" + w.getName() + ": &f" + (long) w.getWorldBorder().getSize() + " &7blocks (center " + (long) w.getWorldBorder().getCenter().getX() + ", " + (long) w.getWorldBorder().getCenter().getZ() + ")");
+            msg().sendRaw(s, "&e/dc border <world> <size>");
+            return;
+        }
+        double size;
+        try { size = Double.parseDouble(a[2]); } catch (NumberFormatException e) { msg().send(s, "error.bad-args"); return; }
+        if (org.bukkit.Bukkit.getWorld(a[1]) == null || size < 16) { msg().send(s, "error.bad-args"); return; }
+        cfg("config.yml").set("world-border.worlds." + a[1] + ".size", size);
+        if (!cfg("config.yml").contains("world-border.worlds." + a[1] + ".center-x")) {
+            cfg("config.yml").set("world-border.worlds." + a[1] + ".center-x", 0);
+            cfg("config.yml").set("world-border.worlds." + a[1] + ".center-z", 0);
+        }
+        plugin.saveCfg("config.yml");
+        applyBorders();
+        msg().send(s, "admin.set", "what", "border " + a[1] + " = " + (long) size);
     }
 
     public boolean isProtected(Location l) { return (spawn != null && spawn.contains(l)) || (afk != null && afk.contains(l)); }

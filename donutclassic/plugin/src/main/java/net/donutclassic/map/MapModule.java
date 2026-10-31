@@ -133,7 +133,7 @@ public final class MapModule extends Module {
 
     private void start(CommandSender s, File f, String worldName, Integer[] at, boolean air) {
         World w = Bukkit.getWorld(worldName);
-        if (w == null) { w = loadVoidWorld(worldName); remember(worldName); }
+        if (w == null) { w = loadVoidWorld(worldName); remember(worldName); if (plugin.region != null) plugin.region.applyBorders(); }
         if (w == null) { msg().sendRaw(s, "&cCould not load/create world " + worldName); return; }
         final World world = w;
         msg().sendRaw(s, "&7Reading " + f.getName() + " ...");
