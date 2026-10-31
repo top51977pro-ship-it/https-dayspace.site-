@@ -291,13 +291,15 @@ public final class MiscModule extends Module {
     // ------------------------------------------------------------------ NPCs
     public void spawnNpc(Player admin, String action) {
         Location l = admin.getLocation();
-        Villager v = l.getWorld().spawn(l, Villager.class, e -> {
+        Villager v = l.getWorld().spawn(l, Villager.class);
+        {
+            Villager e = v;
             e.setAI(false); e.setInvulnerable(true); e.setSilent(true); e.setCollidable(false); e.setPersistent(true);
             e.setRemoveWhenFarAway(false);
             e.setCustomName(Msg.color(cfg("config.yml").getString("npcs." + action + ".name", "&e" + action)));
             e.setCustomNameVisible(true);
             e.getPersistentDataContainer().set(Items.NPC, PersistentDataType.STRING, action);
-        });
+        }
         msg().send(admin, "admin.set", "what", "NPC " + action + " (" + v.getUniqueId().toString().substring(0, 8) + ")");
     }
 
@@ -329,11 +331,12 @@ public final class MiscModule extends Module {
         double y = 0;
         for (String line : lines) {
             Location l = base.clone().add(0, -y, 0);
-            l.getWorld().spawn(l, ArmorStand.class, as -> {
+            ArmorStand as = l.getWorld().spawn(l, ArmorStand.class);
+            {
                 as.setMarker(true); as.setInvisible(true); as.setGravity(false); as.setInvulnerable(true); as.setPersistent(true);
                 as.setCustomName(Msg.color(line)); as.setCustomNameVisible(true);
                 as.getPersistentDataContainer().set(Items.HOLO, PersistentDataType.STRING, tag);
-            });
+            }
             y += 0.28;
         }
     }

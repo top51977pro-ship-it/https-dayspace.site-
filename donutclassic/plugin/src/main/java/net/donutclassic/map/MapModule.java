@@ -336,7 +336,8 @@ public final class MapModule extends Module {
             String tag = "map:" + name;
             switch (id) {
                 case "minecraft:armor_stand" -> {
-                    world.spawn(l, ArmorStand.class, as -> {
+                    ArmorStand as = world.spawn(l, ArmorStand.class);
+                    {
                         as.setInvisible(Nbt.b(en.get("Invisible")));
                         as.setSmall(Nbt.b(en.get("Small")));
                         as.setMarker(Nbt.b(en.get("Marker")));
@@ -354,11 +355,12 @@ public final class MapModule extends Module {
                             setIf(equip.get("mainhand"), eq::setItemInMainHand); setIf(equip.get("offhand"), eq::setItemInOffHand);
                         }
                         as.getPersistentDataContainer().set(Items.HOLO, PersistentDataType.STRING, tag);
-                    });
+                    }
                     return true;
                 }
                 case "minecraft:text_display" -> {
-                    world.spawn(l, TextDisplay.class, td -> {
+                    TextDisplay td = world.spawn(l, TextDisplay.class);
+                    {
                         td.setText(Msg.color(Nbt.text(en.get("text"))));
                         String bb = Nbt.s(en.get("billboard"));
                         if (bb != null) try { td.setBillboard(Display.Billboard.valueOf(bb.toUpperCase(Locale.ROOT))); } catch (IllegalArgumentException ignored) { }
@@ -374,7 +376,7 @@ public final class MapModule extends Module {
                         }
                         td.setPersistent(true);
                         td.getPersistentDataContainer().set(Items.HOLO, PersistentDataType.STRING, tag);
-                    });
+                    }
                     return true;
                 }
                 default -> { return false; }

@@ -133,7 +133,8 @@ public final class ToolModule extends Module {
         if (p.getGameMode() == GameMode.CREATIVE) return false;
         ItemMeta meta = tool.getItemMeta();
         if (!(meta instanceof Damageable d) || meta.isUnbreakable()) return false;
-        int unb = tool.getEnchantmentLevel(Enchantment.UNBREAKING);
+        Enchantment unbreaking = Items.enchant("unbreaking"); // field was named DURABILITY before 1.20.5
+        int unb = unbreaking == null ? 0 : tool.getEnchantmentLevel(unbreaking);
         if (unb > 0 && new Random().nextInt(unb + 1) != 0) return false;
         d.setDamage(d.getDamage() + 1);
         tool.setItemMeta(meta);

@@ -42,7 +42,15 @@ public final class Items {
 
     public static ItemStack glow(ItemStack it) {
         ItemMeta meta = it.getItemMeta();
-        if (meta != null) { meta.setEnchantmentGlintOverride(true); it.setItemMeta(meta); }
+        if (meta == null) return it;
+        try { // 1.20.5+
+            ItemMeta.class.getMethod("setEnchantmentGlintOverride", Boolean.class).invoke(meta, Boolean.TRUE);
+        } catch (ReflectiveOperationException e) { // older servers: hidden enchant
+            Enchantment luck = enchant("luck_of_the_sea");
+            if (luck != null) meta.addEnchant(luck, 1, true);
+            meta.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_ENCHANTS);
+        }
+        it.setItemMeta(meta);
         return it;
     }
 
