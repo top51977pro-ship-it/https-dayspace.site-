@@ -26,7 +26,7 @@ run() { # $1 = log file, rest = console commands
 
 run run1.log "plugins" "dc version" "dc status" "dc spawner list" "dc spawner benchmark" "dc setupwizard" \
              "dc keyall common 1" "dc preset feb-2026" "dc preset classic-early" "dc reload" "dc backup" \
-             "dc map list" "dc map paste ci-test maptest 0 64 0" "dc map status" "dc map status" "dc map list" "dc border" "dc border world 20000" "ban NoSuchPlayer 1h test" "banlist" "dc antixray" "dc panel"
+             "dc map list" "dc map paste ci-test spawn 0 64 0" "dc map status" "dc map status" "dc map list" "dc border" "dc border world 20000" "ban NoSuchPlayer 1h test" "banlist" "dc antixray" "dc panel"
 run run2.log "dc status"
 
 fail=0
@@ -37,11 +37,11 @@ for log in run1.log run2.log; do
 done
 grep -q 'Output per minute' run1.log || { echo "FAIL: benchmark output missing"; fail=1; }
 grep -q 'Paste of ci-test finished: 92 blocks, 2 block entities, 2 entities' run1.log || { echo "FAIL: map paste"; grep -i paste run1.log; fail=1; }
-grep -q 'Spawn set to the middle of ci-test' run1.log && echo "auto spawn ok (not expected for maptest world)"
+grep -q 'Spawn set to the middle of ci-test' run1.log || { echo "FAIL: spawn not auto-set after paste"; fail=1; }
 grep -q 'Unknown block states: 0' run1.log || { echo "FAIL: unknown block states"; fail=1; }
 if grep -E 'skipped:|failed: ' run1.log | grep -iE 'item|entity|block entity'; then echo "FAIL: map element skipped"; fail=1; fi
 grep -q 'World border world: 20000 blocks wide' run2.log || { echo "FAIL: border not persisted"; fail=1; }
-grep -q 'Loaded void world maptest' run2.log || { echo "FAIL: void world not reloaded on restart"; fail=1; }
+grep -q 'Loaded void world spawn' run2.log || { echo "FAIL: void world not reloaded on restart"; fail=1; }
 python3 - <<'PY' || fail=1
 import sqlite3, sys
 c = sqlite3.connect("plugins/DonutClassic/data.db")
