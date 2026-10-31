@@ -22,7 +22,8 @@ public final class Locs {
     private YamlConfiguration y() { return plugin.cfg("warps.yml"); }
 
     public void set(String path, Location l) {
-        y().set(path, l == null ? null : write(l));
+        // createSection (not set) so the value is readable as a section immediately, without a reload.
+        if (l == null) y().set(path, null); else y().createSection(path, write(l));
         plugin.saveCfg("warps.yml");
     }
 

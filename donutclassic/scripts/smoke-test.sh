@@ -43,6 +43,7 @@ grep -q 'Paste of ci-test finished: 92 blocks, 2 block entities, 2 entities' run
 for want in 'Extracted bundled map spawn.litematic' 'Auto-pasting bundled map spawn.litematic' 'Paste of spawn finished' 'Spawn set to the middle of spawn' 'Spawn protection set'; do
   grep -q "$want" run1.log || { echo "FAIL: missing '$want'"; fail=1; }
 done
+grep -q 'pasted: ci-test' run1.log || { echo "FAIL: saved positions not readable before restart"; fail=1; }
 grep -q 'Auto-pasting bundled map' run2.log && { echo "FAIL: bundled map pasted twice"; fail=1; }
 grep -q 'Unknown block states: 0' run1.log || { echo "FAIL: unknown block states"; fail=1; }
 if grep -E 'skipped:|failed: ' run1.log | grep -iE 'item|entity|block entity'; then echo "FAIL: map element skipped"; fail=1; fi
