@@ -321,7 +321,10 @@ public final class MapModule extends Module {
         ItemStack item(Map<String, Object> nbt) {
             if (nbt.get("id") == null) return null;
             Map<String, Object> m = new LinkedHashMap<>(nbt);
-            m.put("DataVersion", lit.dataVersion);
+            // Paper refuses "newer" data; maps saved on a slightly newer version (e.g. 1.21.5 on a 1.21.4 server)
+            // are labelled with the server's own version instead, which works for ordinary items.
+            @SuppressWarnings("deprecation") int serverDv = Bukkit.getUnsafe().getDataVersion();
+            m.put("DataVersion", Math.min(lit.dataVersion, serverDv));
             if (!m.containsKey("count") && m.get("Count") instanceof Number n) m.put("count", n.intValue());
             try { return ItemStack.deserializeBytes(Nbt.writeGzip(m)); }
             catch (Exception e) { plugin.getLogger().warning("Item " + nbt.get("id") + " skipped: " + e.getMessage()); return null; }
