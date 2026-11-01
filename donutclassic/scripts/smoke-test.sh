@@ -39,7 +39,7 @@ s = re.sub(r"\n  bundled:\n(    .*\n)+", "\n", s)
 s = s.replace("auto-paste-bundled: true", "auto-paste-bundled: true")
 open(p, "w").write(s)
 PY
-grep -q "bundled:" plugins/DonutClassic/config.yml && echo "WARN: could not strip bundled section"
+grep -q "^  bundled:" plugins/DonutClassic/config.yml && echo "WARN: could not strip bundled section"
 run run2.log "dc status"
 
 fail=0
@@ -56,7 +56,7 @@ done
 grep -q 'pasted: ci-test' run1.log || { echo "FAIL: saved positions not readable before restart"; fail=1; }
 grep -q 'Auto-pasting bundled map' run2.log && { echo "FAIL: bundled map pasted twice"; fail=1; }
 grep -q 'Added new default settings to config.yml' run2.log || { echo "FAIL: missing settings not added to old config.yml"; fail=1; }
-grep -q "bundled:" plugins/DonutClassic/config.yml || { echo "FAIL: bundled section not restored"; fail=1; }
+grep -q "^  bundled:" plugins/DonutClassic/config.yml || { echo "FAIL: bundled section not restored"; fail=1; }
 grep -q 'Unknown block states: 0' run1.log || { echo "FAIL: unknown block states"; fail=1; }
 if grep -E 'skipped:|failed: ' run1.log | grep -iE 'item|entity|block entity'; then echo "FAIL: map element skipped"; fail=1; fi
 grep -q 'World border world: 20000 blocks wide' run2.log || { echo "FAIL: border not persisted"; fail=1; }
