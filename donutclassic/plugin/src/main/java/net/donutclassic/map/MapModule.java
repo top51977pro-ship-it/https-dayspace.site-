@@ -61,17 +61,21 @@ public final class MapModule extends Module {
     /** Copies map files shipped inside the jar (bundled-maps/*.litematic) to plugins/DonutClassic/maps once. */
     private void extractBundled() {
         File dir = new File(plugin.getDataFolder(), "maps");
+        int found = 0;
         try (java.util.jar.JarFile jar = new java.util.jar.JarFile(plugin.getPluginFile())) {
             var en = jar.entries();
             while (en.hasMoreElements()) {
                 var e = en.nextElement();
                 if (!e.getName().startsWith("bundled-maps/") || !e.getName().endsWith(".litematic")) continue;
+                found++;
                 File out = new File(dir, e.getName().substring("bundled-maps/".length()));
                 if (out.exists()) continue;
                 try (var in = jar.getInputStream(e)) { java.nio.file.Files.copy(in, out.toPath()); }
                 plugin.getLogger().info("Extracted bundled map " + out.getName());
             }
         } catch (Exception ex) { plugin.getLogger().warning("Could not read bundled maps: " + ex.getMessage()); }
+        plugin.getLogger().info(found == 0 ? "No maps bundled in this jar (use /dc map paste for your own .litematic files)."
+            : "Found " + found + " map(s) bundled in the jar.");
     }
 
     private void queueBundled() {
@@ -81,10 +85,11 @@ public final class MapModule extends Module {
         for (String key : sec.getKeys(false)) {
             String file = sec.getString(key + ".file", key + ".litematic");
             String name = file.replace(".litematic", "");
-            if (plugin.locs().get("maps." + name + ".min") != null) continue;           // already pasted once
+            if (plugin.locs().get("maps." + name + ".min") != null) { plugin.getLogger().info("Map " + name + " already pasted earlier - skipping."); continue; }
             if (!new File(new File(plugin.getDataFolder(), "maps"), file).isFile()) continue; // not shipped
             List<Integer> at = sec.getIntegerList(key + ".at");
             String world = sec.getString(key + ".world", cfg("config.yml").getString("worlds.spawn-world", "spawn"));
+            plugin.getLogger().info("Queued map " + file + " for pasting into world '" + world + "'. It only progresses while the server is running (not paused).");
             queue.add(at.size() == 3 ? new String[]{file, world, at.get(0).toString(), at.get(1).toString(), at.get(2).toString()} : new String[]{file, world, null, null, null});
         }
     }
