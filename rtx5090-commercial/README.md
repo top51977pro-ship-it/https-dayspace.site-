@@ -44,8 +44,20 @@ npx hyperframes render --quality delivery --resolution 4k -o RTX5090_Commercial_
 The scripts in `package.json` pin `hyperframes@0.8.226` so the film re-renders identically.
 
 On a machine without a GPU, Chrome falls back to SwiftShader (software WebGL). In this cloud
-session the 1080p render took about one minute per second of film; 4K takes roughly four times
-as long. With a GPU it is far faster.
+session the 1080p film took ~105 minutes, rendered as two halves to stay inside a 2-hour job
+limit, then joined without re-encoding:
+
+```bash
+npx hyperframes render --quality delivery --start 0    --end 12.5 -o renders/part1.mp4
+npx hyperframes render --quality delivery --start 12.5 --end 25   -o renders/part2.mp4
+printf "file 'part1.mp4'\nfile 'part2.mp4'\n" > renders/list.txt
+ffmpeg -f concat -safe 0 -i renders/list.txt -an -c:v copy renders/v.mp4
+ffmpeg -i renders/v.mp4 -i renders/part1.mp4 -i renders/part2.mp4 -filter_complex \
+  "[1:a]atrim=0:12.5,asetpts=N/SR/TB[a0];[2:a]atrim=0:12.5,asetpts=N/SR/TB[a1];[a0][a1]concat=n=2:v=0:a=1[a]" \
+  -map 0:v -map "[a]" -c:v copy -c:a aac -b:a 256k -movflags +faststart RTX5090_Commercial.mp4
+```
+
+4K is roughly four times the 1080p cost; with a GPU it is far faster.
 
 ## How it works
 

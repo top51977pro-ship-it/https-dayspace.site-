@@ -1,7 +1,7 @@
 {
   "version": 1,
   "historyId": "5b9dc5f9-e01b-4d7a-8121-f0e99a9d38a1",
-  "currentRevision": "c28b7759-c5a1-43f0-a81e-336d615914dc",
+  "currentRevision": "7f70fb4e-767c-422c-b389-a14a5fa816ad",
   "pendingChanges": false,
   "files": {
     ".media/manifest.jsonl": {
@@ -639,6 +639,10 @@
     "README.md": {
       "hash": "15bef000395aa91ea6488808be7041da5185a7bc32c782fdc8b07ecba8b51efd",
       "content": "/root/.cache/hyperframes/history/5b9dc5f9-e01b-4d7a-8121-f0e99a9d38a1/blobs/15/15bef000395aa91ea6488808be7041da5185a7bc32c782fdc8b07ecba8b51efd"
+    },
+    "REVIEW.md": {
+      "hash": "df0fa7e6509ec3be5a894d94cf3019a524ca413700bc91b540d7bfce6d33f2dd",
+      "content": "/root/.cache/hyperframes/history/5b9dc5f9-e01b-4d7a-8121-f0e99a9d38a1/blobs/df/df0fa7e6509ec3be5a894d94cf3019a524ca413700bc91b540d7bfce6d33f2dd"
     }
   },
   "revisions": {
@@ -869,6 +873,21 @@
         "scene/gpu.js": {
           "before": "/root/.cache/hyperframes/history/5b9dc5f9-e01b-4d7a-8121-f0e99a9d38a1/blobs/43/43c336972981b9876055ade2e02cd56a1216328d931c9272be993c8616fdbb9f",
           "after": "/root/.cache/hyperframes/history/5b9dc5f9-e01b-4d7a-8121-f0e99a9d38a1/blobs/59/59243aeb6552323c05f1563a8f301b191b1d717cb928285e4a277b9fa1c1e2a2"
+        }
+      }
+    },
+    "7f70fb4e-767c-422c-b389-a14a5fa816ad": {
+      "actor": {
+        "kind": "outside",
+        "name": "Outside"
+      },
+      "label": "Changed outside the app",
+      "startedAt": 1793537152894,
+      "endedAt": 1793537152897,
+      "files": {
+        "REVIEW.md": {
+          "before": null,
+          "after": "/root/.cache/hyperframes/history/5b9dc5f9-e01b-4d7a-8121-f0e99a9d38a1/blobs/df/df0fa7e6509ec3be5a894d94cf3019a524ca413700bc91b540d7bfce6d33f2dd"
         }
       }
     }
