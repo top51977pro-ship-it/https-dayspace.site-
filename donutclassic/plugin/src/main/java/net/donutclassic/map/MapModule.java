@@ -319,7 +319,9 @@ public final class MapModule extends Module {
                 plugin.region.reload();
                 msg().sendRaw(who, "&aAFK area bound: /afk point + AFK reward region = " + name + ". Adjust with /dc setafk.");
             } else if (world.getName().equalsIgnoreCase(cfg("config.yml").getString("worlds.spawn-world", "spawn"))) {
-                if (plugin.locs().get("spawn") == null) {
+                Location old = plugin.locs().get("spawn");
+                // A bundled spawn always takes over; a manual paste only fills an unset/other-world spawn.
+                if (old == null || "spawn".equalsIgnoreCase(roleOf(name)) || !old.getWorld().equals(world)) {
                     Location c = center(name);
                     if (c != null) { plugin.locs().set("spawn", c); msg().sendRaw(who, "&aSpawn set to the middle of " + name + " (" + c.getBlockX() + ", " + c.getBlockY() + ", " + c.getBlockZ() + "). Move it with /dc setspawn."); }
                 }

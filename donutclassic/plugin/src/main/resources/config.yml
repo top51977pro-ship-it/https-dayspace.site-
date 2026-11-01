@@ -63,7 +63,7 @@ menus:
 
 spawn:
   teleport-on-first-join: true
-  teleport-on-join: false
+  teleport-on-join: true      # everyone joins at /spawn (DonutSMP style)
   respawn-at-spawn: true
 
 regions:
