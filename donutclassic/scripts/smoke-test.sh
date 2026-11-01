@@ -30,6 +30,16 @@ run() { # $1 = log file, rest = console commands
 run run1.log "plugins" "dc version" "dc status" "dc spawner list" "dc spawner benchmark" "dc setupwizard" \
              "dc keyall common 1" "dc preset feb-2026" "dc preset classic-early" "dc reload" "dc backup" \
              "dc map list" "dc map paste ci-test maptest 0 64 0" "dc map status" "dc map status" "dc map list" "dc border" "dc border world 20000" "ban NoSuchPlayer 1h test" "banlist" "dc antixray" "dc panel"
+# Simulate an owner who kept an OLD config.yml (without the newer worlds.bundled section)
+python3 - <<'PY'
+import re
+p = "plugins/DonutClassic/config.yml"
+s = open(p).read()
+s = re.sub(r"\n  bundled:\n(    .*\n)+", "\n", s)
+s = s.replace("auto-paste-bundled: true", "auto-paste-bundled: true")
+open(p, "w").write(s)
+PY
+grep -q "bundled:" plugins/DonutClassic/config.yml && echo "WARN: could not strip bundled section"
 run run2.log "dc status"
 
 fail=0
@@ -45,6 +55,8 @@ for want in 'Extracted bundled map spawn.litematic' 'Auto-pasting bundled map sp
 done
 grep -q 'pasted: ci-test' run1.log || { echo "FAIL: saved positions not readable before restart"; fail=1; }
 grep -q 'Auto-pasting bundled map' run2.log && { echo "FAIL: bundled map pasted twice"; fail=1; }
+grep -q 'Added new default settings to config.yml' run2.log || { echo "FAIL: missing settings not added to old config.yml"; fail=1; }
+grep -q "bundled:" plugins/DonutClassic/config.yml || { echo "FAIL: bundled section not restored"; fail=1; }
 grep -q 'Unknown block states: 0' run1.log || { echo "FAIL: unknown block states"; fail=1; }
 if grep -E 'skipped:|failed: ' run1.log | grep -iE 'item|entity|block entity'; then echo "FAIL: map element skipped"; fail=1; fi
 grep -q 'World border world: 20000 blocks wide' run2.log || { echo "FAIL: border not persisted"; fail=1; }

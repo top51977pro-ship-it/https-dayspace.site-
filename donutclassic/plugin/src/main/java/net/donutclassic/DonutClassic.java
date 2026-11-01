@@ -111,7 +111,19 @@ public final class DonutClassic extends JavaPlugin implements Listener {
             File file = new File(getDataFolder(), f);
             YamlConfiguration y = YamlConfiguration.loadConfiguration(file);
             var res = getResource(f);
-            if (res != null) y.setDefaults(YamlConfiguration.loadConfiguration(new java.io.InputStreamReader(res, java.nio.charset.StandardCharsets.UTF_8)));
+            if (res != null) {
+                y.setDefaults(YamlConfiguration.loadConfiguration(new java.io.InputStreamReader(res, java.nio.charset.StandardCharsets.UTF_8)));
+                // Add settings introduced by newer versions to the owner's existing file (their values are kept).
+                if (!f.equals("warps.yml") && file.exists()) {
+                    boolean missing = false;
+                    for (String k : y.getDefaults().getKeys(true)) if (!y.isSet(k)) { missing = true; break; }
+                    if (missing) {
+                        y.options().copyDefaults(true);
+                        try { y.save(file); getLogger().info("Added new default settings to " + f); }
+                        catch (java.io.IOException e) { getLogger().warning("Could not update " + f + ": " + e.getMessage()); }
+                    }
+                }
+            }
             configs.put(f, y);
         }
     }
