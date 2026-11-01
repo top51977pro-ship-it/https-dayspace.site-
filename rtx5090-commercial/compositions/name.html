@@ -1,0 +1,36 @@
+<template>
+  <style>
+      @font-face { font-family: "Inter HF"; src: url("assets/fonts/InterVariable.woff2") format("woff2"); font-weight: 100 900; font-style: normal; }
+    #root { position: absolute; inset: 0; font-family: "Inter HF"; color: var(--ink, #f2f3f5); -webkit-font-smoothing: antialiased; }
+    #root .w, #root .ch { display: inline-block; }
+    #name-wrap { position: absolute; left: 0; top: 118px; width: 1920px; text-align: center; }
+    #name-line { font-size: 112px; line-height: 1; letter-spacing: -0.035em; white-space: nowrap; }
+    #name-line .lt { font-weight: 300; }
+    #name-line .bd { font-weight: 620; }
+  </style>
+  <div id="root" data-composition-id="name" data-width="1920" data-height="1080">
+    <div id="name-wrap"><div id="name-line"><span class="lt">GeForce</span>&nbsp;<span class="bd">RTX&nbsp;5090</span></div></div>
+  </div>
+  <script>
+      function splitChars(el, spreadPx) {
+        // per-character spans grouped by word; each glyph carries its offset from the line centre
+        const words = el.textContent.trim().split(/\s+/);
+        el.innerHTML = words.map((w, wi) => `<span class="w">` + [...w].map((c) => `<span class="ch" data-w="${wi}">${c}</span>`).join("") + `</span>`).join(" ");
+        const chars = [...el.querySelectorAll(".ch")];
+        const mid = (chars.length - 1) / 2;
+        chars.forEach((c, i) => (c.dataset.dx = ((i - mid) * spreadPx).toFixed(2)));
+        return chars;
+      }
+      const tl = gsap.timeline({ paused: true });
+      // local time 0 = 15.9 s in the film. The name is written left→right in the wake of the green light blade.
+      const line = document.getElementById("name-line");
+      line.querySelectorAll("span").forEach((sp) => {
+        sp.innerHTML = [...sp.textContent].map((c) => (c === "\u00a0" || c === " " ? "&nbsp;" : `<span class="ch">${c}</span>`)).join("");
+      });
+      const chars = line.querySelectorAll(".ch");
+      tl.fromTo(chars, { opacity: 0, filter: "blur(10px)" },
+        { opacity: 1, filter: "blur(0px)", duration: 0.55, ease: "power2.out", stagger: 0.048 }, 0.15);
+      tl.fromTo(line, { opacity: 1 }, { opacity: 0, duration: 1.4, ease: "power2.inOut" }, 7.5);
+      window.__timelines["name"] = tl;
+  </script>
+</template>

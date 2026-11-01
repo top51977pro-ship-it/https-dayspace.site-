@@ -1,0 +1,31 @@
+<template>
+  <style>
+      @font-face { font-family: "Inter HF"; src: url("assets/fonts/InterVariable.woff2") format("woff2"); font-weight: 100 900; font-style: normal; }
+    #root { position: absolute; inset: 0; font-family: "Inter HF"; color: var(--ink, #f2f3f5); -webkit-font-smoothing: antialiased; }
+    #root .w, #root .ch { display: inline-block; }
+    #tag-wrap { position: absolute; left: 0; top: 268px; width: 1920px; text-align: center; }
+    #tag-line { font-weight: 350; font-size: 34px; line-height: 1; letter-spacing: 0.46em; padding-left: 0.46em; color: var(--ink-2, #9a9ea6); white-space: nowrap; }
+  </style>
+  <div id="root" data-composition-id="tag" data-width="1920" data-height="1080">
+    <div id="tag-wrap"><div id="tag-line" data-var-text="tagline">BEYOND ORDINARY.</div></div>
+  </div>
+  <script>
+      function splitChars(el, spreadPx) {
+        // per-character spans grouped by word; each glyph carries its offset from the line centre
+        const words = el.textContent.trim().split(/\s+/);
+        el.innerHTML = words.map((w, wi) => `<span class="w">` + [...w].map((c) => `<span class="ch" data-w="${wi}">${c}</span>`).join("") + `</span>`).join(" ");
+        const chars = [...el.querySelectorAll(".ch")];
+        const mid = (chars.length - 1) / 2;
+        chars.forEach((c, i) => (c.dataset.dx = ((i - mid) * spreadPx).toFixed(2)));
+        return chars;
+      }
+      const tl = gsap.timeline({ paused: true });
+      // local time 0 = 20.3 s in the film
+      const line = document.getElementById("tag-line");
+      const chars = splitChars(line, 2.2);
+      tl.fromTo(chars, { opacity: 0, filter: "blur(12px)", x: (i, el) => +el.dataset.dx },
+        { opacity: 1, filter: "blur(0px)", x: 0, duration: 1.4, ease: "expo.out", stagger: (i, el) => +el.dataset.w * 0.22 }, 0.2);
+      tl.fromTo(line, { opacity: 1 }, { opacity: 0, duration: 1.4, ease: "power2.inOut" }, 3.1);
+      window.__timelines["tag"] = tl;
+  </script>
+</template>

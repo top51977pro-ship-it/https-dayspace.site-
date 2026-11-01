@@ -1,0 +1,116 @@
+<!doctype html>
+<html
+  lang="en"
+  data-composition-variables='[
+    {"id":"line-engineered","type":"string","label":"Scene 3 line","default":"ENGINEERED FOR POWER."},
+    {"id":"tagline","type":"string","label":"End line","default":"BEYOND ORDINARY."},
+    {"id":"ink","type":"color","label":"Ink","default":"#F2F3F5"},
+    {"id":"accent","type":"color","label":"Accent (NVIDIA green)","default":"#76B900"}
+  ]'
+>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>GeForce RTX 5090 — Beyond Ordinary</title>
+    <script src="lib/gsap.min.js"></script>
+    <script type="importmap">
+      { "imports": { "three": "./lib/three/three.module.js", "three/addons/": "./lib/three/addons/" } }
+    </script>
+    <script>
+      // The 3D stage builds asynchronously (module + font + PMREM); the renderer waits for it.
+      window.__hf = window.__hf || {};
+      window.__hf.buildReady = window.__hf.buildReady || {};
+      window.__hf.buildReady.stage = new Promise((res) => (window.__stageResolve = res));
+    </script>
+    <style>
+      @font-face {
+        font-family: "Inter HF";
+        src: url("assets/fonts/InterVariable.woff2") format("woff2");
+        font-weight: 100 900;
+        font-style: normal;
+      }
+      :root {
+        --ground: #000000;
+        --ink: #f2f3f5;
+        --ink-2: #9a9ea6;
+        --accent: #76b900;
+        --font-display: "Inter HF";
+      }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        width: 1920px; height: 1080px; overflow: hidden; background: var(--ground);
+      }
+      #root {
+        position: relative; width: 1920px; height: 1080px; background: var(--ground);
+        font-family: var(--font-display); color: var(--ink);
+        -webkit-font-smoothing: antialiased;
+      }
+      #stage { position: absolute; inset: 0; width: 1920px; height: 1080px; display: block; z-index: 1; }
+
+      #engineered, #name, #tag { z-index: 5; pointer-events: none; }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="25"
+      data-width="1920"
+      data-height="1080"
+    >
+      <canvas id="stage" width="1920" height="1080"></canvas>
+
+      <div id="engineered" data-composition-id="engineered" data-composition-src="compositions/engineered.html"
+        data-start="9.3" data-duration="3.1" data-track-index="2" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="name" data-composition-id="name" data-composition-src="compositions/name.html"
+        data-start="15.9" data-duration="9.1" data-track-index="3" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="tag" data-composition-id="tag" data-composition-src="compositions/tag.html"
+        data-start="20.3" data-duration="4.7" data-track-index="4" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+
+      <!-- Sound design: original ambience bed (audio-src/make_audio.py) + Pixabay-licensed SFX (see assets/audio/CREDITS.md).
+           Each hit is placed so its measured peak lands one frame after its picture event. -->
+      <audio id="sfx-bed" class="clip" src="assets/audio/bed.mp3" data-start="0" data-track-index="10" data-volume="1"></audio>
+      <audio id="sfx-pullback" class="clip" src="assets/audio/whoosh-cinematic.mp3" data-start="3.75" data-track-index="11" data-volume="0.42"></audio>
+      <audio id="sfx-cut-1" class="clip" src="assets/audio/whoosh-low.wav" data-start="8.84" data-track-index="12" data-volume="0.55"></audio>
+      <audio id="sfx-cut-2" class="clip" src="assets/audio/whoosh-high.wav" data-start="10.69" data-track-index="12" data-volume="0.42"></audio>
+      <audio id="sfx-cut-3" class="clip" src="assets/audio/whoosh-short.mp3" data-start="12.27" data-track-index="12" data-volume="0.42"></audio>
+      <audio id="sfx-cut-4" class="clip" src="assets/audio/whoosh-deep.wav" data-start="13.81" data-track-index="12" data-volume="0.5"></audio>
+      <audio id="sfx-riser" class="clip" src="assets/audio/riser.mp3" data-start="13.5" data-duration="4.5" data-track-index="13" data-volume="0.28" data-fade-out="0.4"></audio>
+      <audio id="sfx-shimmer" class="clip" src="assets/audio/shimmer.wav" data-start="15.55" data-track-index="14" data-volume="0.22"></audio>
+      <audio id="sfx-impact" class="clip" src="assets/audio/impact-bass-2.mp3" data-start="15.01" data-track-index="15" data-volume="0.85"></audio>
+    </div>
+
+    <script>
+      const tl = gsap.timeline({ paused: true });
+
+      // ---- drive the 3D stage from timeline time ----
+      const stageClock = { t: 0 };
+      let lastDrawn = -1;
+      window.__drawStage = function (t) {
+        if (!window.__stage) { window.__pendingT = t; return; }
+        if (t === lastDrawn) return;
+        lastDrawn = t;
+        window.__stage.render(t);
+      };
+      tl.fromTo(stageClock, { t: 0 }, { t: 25, duration: 25, ease: "none", onUpdate: () => window.__drawStage(stageClock.t) }, 0);
+      window.addEventListener("hf-seek", (e) => window.__drawStage(e.detail.time));
+
+      window.__timelines = window.__timelines || {};
+      window.__timelines["main"] = tl;
+    </script>
+    <script type="module">
+      import { buildStage } from "./scene/stage.js";
+      (async () => {
+        try {
+          await document.fonts.load("700 120px 'Inter HF'");
+          await document.fonts.load("300 112px 'Inter HF'");
+        } catch (e) {}
+        const stage = await buildStage(document.getElementById("stage"));
+        window.__stage = stage;
+        stage.render(window.__pendingT ?? 0);
+        window.__stageResolve();
+      })();
+    </script>
+  </body>
+</html>
