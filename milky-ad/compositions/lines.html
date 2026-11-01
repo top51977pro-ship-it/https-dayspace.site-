@@ -1,0 +1,55 @@
+<template>
+  <style>
+    @font-face {
+      font-family: "Heebo";
+      src: url("assets/fonts/heebo-hebrew.woff2") format("woff2");
+      font-weight: 100 900;
+      unicode-range: U+0307-0308, U+0590-05FF, U+200C-2010, U+20AA, U+25CC, U+FB1D-FB4F;
+    }
+    @font-face {
+      font-family: "Heebo";
+      src: url("assets/fonts/heebo-latin.woff2") format("woff2");
+      font-weight: 100 900;
+      unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+    }
+    #root {
+      position: absolute;
+      inset: 0;
+      font-family: "Heebo", sans-serif;
+    }
+    .ln-line {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 64px;
+      text-align: center;
+      direction: rtl;
+      color: #1d1d1f;
+      font-size: 78px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+    }
+    .ln-line .w {
+      display: inline-block;
+      margin: 0 0.12em;
+    }
+    .ln-line .accent {
+      color: #6a2c94;
+    }
+  </style>
+  <div id="root" data-composition-id="lines" data-width="1920" data-height="1080">
+    <div id="ln-a" class="clip ln-line" data-start="0" data-duration="3.0"><span class="w">לא</span><span class="w">מסוגל</span><span class="w">לשבת</span><span class="w accent">בשקט.</span></div>
+    <div id="ln-b" class="clip ln-line" data-start="3.3" data-duration="2.9"><span class="w">כל</span><span class="w">ביס</span><span class="w">—</span><span class="w accent">מסיבה.</span></div>
+  </div>
+  <script>
+    const tl = gsap.timeline({ paused: true });
+    const a = gsap.utils.toArray("#ln-a .w");
+    const b = gsap.utils.toArray("#ln-b .w");
+    a.forEach((w, i) => tl.fromTo(w, { opacity: 0, filter: "blur(8px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.15, ease: "power3.out" }, 0.2 + i * 0.08));
+    tl.to(a, { opacity: 0, filter: "blur(8px)", duration: 0.18, ease: "power2.in", stagger: 0.04 }, 2.7);
+    b.forEach((w, i) => tl.fromTo(w, { opacity: 0, color: "#c7c7cc" }, { opacity: 1, color: i === 3 ? "#6a2c94" : "#1d1d1f", duration: 0.14, ease: "power2.out" }, 3.4 + i * 0.09));
+    tl.to(b, { opacity: 0, filter: "blur(8px)", duration: 0.18, ease: "power2.in", stagger: 0.04 }, 5.85);
+    window.__timelines["lines"] = tl;
+  </script>
+</template>

@@ -1,0 +1,301 @@
+<template>
+  <style>
+    #root {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+    }
+    #st-ground {
+      position: absolute;
+      inset: 0;
+      background: #000;
+    }
+    #st-glow {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse 60% 55% at 50% 58%, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0) 70%);
+      opacity: 0;
+    }
+    #st-canvas {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 1920px;
+      height: 1080px;
+    }
+    #st-purple {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 50% 50%, #7a3aa6 0%, #5b2486 55%, #3f1463 100%);
+      opacity: 0;
+    }
+  </style>
+  <div id="root" data-composition-id="stage" data-width="1920" data-height="1080">
+    <div id="st-world" class="clip" data-start="0" data-duration="23" data-layout-ignore>
+      <div id="st-ground"></div>
+      <div id="st-glow"></div>
+      <canvas id="st-canvas" width="1920" height="1080"></canvas>
+      <div id="st-purple"></div>
+    </div>
+  </div>
+  <script src="assets/three.min.js"></script>
+  <script>
+    (function () {
+      const TAU = Math.PI * 2;
+      const LIGHT = "#f2f1f6";
+      const PURPLE = "#5b2486";
+
+      // ---------- renderer / scene ----------
+      const canvas = document.getElementById("st-canvas");
+      const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, preserveDrawingBuffer: true });
+      renderer.setPixelRatio(1);
+      renderer.setSize(1920, 1080, false);
+      renderer.outputColorSpace = THREE.SRGBColorSpace;
+      renderer.toneMapping = THREE.NoToneMapping;
+      renderer.setClearColor(0x000000, 0);
+
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(30, 1920 / 1080, 0.05, 200);
+
+      scene.add(new THREE.HemisphereLight(0xffffff, 0x6b5a7a, 1.55));
+      const key = new THREE.DirectionalLight(0xfff1e0, 1.5);
+      scene.add(key);
+      const rim = new THREE.DirectionalLight(0xc9d6ff, 1.2);
+      rim.position.set(4, 3, -6);
+      scene.add(rim);
+
+      // ---------- the cup (real photo textures) ----------
+      const H = 2.3; // body height, radius 1
+      const loader = new THREE.TextureLoader();
+      const load = (src) =>
+        new Promise((res, rej) =>
+          loader.load(src, (t) => { t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; res(t); }, undefined, rej)
+        );
+
+      function shadowTexture() {
+        const c = document.createElement("canvas");
+        c.width = c.height = 256;
+        const g = c.getContext("2d");
+        const grd = g.createRadialGradient(128, 128, 0, 128, 128, 128);
+        grd.addColorStop(0, "rgba(30,10,40,0.55)");
+        grd.addColorStop(0.55, "rgba(30,10,40,0.22)");
+        grd.addColorStop(1, "rgba(30,10,40,0)");
+        g.fillStyle = grd;
+        g.fillRect(0, 0, 256, 256);
+        const t = new THREE.CanvasTexture(c);
+        return t;
+      }
+
+      function buildCup(bodyTex, lidTex) {
+        const pos = new THREE.Group(); // position on the floor
+        const rot = new THREE.Group(); // rotations about the cup's centre
+        rot.position.y = H / 2;
+        const squash = new THREE.Group(); // squash & stretch about the base
+        squash.position.y = -H / 2;
+        pos.add(rot);
+        rot.add(squash);
+
+        const body = new THREE.Mesh(
+          new THREE.CylinderGeometry(1.0, 0.91, H, 160, 1, true),
+          new THREE.MeshStandardMaterial({ map: bodyTex, roughness: 0.32, metalness: 0, side: THREE.DoubleSide })
+        );
+        body.position.y = H / 2;
+        squash.add(body);
+
+        const bottom = new THREE.Mesh(
+          new THREE.CircleGeometry(0.91, 96),
+          new THREE.MeshStandardMaterial({ color: 0x3a2219, roughness: 0.6 })
+        );
+        bottom.rotation.x = Math.PI / 2;
+        bottom.position.y = 0.001;
+        squash.add(bottom);
+
+        const lid = new THREE.Group();
+        lid.position.y = H;
+        const flange = new THREE.Mesh(
+          new THREE.CylinderGeometry(1.07, 1.07, 0.07, 160),
+          new THREE.MeshStandardMaterial({ color: 0x6a2c94, roughness: 0.28, metalness: 0.25 })
+        );
+        flange.position.y = 0.035;
+        lid.add(flange);
+        const top = new THREE.Mesh(
+          new THREE.CircleGeometry(1.06, 128),
+          new THREE.MeshStandardMaterial({ map: lidTex, roughness: 0.3, metalness: 0.1 })
+        );
+        top.rotation.x = -Math.PI / 2;
+        top.position.y = 0.072;
+        lid.add(top);
+        squash.add(lid);
+
+        return { pos, rot, squash, lid };
+      }
+
+      // ---------- animated state (GSAP tweens these numbers) ----------
+      const S = {
+        x: 0, y: 9, z: 0, rx: 0, ry: 0, rz: 0, sx: 1, sy: 1,
+        lidY: 0, lidRx: 0, lidRy: 0,
+        camX: 0, camY: 3.6, camZ: 10.5, lookY: 1.5,
+        keyA: 0, hero: 1, swarm: 0, swarmRot: 0, conv: 0,
+      };
+
+      let hero, clones = [], shadow, ready = false;
+      const N = 26;
+
+      function draw() {
+        if (!ready) return;
+        // hero
+        hero.pos.visible = S.hero > 0.5;
+        hero.pos.position.set(S.x, S.y, S.z);
+        hero.rot.rotation.set(S.rx, S.ry, S.rz);
+        hero.squash.scale.set(S.sx, S.sy, S.sx);
+        hero.lid.position.y = H + S.lidY;
+        hero.lid.rotation.set(S.lidRx, S.lidRy, 0);
+        // contact shadow follows the hero and fades with height
+        const h = Math.max(0, S.y);
+        shadow.visible = hero.pos.visible;
+        shadow.position.set(S.x, 0.002, S.z);
+        const sc = 3.2 * (1 + h * 0.12) * S.sx;
+        shadow.scale.set(sc, sc * 0.9, 1);
+        shadow.material.opacity = Math.max(0, 1 - h * 0.22);
+        // swarm: a rising helix of cups that collapses into one
+        for (let i = 0; i < N; i++) {
+          const c = clones[i];
+          c.pos.visible = S.swarm > 0.5;
+          if (!c.pos.visible) continue;
+          const a = i * (TAU / 6.5) + S.swarmRot * TAU * 0.9;
+          const r = 4.2 + (i % 3) * 0.9;
+          const hx = Math.sin(a) * r;
+          const hz = Math.cos(a) * r - 2.5;
+          const hy = (i - N / 2) * 0.62 + 1.2 - S.swarmRot * 3.0;
+          const k = S.conv;
+          c.pos.position.set(hx * (1 - k), hy * (1 - k), hz * (1 - k));
+          const s = 0.75 * (1 - k) + 1.0 * k;
+          c.pos.scale.set(s, s, s);
+          c.rot.rotation.set(Math.sin(i * 1.7) * 0.5 * (1 - k), (S.swarmRot * TAU * (1 + (i % 4) * 0.35) + i) * (1 - k), Math.cos(i * 2.3) * 0.35 * (1 - k));
+        }
+        // the key light orbits, so highlights sweep across the plastic
+        key.position.set(Math.sin(S.keyA) * 6, 5, Math.cos(S.keyA) * 6 + 3);
+        camera.position.set(S.camX, S.camY, S.camZ);
+        camera.lookAt(S.camX * 0.6, S.lookY, 0);
+        renderer.render(scene, camera);
+      }
+
+      const built = Promise.all([load("assets/img/milky-body.jpg"), load("assets/img/milky-lid.jpg")]).then(([bodyTex, lidTex]) => {
+        hero = buildCup(bodyTex, lidTex);
+        scene.add(hero.pos);
+        for (let i = 0; i < N; i++) {
+          const c = buildCup(bodyTex, lidTex);
+          c.pos.visible = false;
+          clones.push(c);
+          scene.add(c.pos);
+        }
+        shadow = new THREE.Mesh(
+          new THREE.PlaneGeometry(1, 1),
+          new THREE.MeshBasicMaterial({ map: shadowTexture(), transparent: true, depthWrite: false })
+        );
+        shadow.rotation.x = -Math.PI / 2;
+        scene.add(shadow);
+        ready = true;
+
+        // ---------- choreography (film seconds; this scene starts at 0) ----------
+        const tl = gsap.timeline({ paused: true, onUpdate: draw });
+
+        // helpers
+        // squash on impact, stretch on the rebound, settle; `total` fits it before the next move
+        const squashAt = (t, amt = 0.28, total = 0.64) => {
+          const k = total / 0.64;
+          tl.to(S, { sy: 1 - amt, sx: 1 + amt * 0.7, duration: 0.07 * k, ease: "power2.out" }, t);
+          tl.to(S, { sy: 1 + amt * 0.45, sx: 1 - amt * 0.25, duration: 0.12 * k, ease: "power2.out" }, t + 0.07 * k);
+          tl.to(S, { sy: 1, sx: 1, duration: 0.45 * k, ease: "elastic.out(1, 0.45)" }, t + 0.19 * k);
+        };
+        const hop = (t, x, dur, height, extra = {}, land = 0.5) => {
+          tl.to(S, { sy: 0.84, sx: 1.1, duration: 0.08, ease: "power2.out" }, t - 0.08); // anticipation
+          tl.to(S, { sy: 1.1, sx: 0.95, duration: 0.12, ease: "power2.out" }, t);
+          tl.to(S, { x, duration: dur, ease: "power1.inOut" }, t);
+          tl.to(S, { y: height, duration: dur / 2, ease: "power2.out" }, t);
+          tl.to(S, { y: 0, duration: dur / 2, ease: "power2.in" }, t + dur / 2);
+          if (Object.keys(extra).length) tl.to(S, { ...extra, duration: dur, ease: "power2.inOut" }, t);
+          squashAt(t + dur, 0.24, land);
+        };
+
+        // light orbit across the whole film (turn the environment, not the object)
+        tl.to(S, { keyA: TAU * 1.5, duration: 23, ease: "none" }, 0);
+
+        // 0 - 2.6: black, copy only. 2.55: the cup drops in, spinning
+        tl.to(S, { y: 0, duration: 0.5, ease: "power2.in" }, 2.55);
+        tl.fromTo(S, { ry: -TAU * 1.5 }, { ry: 0, duration: 0.5, ease: "power1.out", immediateRender: false }, 2.55);
+        tl.to("#st-ground", { backgroundColor: LIGHT, duration: 0.35, ease: "power2.inOut" }, 2.62);
+        tl.to("#st-glow", { opacity: 1, duration: 0.6, ease: "power2.out" }, 2.7);
+        squashAt(3.05, 0.32);
+
+        // hops: left with a full turn, right with a tilt, home
+        hop(3.7, -2.6, 0.5, 0.6, { ry: TAU });
+        tl.to(S, { rz: 0.22, duration: 0.25, ease: "power2.out" }, 3.7);
+        tl.to(S, { rz: 0, duration: 0.25, ease: "power2.in" }, 3.95);
+        hop(4.3, 2.6, 0.5, 0.7, {});
+        tl.to(S, { rz: -0.3, duration: 0.25, ease: "power2.out" }, 4.3);
+        tl.to(S, { rz: 0, duration: 0.25, ease: "power2.in" }, 4.55);
+        hop(4.9, 0, 0.5, 0.55, { ry: TAU * 2 }, 0.1);
+
+        // dance on the beat
+        const beats = [5.5, 5.75, 6.0, 6.25, 6.5, 6.75];
+        beats.forEach((b, i) => {
+          const s = i % 2 ? -1 : 1;
+          tl.to(S, { rz: 0.2 * s, ry: TAU * 2 + 0.65 * s, sy: 0.9, sx: 1.06, duration: 0.11, ease: "power3.out" }, b);
+          tl.to(S, { sy: 1, sx: 1, duration: 0.13, ease: "power2.out" }, b + 0.11);
+        });
+        tl.to(S, { rz: 0, ry: TAU * 2, duration: 0.2, ease: "power2.inOut" }, 7.0);
+
+        // big jump with a back-flip and a spin
+        tl.to(S, { sy: 0.78, sx: 1.14, duration: 0.12, ease: "power2.out" }, 6.95);
+        tl.to(S, { sy: 1.15, sx: 0.93, duration: 0.15, ease: "power2.out" }, 7.07);
+        tl.to(S, { sy: 1, sx: 1, duration: 0.3, ease: "power2.out" }, 7.22);
+        tl.to(S, { y: 1.6, duration: 0.45, ease: "power2.out" }, 7.07);
+        tl.to(S, { camZ: 14, camY: 4.2, lookY: 1.7, duration: 0.45, ease: "power2.out" }, 7.05);
+        tl.to(S, { camZ: 10.5, camY: 3.6, lookY: 1.5, duration: 0.55, ease: "power2.inOut" }, 7.6);
+        tl.to(S, { y: 0, duration: 0.43, ease: "power2.in" }, 7.52);
+        tl.to(S, { rx: -TAU, ry: TAU * 3, duration: 0.74, ease: "power1.inOut" }, 7.2);
+        squashAt(7.95, 0.3, 0.34);
+
+        // lid pops off, spins in the air, lands back
+        tl.to(S, { sy: 0.86, sx: 1.08, duration: 0.1, ease: "power2.out" }, 8.3);
+        tl.to(S, { sy: 1, sx: 1, duration: 0.3, ease: "elastic.out(1, 0.5)" }, 8.4);
+        tl.to(S, { lidY: 0.75, lidRx: 0.45, duration: 0.42, ease: "power3.out" }, 8.4);
+        tl.to(S, { lidRy: TAU * 1.5, duration: 0.9, ease: "power1.inOut" }, 8.4);
+        tl.to(S, { lidY: 0, lidRx: 0, duration: 0.42, ease: "power2.in" }, 8.88);
+        squashAt(9.3, 0.18);
+        tl.to(S, { camZ: 9.3, camY: 2.9, duration: 0.9, ease: "power2.inOut" }, 8.3);
+
+        // dive into the purple badge
+        tl.to(S, { camZ: 1.35, camY: 1.02, lookY: 1.02, duration: 0.9, ease: "power3.in" }, 9.85);
+        tl.to("#st-purple", { opacity: 1, duration: 0.2, ease: "power2.in" }, 10.55);
+        tl.set(S, { hero: 0, camZ: 10.5, camY: 3.6, lookY: 1.5, rx: 0, ry: 0, x: 0, y: 0 }, 10.9);
+        tl.set("#st-ground", { backgroundColor: PURPLE }, 10.9);
+        tl.set("#st-glow", { opacity: 0 }, 10.9);
+
+        // 15.0: a helix of cups rises through the purple world, then collapses into one
+        tl.set(S, { swarm: 1, camZ: 15, camY: 1.4, lookY: 1.2 }, 14.95);
+        tl.to("#st-purple", { opacity: 0, duration: 0.35, ease: "power2.inOut" }, 15.0);
+        tl.to(S, { swarmRot: 1, duration: 2.5, ease: "none" }, 15.0);
+        tl.to(S, { conv: 1, duration: 0.6, ease: "power3.inOut" }, 16.9);
+        tl.to(S, { camZ: 10.5, camY: 3.6, lookY: 1.5, duration: 0.6, ease: "power3.inOut" }, 16.9);
+        tl.set(S, { swarm: 0, hero: 1 }, 17.5);
+        tl.to("#st-ground", { backgroundColor: LIGHT, duration: 0.4, ease: "power2.inOut" }, 17.2);
+        tl.to("#st-glow", { opacity: 1, duration: 0.5, ease: "power2.out" }, 17.3);
+        squashAt(17.5, 0.2, 0.36);
+
+        // end card: hop to the left, one slow turn back to the label
+        hop(17.95, -2.3, 0.5, 0.6, {});
+        tl.to(S, { camZ: 9.6, duration: 0.6, ease: "power2.inOut" }, 17.95);
+        tl.to(S, { ry: TAU, duration: 4.0, ease: "power1.inOut" }, 18.6);
+
+        window.__timelines["stage"] = tl;
+        draw();
+      });
+
+      window.__hf = window.__hf || {};
+      window.__hf.buildReady = window.__hf.buildReady || {};
+      window.__hf.buildReady["stage"] = built;
+    })();
+  </script>
+</template>

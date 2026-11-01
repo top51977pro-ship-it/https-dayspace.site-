@@ -1,0 +1,55 @@
+<template>
+  <style>
+    @font-face {
+      font-family: "Heebo";
+      src: url("assets/fonts/heebo-hebrew.woff2") format("woff2");
+      font-weight: 100 900;
+      unicode-range: U+0307-0308, U+0590-05FF, U+200C-2010, U+20AA, U+25CC, U+FB1D-FB4F;
+    }
+    @font-face {
+      font-family: "Heebo";
+      src: url("assets/fonts/heebo-latin.woff2") format("woff2");
+      font-weight: 100 900;
+      unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+    }
+    #root {
+      position: absolute;
+      inset: 0;
+      font-family: "Heebo", sans-serif;
+    }
+    #sw-line {
+      position: absolute;
+      left: 0;
+      right: 0;
+      text-align: center;
+      direction: rtl;
+      color: #ffffff;
+      font-size: 92px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+      text-shadow: 0 6px 30px rgba(40, 0, 70, 0.55);
+      top: 830px;
+      height: 250px;
+      padding-top: 32px;
+      background: linear-gradient(180deg, rgba(48, 12, 80, 0) 0%, rgba(48, 12, 80, 0.85) 45%, rgba(48, 12, 80, 0.95) 100%);
+    }
+    #sw-line .w {
+      display: inline-block;
+      margin: 0 0.12em;
+    }
+    #sw-line .accent {
+      color: #ffd21f;
+    }
+  </style>
+  <div id="root" data-composition-id="swarm" data-width="1920" data-height="1080">
+    <div id="sw-line" class="clip" data-start="0" data-duration="2.4"><span class="w">אחד</span><span class="w">אף</span><span class="w">פעם</span><span class="w">לא</span><span class="w accent">מספיק.</span></div>
+  </div>
+  <script>
+    const tl = gsap.timeline({ paused: true });
+    const ws = gsap.utils.toArray("#sw-line .w");
+    ws.forEach((w, i) => tl.fromTo(w, { opacity: 0, filter: "blur(8px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.14, ease: "power3.out" }, 0.25 + i * 0.07));
+    tl.to(ws, { opacity: 0, filter: "blur(8px)", duration: 0.16, ease: "power2.in", stagger: 0.03 }, 1.85);
+    window.__timelines["swarm"] = tl;
+  </script>
+</template>
